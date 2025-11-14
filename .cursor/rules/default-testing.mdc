@@ -1,0 +1,691 @@
+---
+globs: "src/**/*.test.ts,src/**/*.spec.ts,src/testing/**/*.ts"
+description: Testing patterns and requirements for domain-driven idle game development
+---
+
+# Solo Testing Strategy
+
+## Test Categories for Solo Development
+
+### Simplified Test Structure
+
+```
+src/lib/
+├── domain/
+│   ├── entities/
+│   │   ├── Organization.ts
+│   │   ├── Organization.test.ts
+│   │   ├── TaskInstance.ts
+│   │   └── TaskInstance.test.ts
+│   ├── systems/
+│   │   ├── TaskResolutionSystem.ts
+│   │   ├── TaskResolutionSystem.test.ts
+│   │   ├── EconomySystem.ts
+│   │   └── EconomySystem.test.ts
+│   └── valueObjects/
+│       ├── ResourceBundle.ts
+│       └── ResourceBundle.test.ts
+├── app/
+│   ├── StartTaskService.ts
+│   └── StartTaskService.test.ts
+└── repos/
+    ├── contracts/
+    └── prisma/
+        ├── PrismaTaskRepository.ts
+        └── PrismaTaskRepository.test.ts
+```
+
+### Test Categories (Simplified)
+
+- **Unit Tests**: Fast, isolated tests of domain entities, value objects, and systems (`*.test.ts` alongside source files)
+- **Integration Tests**: Tests that verify multiple systems work together
+- **Application Service Tests**: Tests for use-case orchestration with mocked repositories
+- **Repository Tests**: Tests for Prisma implementations (can use in-memory or test database)
+
+### Industry Testing Standards (Solo-Optimized)
+
+**Testing Best Practices:**
+- **Test Pyramid**: Unit (70%), Integration (20%), Application (8%), Repository (2%)
+- **Deterministic Testing**: Domain systems are pure functions - same inputs produce same outputs
+- **Isolation**: Domain tests have no external dependencies (no database, no framework)
+- **Mocking**: Application service tests use mocked repositories
+
+**Quality Gates (Industry-Aligned):**
+- **Code Coverage**: Maintain >80% coverage for critical paths
+- **Domain Purity**: Domain systems are pure functions with no side effects
+- **Integration Testing**: Systems work together correctly
+- **Repository Testing**: Data access layer works correctly
+
+## Unit Testing Patterns
+
+### Domain Entity Tests
+
+```typescript
+// src/lib/domain/entities/Organization.test.ts
+import { describe, it, expect } from 'vitest';
+import { Organization } from './Organization';
+import { OrganizationId, PlayerId } from '../valueObjects/Identifier';
+import { Timestamp } from '../valueObjects/Timestamp';
+import { ResourceBundle } from '../valueObjects/ResourceBundle';
+
+describe('Organization', () => {
+  describe('canAfford', () => {
+    it('should return true when organization has sufficient resources', () => {
+      const org = new Organization(
+        OrganizationId.generate(),
+        PlayerId.generate(),
+        Timestamp.now(),
+        Timestamp.now(),
+        new Map(),
+        { wallet: new ResourceBundle([{ resourceType: 'gold', amount: 100 }]) },
+        Timestamp.now()
+      );
+
+      const cost = new ResourceBundle([{ resourceType: 'gold', amount: 50 }]);
+      expect(org.canAfford(cost)).toBe(true);
+    });
+
+    it('should return false when organization lacks resources', () => {
+      const org = new Organization(
+        OrganizationId.generate(),
+        PlayerId.generate(),
+        Timestamp.now(),
+        Timestamp.now(),
+        new Map(),
+        { wallet: new ResourceBundle([{ resourceType: 'gold', amount: 30 }]) },
+        Timestamp.now()
+      );
+
+      const cost = new ResourceBundle([{ resourceType: 'gold', amount: 50 }]);
+      expect(org.canAfford(cost)).toBe(false);
+    });
+  });
+
+  describe('advanceTo', () => {
+    it('should update lastSimulatedAt and lastActiveAt', () => {
+      const org = new Organization(
+        OrganizationId.generate(),
+        PlayerId.generate(),
+        Timestamp.now(),
+        Timestamp.now(),
+        new Map(),
+        { wallet: new ResourceBundle([]) },
+        Timestamp.now()
+      );
+
+      const newTime = Timestamp.now().add(Duration.ofMinutes(10));
+      org.advanceTo(newTime);
+
+      expect(org.lastSimulatedAt.value).toBe(newTime.value);
+      expect(org.lastActiveAt.value).toBe(newTime.value);
+    });
+
+    it('should throw error when advancing to past timestamp', () => {
+      const org = new Organization(
+        OrganizationId.generate(),
+        PlayerId.generate(),
+        Timestamp.now(),
+        Timestamp.now(),
+        new Map(),
+        { wallet: new ResourceBundle([]) },
+        Timestamp.now()
+      );
+
+      const pastTime = Timestamp.now().subtract(Duration.ofMinutes(10));
+      expect(() => org.advanceTo(pastTime)).toThrow();
+    });
+  });
+});
+```
+
+### Domain System Tests
+
+```typescript
+// src/lib/domain/systems/TaskResolutionSystem.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { TaskResolutionSystem } from './TaskResolutionSystem';
+import { TaskInstance } from '../entities/TaskInstance';
+import { AgentInstance } from '../entities/AgentInstance';
+import { TaskArchetype } from '../entities/TaskArchetype';
+import { Timestamp, Duration } from '../valueObjects';
+
+describe('TaskResolutionSystem', () => {
+  let system: TaskResolutionSystem;
+
+  beforeEach(() => {
+    system = new TaskResolutionSystem();
+  });
+
+  describe('resolveTasks', () => {
+    it('should resolve tasks that are ready for completion', () => {
+      const now = Timestamp.now();
+      const pastTime = now.subtract(Duration.ofMinutes(5));
+
+      const task = new TaskInstance(
+        TaskInstanceId.generate(),
+        OrganizationId.generate(),
+        TaskArchetypeId.generate(),
+        [AgentId.generate()],
+        pastTime,
+        pastTime.add(Duration.ofMinutes(1)),
+        'IN_PROGRESS'
+      );
+
+      const archetype = new TaskArchetype(
+        TaskArchetypeId.generate(),
+        'combat',
+        Duration.ofMinutes(1),
+        1,
+        3,
+        'combat',
+        new ResourceBundle([]),
+        new ResourceBundle([{ resourceType: 'gold', amount: 10 }])
+      );
+
+      const agent = new AgentInstance(
+        AgentId.generate(),
+        OrganizationId.generate(),
+        AgentTemplateId.generate(),
+        1,
+        0,
+        new Map([['combat', 50]]),
+        'IDLE'
+      );
+
+      const results = system.resolveTasks(
+        [task],
+        new Map([[agent.id, agent]]),
+        new Map([[archetype.id, archetype]]),
+        [],
+        now
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].taskId).toBe(task.id);
+      expect(results[0].outcomeCategory).toBeDefined();
+      expect(results[0].rewards).toBeDefined();
+    });
+
+    it('should not resolve tasks that are not ready', () => {
+      const now = Timestamp.now();
+      const futureTime = now.add(Duration.ofMinutes(5));
+
+      const task = new TaskInstance(
+        TaskInstanceId.generate(),
+        OrganizationId.generate(),
+        TaskArchetypeId.generate(),
+        [AgentId.generate()],
+        now,
+        futureTime,
+        'IN_PROGRESS'
+      );
+
+      const results = system.resolveTasks(
+        [task],
+        new Map(),
+        new Map(),
+        [],
+        now
+      );
+
+      expect(results).toHaveLength(0);
+    });
+
+    it('should produce deterministic results for same inputs', () => {
+      const now = Timestamp.now();
+      const pastTime = now.subtract(Duration.ofMinutes(5));
+
+      const task = new TaskInstance(
+        TaskInstanceId.from('task-1'),
+        OrganizationId.from('org-1'),
+        TaskArchetypeId.from('archetype-1'),
+        [AgentId.from('agent-1')],
+        pastTime,
+        pastTime.add(Duration.ofMinutes(1)),
+        'IN_PROGRESS'
+      );
+
+      const archetype = new TaskArchetype(
+        TaskArchetypeId.from('archetype-1'),
+        'combat',
+        Duration.ofMinutes(1),
+        1,
+        3,
+        'combat',
+        new ResourceBundle([]),
+        new ResourceBundle([{ resourceType: 'gold', amount: 10 }])
+      );
+
+      const agent = new AgentInstance(
+        AgentId.from('agent-1'),
+        OrganizationId.from('org-1'),
+        AgentTemplateId.from('template-1'),
+        1,
+        0,
+        new Map([['combat', 50]]),
+        'IDLE'
+      );
+
+      const results1 = system.resolveTasks(
+        [task],
+        new Map([[agent.id, agent]]),
+        new Map([[archetype.id, archetype]]),
+        [],
+        now
+      );
+
+      const results2 = system.resolveTasks(
+        [task],
+        new Map([[agent.id, agent]]),
+        new Map([[archetype.id, archetype]]),
+        [],
+        now
+      );
+
+      expect(results1).toEqual(results2);
+    });
+  });
+});
+```
+
+### Value Object Tests
+
+```typescript
+// src/lib/domain/valueObjects/ResourceBundle.test.ts
+import { describe, it, expect } from 'vitest';
+import { ResourceBundle } from './ResourceBundle';
+import { ResourceUnit } from './ResourceUnit';
+
+describe('ResourceBundle', () => {
+  describe('add', () => {
+    it('should combine resources correctly', () => {
+      const bundle1 = new ResourceBundle([
+        { resourceType: 'gold', amount: 10 },
+        { resourceType: 'wood', amount: 5 }
+      ]);
+
+      const bundle2 = new ResourceBundle([
+        { resourceType: 'gold', amount: 5 },
+        { resourceType: 'stone', amount: 3 }
+      ]);
+
+      const result = bundle1.add(bundle2);
+
+      expect(result.get('gold')).toBe(15);
+      expect(result.get('wood')).toBe(5);
+      expect(result.get('stone')).toBe(3);
+    });
+  });
+
+  describe('subtract', () => {
+    it('should subtract resources correctly', () => {
+      const bundle1 = new ResourceBundle([
+        { resourceType: 'gold', amount: 10 }
+      ]);
+
+      const bundle2 = new ResourceBundle([
+        { resourceType: 'gold', amount: 3 }
+      ]);
+
+      const result = bundle1.subtract(bundle2);
+
+      expect(result.get('gold')).toBe(7);
+    });
+
+    it('should throw error when subtracting more than available', () => {
+      const bundle1 = new ResourceBundle([
+        { resourceType: 'gold', amount: 10 }
+      ]);
+
+      const bundle2 = new ResourceBundle([
+        { resourceType: 'gold', amount: 15 }
+      ]);
+
+      expect(() => bundle1.subtract(bundle2)).toThrow();
+    });
+  });
+});
+```
+
+## Application Service Tests
+
+### Service Tests with Mocked Repositories
+
+```typescript
+// src/lib/app/StartTaskService.test.ts
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { StartTaskService } from './StartTaskService';
+import type { OrganizationRepository } from '../repos/contracts/OrganizationRepository';
+import type { TaskRepository } from '../repos/contracts/TaskRepository';
+import type { AgentRepository } from '../repos/contracts/AgentRepository';
+import { Organization } from '../domain/entities/Organization';
+import { TaskOffer } from '../domain/entities/TaskOffer';
+import { TaskArchetype } from '../domain/entities/TaskArchetype';
+import { AgentInstance } from '../domain/entities/AgentInstance';
+
+describe('StartTaskService', () => {
+  let service: StartTaskService;
+  let mockOrgRepo: OrganizationRepository;
+  let mockTaskRepo: TaskRepository;
+  let mockAgentRepo: AgentRepository;
+
+  beforeEach(() => {
+    mockOrgRepo = {
+      getById: vi.fn(),
+      save: vi.fn()
+    } as any;
+
+    mockTaskRepo = {
+      getOfferById: vi.fn(),
+      getArchetypeById: vi.fn(),
+      saveOffer: vi.fn(),
+      saveInstance: vi.fn()
+    } as any;
+
+    mockAgentRepo = {
+      getById: vi.fn()
+    } as any;
+
+    const economySystem = new EconomySystem();
+    service = new StartTaskService(
+      mockOrgRepo,
+      mockTaskRepo,
+      mockAgentRepo,
+      economySystem
+    );
+  });
+
+  it('should successfully start a task', async () => {
+    const orgId = OrganizationId.generate();
+    const offerId = TaskOfferId.generate();
+    const agentId = AgentId.generate();
+
+    const org = new Organization(/* ... */);
+    const offer = new TaskOffer(/* ... */);
+    const archetype = new TaskArchetype(/* ... */);
+    const agent = new AgentInstance(/* ... */);
+
+    vi.mocked(mockOrgRepo.getById).mockResolvedValue(org);
+    vi.mocked(mockTaskRepo.getOfferById).mockResolvedValue(offer);
+    vi.mocked(mockTaskRepo.getArchetypeById).mockResolvedValue(archetype);
+    vi.mocked(mockAgentRepo.getById).mockResolvedValue(agent);
+
+    const result = await service.execute(orgId, offerId, [agentId]);
+
+    expect(result.success).toBe(true);
+    expect(result.taskId).toBeDefined();
+    expect(mockTaskRepo.saveInstance).toHaveBeenCalled();
+  });
+
+  it('should fail when offer is already taken', async () => {
+    const orgId = OrganizationId.generate();
+    const offerId = TaskOfferId.generate();
+    const agentId = AgentId.generate();
+
+    const org = new Organization(/* ... */);
+    const offer = new TaskOffer(/* ... */);
+    offer.isTaken = true;
+
+    vi.mocked(mockOrgRepo.getById).mockResolvedValue(org);
+    vi.mocked(mockTaskRepo.getOfferById).mockResolvedValue(offer);
+
+    const result = await service.execute(orgId, offerId, [agentId]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('already taken');
+  });
+
+  it('should fail when organization cannot afford cost', async () => {
+    const orgId = OrganizationId.generate();
+    const offerId = TaskOfferId.generate();
+    const agentId = AgentId.generate();
+
+    const org = new Organization(/* ... */);
+    const offer = new TaskOffer(/* ... */);
+    const archetype = new TaskArchetype(/* ... */);
+    archetype.entryCost = new ResourceBundle([{ resourceType: 'gold', amount: 1000 }]);
+
+    vi.mocked(mockOrgRepo.getById).mockResolvedValue(org);
+    vi.mocked(mockTaskRepo.getOfferById).mockResolvedValue(offer);
+    vi.mocked(mockTaskRepo.getArchetypeById).mockResolvedValue(archetype);
+
+    const result = await service.execute(orgId, offerId, [agentId]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Insufficient resources');
+  });
+});
+```
+
+## Repository Tests
+
+### Prisma Repository Tests
+
+```typescript
+// src/lib/repos/prisma/PrismaTaskRepository.test.ts
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { PrismaClient } from '@prisma/client';
+import { PrismaTaskRepository } from './PrismaTaskRepository';
+import { TaskInstance } from '../../domain/entities/TaskInstance';
+import { Timestamp, Duration } from '../../domain/valueObjects';
+
+describe('PrismaTaskRepository', () => {
+  let prisma: PrismaClient;
+  let repository: PrismaTaskRepository;
+
+  beforeEach(async () => {
+    prisma = new PrismaClient();
+    repository = new PrismaTaskRepository(prisma);
+    // Setup test database
+  });
+
+  afterEach(async () => {
+    await prisma.$disconnect();
+  });
+
+  it('should save and retrieve task instance', async () => {
+    const task = new TaskInstance(
+      TaskInstanceId.generate(),
+      OrganizationId.generate(),
+      TaskArchetypeId.generate(),
+      [AgentId.generate()],
+      Timestamp.now(),
+      Timestamp.now().add(Duration.ofMinutes(10)),
+      'IN_PROGRESS'
+    );
+
+    await repository.saveInstance(task);
+    const retrieved = await repository.getInstanceById(task.id);
+
+    expect(retrieved).toBeDefined();
+    expect(retrieved?.id).toEqual(task.id);
+    expect(retrieved?.status).toBe('IN_PROGRESS');
+  });
+
+  it('should find pending tasks ready for resolution', async () => {
+    const now = Timestamp.now();
+    const pastTime = now.subtract(Duration.ofMinutes(5));
+
+    const task1 = new TaskInstance(/* ... ready task ... */);
+    const task2 = new TaskInstance(/* ... not ready task ... */);
+
+    await repository.saveInstance(task1);
+    await repository.saveInstance(task2);
+
+    const ready = await repository.findPendingTasksReadyForResolution(now);
+
+    expect(ready).toHaveLength(1);
+    expect(ready[0].id).toEqual(task1.id);
+  });
+});
+```
+
+## Integration Testing Patterns
+
+### System Integration Tests
+
+```typescript
+// src/lib/domain/systems/integration/TaskResolutionIntegration.test.ts
+import { describe, it, expect } from 'vitest';
+import { TaskResolutionSystem } from '../TaskResolutionSystem';
+import { EconomySystem } from '../EconomySystem';
+import { ProgressionSystem } from '../ProgressionSystem';
+import { Organization } from '../../entities/Organization';
+
+describe('Task Resolution Integration', () => {
+  it('should integrate task resolution with economy and progression', () => {
+    const taskResolutionSystem = new TaskResolutionSystem();
+    const economySystem = new EconomySystem();
+    const progressionSystem = new ProgressionSystem();
+
+    // Setup test data
+    const org = new Organization(/* ... */);
+    const task = new TaskInstance(/* ... */);
+    const archetype = new TaskArchetype(/* ... */);
+
+    // Resolve task
+    const results = taskResolutionSystem.resolveTasks(
+      [task],
+      new Map(),
+      new Map([[archetype.id, archetype]]),
+      [],
+      Timestamp.now()
+    );
+
+    // Apply economy changes
+    for (const result of results) {
+      economySystem.applyReward(org, result.rewards);
+      progressionSystem.applyTrackChanges(org, result.trackChanges);
+    }
+
+    // Verify integration
+    expect(org.economyState.wallet.get('gold')).toBeGreaterThan(0);
+    expect(org.progressTracks.get('prestige')?.currentValue).toBeGreaterThan(0);
+  });
+});
+```
+
+## Deterministic Testing Patterns
+
+### Pure Function Testing
+
+```typescript
+// Domain systems are pure functions - test determinism
+describe('TaskResolutionSystem Determinism', () => {
+  it('should produce identical results for identical inputs', () => {
+    const system = new TaskResolutionSystem();
+    const inputs = createTestInputs();
+
+    const result1 = system.resolveTasks(...inputs);
+    const result2 = system.resolveTasks(...inputs);
+
+    expect(result1).toEqual(result2);
+  });
+
+  it('should produce different results for different inputs', () => {
+    const system = new TaskResolutionSystem();
+    const inputs1 = createTestInputs();
+    const inputs2 = createTestInputsWithDifferentAgents();
+
+    const result1 = system.resolveTasks(...inputs1);
+    const result2 = system.resolveTasks(...inputs2);
+
+    expect(result1).not.toEqual(result2);
+  });
+});
+```
+
+## Test Configuration
+
+### Vitest Configuration
+
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node', // Domain tests don't need browser
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        'src/routes/', // SvelteKit routes tested separately
+        'prisma/'
+      ]
+    }
+  }
+});
+```
+
+### Test Execution Commands
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Run specific test file
+npm test -- TaskResolutionSystem.test.ts
+
+# Run tests matching pattern
+npm test -- -t "should resolve tasks"
+
+# Run domain tests only
+npm test -- src/lib/domain
+
+# Run application service tests only
+npm test -- src/lib/app
+```
+
+## Solo Testing Quality Gates
+
+### Coverage Requirements (Simplified)
+
+- **Domain Entities**: Basic functionality works (canAfford, advanceTo, etc.)
+- **Domain Systems**: Pure functions produce correct results
+- **Value Objects**: Immutable operations work correctly
+- **Application Services**: Use cases orchestrate correctly
+- **Repositories**: Data access works correctly
+
+### Performance Requirements (Relaxed)
+
+- **Unit Tests**: < 1 second per test
+- **Integration Tests**: < 5 seconds per test
+- **Application Service Tests**: < 2 seconds per test
+- **Repository Tests**: < 3 seconds per test
+
+### Quality Standards (Solo)
+
+- **Test Isolation**: Tests don't depend on each other
+- **Deterministic**: Domain system tests produce consistent results
+- **Fast Feedback**: Quick test execution for development
+- **Essential Coverage**: Critical paths covered
+- **Maintainable**: Tests are easy to understand and modify
+
+### Industry Standards Integration (Solo-Implemented)
+
+**Enhanced Test Considerations:**
+- **Domain Purity**: Domain systems are pure functions with no side effects
+- **Deterministic Testing**: Same inputs produce same outputs
+- **Coverage Testing**: Code coverage analysis for critical paths
+- **Integration Testing**: Systems work together correctly
+
+**Industry Standards Checklist:**
+- [ ] Domain entity tests pass
+- [ ] Domain system tests pass (deterministic)
+- [ ] Value object tests pass
+- [ ] Application service tests pass (with mocks)
+- [ ] Repository tests pass
+- [ ] Integration tests pass
+- [ ] Tests are deterministic (pure functions)

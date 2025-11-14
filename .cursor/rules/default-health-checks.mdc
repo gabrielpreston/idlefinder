@@ -1,0 +1,517 @@
+---
+globs: "src/lib/domain/**/*.ts,src/lib/app/**/*.ts,src/lib/repos/**/*.ts"
+description: Domain model validation and health check requirements for idle game
+---
+
+# Solo Domain Model Validation
+
+## Basic Domain Model Validation Standards
+
+All domain entities and systems must implement simple validation for solo development:
+
+### Basic State Validation
+
+- **Entity Integrity**: Validate domain entities are consistent and valid
+- **Value Object Validation**: Validate value objects meet invariants
+- **System Input Validation**: Validate system inputs before processing
+- **Repository Data Integrity**: Validate data consistency in repositories
+
+### Simple Implementation
+
+- **Basic functionality**: Domain entities are valid and consistent
+- **No complex metrics**: Keep it simple
+- **No extensive dependency checking**: Focus on core functionality
+
+### Industry Domain Model Validation Standards (Solo-Optimized)
+
+**Domain Model Validation Best Practices:**
+- **Entity Invariants**: Validate entities maintain their invariants
+- **Value Object Immutability**: Validate value objects are immutable
+- **System Purity**: Validate systems are pure functions
+- **Repository Consistency**: Validate repository data integrity
+
+**Industry Standards Integration:**
+- **Entity Validation**: Validate entities at critical points
+- **System Validation**: Validate system inputs and outputs
+- **Repository Validation**: Validate data consistency
+- **Error Handling**: Graceful degradation on validation failures
+
+## Simple Implementation Pattern
+
+### Basic Entity Validation
+
+```typescript
+// src/lib/domain/entities/Organization.ts
+export class Organization {
+  constructor(
+    public readonly id: OrganizationId,
+    public readonly ownerPlayerId: PlayerId,
+    public readonly createdAt: Timestamp,
+    public lastActiveAt: Timestamp,
+    public readonly progressTracks: Map<TrackKey, ProgressTrack>,
+    public readonly economyState: EconomyState,
+    public lastSimulatedAt: Timestamp
+  ) {
+    this.validate();
+  }
+
+  private validate(): void {
+    if (!this.id.isValid()) {
+      throw new DomainError('Invalid organization ID');
+    }
+
+    if (this.lastSimulatedAt.value < this.createdAt.value) {
+      throw new DomainError('lastSimulatedAt cannot be before createdAt');
+    }
+
+    if (this.lastActiveAt.value < this.createdAt.value) {
+      throw new DomainError('lastActiveAt cannot be before createdAt');
+    }
+  }
+
+  canAfford(cost: ResourceBundle): boolean {
+    if (!cost.isValid()) {
+      throw new DomainError('Invalid resource bundle');
+    }
+    return this.economyState.hasResources(cost);
+  }
+
+  advanceTo(now: Timestamp): void {
+    if (now.value < this.lastSimulatedAt.value) {
+      throw new DomainError('Cannot advance to past timestamp');
+    }
+    this.lastSimulatedAt = now;
+    this.lastActiveAt = now;
+  }
+}
+```
+
+### Value Object Validation
+
+```typescript
+// src/lib/domain/valueObjects/ResourceBundle.ts
+export class ResourceBundle {
+  private resources: Map<ResourceType, number>;
+
+  constructor(resources: ResourceUnit[]) {
+    this.resources = new Map();
+    for (const unit of resources) {
+      if (unit.amount < 0) {
+        throw new DomainError('Resource amount cannot be negative');
+      }
+      const current = this.resources.get(unit.resourceType) || 0;
+      this.resources.set(unit.resourceType, current + unit.amount);
+    }
+  }
+
+  isValid(): boolean {
+    for (const amount of this.resources.values()) {
+      if (amount < 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  get(resourceType: ResourceType): number {
+    return this.resources.get(resourceType) || 0;
+  }
+
+  hasResources(required: ResourceBundle): boolean {
+    for (const [type, amount] of required.resources) {
+      if (this.get(type) < amount) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+```
+
+### System Input Validation
+
+```typescript
+// src/lib/domain/systems/TaskResolutionSystem.ts
+export class TaskResolutionSystem {
+  resolveTasks(
+    tasks: TaskInstance[],
+    agents: Map<AgentId, AgentInstance>,
+    archetypes: Map<TaskArchetypeId, TaskArchetype>,
+    facilities: FacilityInstance[],
+    now: Timestamp
+  ): TaskResolutionResult[] {
+    // Validate inputs
+    this.validateInputs(tasks, agents, archetypes, facilities, now);
+
+    const readyTasks = tasks.filter(t => t.isReadyForResolution(now));
+    const results: TaskResolutionResult[] = [];
+
+    for (const task of readyTasks) {
+      const archetype = archetypes.get(task.taskArchetypeId);
+      if (!archetype) {
+        console.warn(`[TaskResolution] Missing archetype for task ${task.id}`);
+        continue;
+      }
+
+      const result = this.resolveTask(task, archetype, agents, facilities, now);
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  private validateInputs(
+    tasks: TaskInstance[],
+    agents: Map<AgentId, AgentInstance>,
+    archetypes: Map<TaskArchetypeId, TaskArchetype>,
+    facilities: FacilityInstance[],
+    now: Timestamp
+  ): void {
+    if (!now.isValid()) {
+      throw new DomainError('Invalid timestamp');
+    }
+
+    for (const task of tasks) {
+      if (!task.id.isValid()) {
+        throw new DomainError(`Invalid task ID: ${task.id}`);
+      }
+    }
+
+    for (const [id, agent] of agents) {
+      if (!id.isValid()) {
+        throw new DomainError(`Invalid agent ID: ${id}`);
+      }
+      if (!agent.id.equals(id)) {
+        throw new DomainError(`Agent ID mismatch: ${id} vs ${agent.id}`);
+      }
+    }
+  }
+}
+```
+
+## Entity-Specific Validation
+
+### Organization Validation
+
+```typescript
+// src/lib/domain/entities/Organization.ts
+export class Organization {
+  private validate(): void {
+    // Validate ID
+    if (!this.id.isValid()) {
+      throw new DomainError('Invalid organization ID');
+    }
+
+    // Validate timestamps
+    if (this.lastSimulatedAt.value < this.createdAt.value) {
+      throw new DomainError('lastSimulatedAt cannot be before createdAt');
+    }
+
+    if (this.lastActiveAt.value < this.createdAt.value) {
+      throw new DomainError('lastActiveAt cannot be before createdAt');
+    }
+
+    // Validate progress tracks
+    for (const [key, track] of this.progressTracks) {
+      if (track.currentValue < 0) {
+        throw new DomainError(`Progress track ${key} has negative value`);
+      }
+    }
+
+    // Validate economy state
+    if (!this.economyState.wallet.isValid()) {
+      throw new DomainError('Invalid economy state wallet');
+    }
+  }
+
+  validateState(): ValidationResult {
+    const errors: string[] = [];
+
+    if (!this.id.isValid()) {
+      errors.push('Invalid organization ID');
+    }
+
+    if (this.lastSimulatedAt.value < this.createdAt.value) {
+      errors.push('lastSimulatedAt is before createdAt');
+    }
+
+    for (const [key, track] of this.progressTracks) {
+      if (track.currentValue < 0) {
+        errors.push(`Progress track ${key} has negative value: ${track.currentValue}`);
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+}
+```
+
+### Task Instance Validation
+
+```typescript
+// src/lib/domain/entities/TaskInstance.ts
+export class TaskInstance {
+  validateState(): ValidationResult {
+    const errors: string[] = [];
+
+    if (!this.id.isValid()) {
+      errors.push('Invalid task instance ID');
+    }
+
+    if (this.expectedCompletionAt.value < this.startedAt.value) {
+      errors.push('expectedCompletionAt is before startedAt');
+    }
+
+    if (this.status === 'IN_PROGRESS' && this.completedAt) {
+      errors.push('IN_PROGRESS task cannot have completedAt set');
+    }
+
+    if (this.status === 'COMPLETED' && !this.completedAt) {
+      errors.push('COMPLETED task must have completedAt set');
+    }
+
+    if (this.status === 'COMPLETED' && !this.outcomeCategory) {
+      errors.push('COMPLETED task must have outcomeCategory');
+    }
+
+    if (this.assignedAgentIds.length === 0) {
+      errors.push('Task must have at least one assigned agent');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  isReadyForResolution(now: Timestamp): boolean {
+    if (this.status !== 'IN_PROGRESS') {
+      return false;
+    }
+
+    if (now.value < this.expectedCompletionAt.value) {
+      return false;
+    }
+
+    return true;
+  }
+}
+```
+
+### Agent Instance Validation
+
+```typescript
+// src/lib/domain/entities/AgentInstance.ts
+export class AgentInstance {
+  validateState(): ValidationResult {
+    const errors: string[] = [];
+
+    if (!this.id.isValid()) {
+      errors.push('Invalid agent instance ID');
+    }
+
+    if (this.level < 1) {
+      errors.push(`Agent level must be >= 1, got ${this.level}`);
+    }
+
+    if (this.experience < 0) {
+      errors.push(`Agent experience cannot be negative: ${this.experience}`);
+    }
+
+    for (const [statKey, value] of this.effectiveStats) {
+      if (value < 0) {
+        errors.push(`Agent stat ${statKey} cannot be negative: ${value}`);
+      }
+    }
+
+    if (!['IDLE', 'ASSIGNED', 'INJURED', 'UNAVAILABLE'].includes(this.status)) {
+      errors.push(`Invalid agent status: ${this.status}`);
+    }
+
+    if (this.status === 'ASSIGNED' && !this.currentTaskId) {
+      errors.push('ASSIGNED agent must have currentTaskId');
+    }
+
+    if (this.status === 'IDLE' && this.currentTaskId) {
+      errors.push('IDLE agent cannot have currentTaskId');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+}
+```
+
+## Repository Validation
+
+### Data Integrity Checks
+
+```typescript
+// src/lib/repos/prisma/PrismaTaskRepository.ts
+export class PrismaTaskRepository implements TaskRepository {
+  async validateDataIntegrity(): Promise<ValidationResult> {
+    const errors: string[] = [];
+
+    // Check for orphaned task instances
+    const orphanedTasks = await this.prisma.taskInstance.findMany({
+      where: {
+        organization: null
+      }
+    });
+
+    if (orphanedTasks.length > 0) {
+      errors.push(`Found ${orphanedTasks.length} orphaned task instances`);
+    }
+
+    // Check for invalid task statuses
+    const invalidStatuses = await this.prisma.taskInstance.findMany({
+      where: {
+        status: {
+          notIn: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED']
+        }
+      }
+    });
+
+    if (invalidStatuses.length > 0) {
+      errors.push(`Found ${invalidStatuses.length} tasks with invalid status`);
+    }
+
+    // Check for tasks with missing archetypes
+    const tasksWithMissingArchetypes = await this.prisma.taskInstance.findMany({
+      where: {
+        archetype: null
+      }
+    });
+
+    if (tasksWithMissingArchetypes.length > 0) {
+      errors.push(`Found ${tasksWithMissingArchetypes.length} tasks with missing archetypes`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+}
+```
+
+## Application Service Validation
+
+### Service Input Validation
+
+```typescript
+// src/lib/app/StartTaskService.ts
+export class StartTaskService {
+  async execute(
+    organizationId: OrganizationId,
+    offerId: TaskOfferId,
+    agentIds: AgentId[]
+  ): Promise<StartTaskResult> {
+    // Validate inputs
+    if (!organizationId.isValid()) {
+      return { success: false, error: 'Invalid organization ID' };
+    }
+
+    if (!offerId.isValid()) {
+      return { success: false, error: 'Invalid offer ID' };
+    }
+
+    if (agentIds.length === 0) {
+      return { success: false, error: 'Must assign at least one agent' };
+    }
+
+    for (const agentId of agentIds) {
+      if (!agentId.isValid()) {
+        return { success: false, error: `Invalid agent ID: ${agentId}` };
+      }
+    }
+
+    // Continue with business logic...
+  }
+}
+```
+
+## Quality Gates (Simplified)
+
+### Domain Model Validation Requirements
+
+- **Entity Consistency**: Entities maintain their invariants
+- **Value Object Immutability**: Value objects are immutable
+- **System Purity**: Systems are pure functions
+- **Repository Consistency**: Repository data is consistent
+
+### Industry Standards Domain Model Validation (Solo-Implemented)
+
+**Enhanced Domain Model Validation Implementation:**
+```typescript
+export class DomainValidator {
+  validateOrganization(org: Organization): ValidationResult {
+    const errors: string[] = [];
+
+    // Validate ID
+    if (!org.id.isValid()) {
+      errors.push(`Invalid organization ID: ${org.id}`);
+    }
+
+    // Validate timestamps
+    if (org.lastSimulatedAt.value < org.createdAt.value) {
+      errors.push('lastSimulatedAt is before createdAt');
+    }
+
+    // Validate progress tracks
+    for (const [key, track] of org.progressTracks) {
+      if (track.currentValue < 0) {
+        errors.push(`Progress track ${key} has negative value: ${track.currentValue}`);
+      }
+    }
+
+    // Validate economy state
+    if (!org.economyState.wallet.isValid()) {
+      errors.push('Invalid economy state wallet');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  validateTaskInstance(task: TaskInstance): ValidationResult {
+    const errors: string[] = [];
+
+    if (!task.id.isValid()) {
+      errors.push(`Invalid task instance ID: ${task.id}`);
+    }
+
+    if (task.expectedCompletionAt.value < task.startedAt.value) {
+      errors.push('expectedCompletionAt is before startedAt');
+    }
+
+    if (task.status === 'IN_PROGRESS' && task.completedAt) {
+      errors.push('IN_PROGRESS task cannot have completedAt set');
+    }
+
+    if (task.status === 'COMPLETED' && !task.completedAt) {
+      errors.push('COMPLETED task must have completedAt set');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+}
+```
+
+**Industry Standards Checklist:**
+- [ ] Entity validation implemented
+- [ ] Value object validation implemented
+- [ ] System input validation implemented
+- [ ] Repository data integrity checks implemented
+- [ ] Validation logging implemented
+- [ ] Error recovery implemented

@@ -1,0 +1,621 @@
+---
+globs: "**/*.ts,**/*.tsx"
+description: TypeScript code quality, type annotations, and coding standards for solo development
+---
+
+# TypeScript Code Quality Standards for Solo Development
+
+## Map/Set Key Equality with Value Objects
+
+### Rule: Always Use Primitive Values as Map/Set Keys
+
+**CRITICAL**: When using value objects (like `Identifier`, `Timestamp`, etc.) as keys in `Map` or `Set`, always use their primitive `.value` property instead of the object itself.
+
+**Rationale**: JavaScript `Map` and `Set` use reference equality (SameValueZero), not value equality. Two `Identifier` instances with the same `.value` are different objects and won't match in lookups.
+
+**Examples**:
+
+```typescript
+// ✅ CORRECT: Use .value for keys
+const agentsMap = new Map(agents.map((a) => [a.id.value, a]));
+const archetypesMap = new Map(archetypes.map((a) => [a.id.value, a]));
+const archetypeIdsSet = new Set(archetypeIds.map((id) => id.value));
+
+// Lookup using .value
+const agent = agentsMap.get(agentId.value);
+const archetype = archetypesMap.get(task.taskArchetypeId.value);
+const isUnlocked = archetypeIdsSet.has(archetype.id.value);
+
+// ❌ INCORRECT: Using objects as keys
+const agentsMap = new Map(agents.map((a) => [a.id, a])); // Will fail lookups!
+const archetypeIdsSet = new Set(archetypeIds); // Will fail .has() checks!
+const agent = agentsMap.get(agentId); // Returns undefined even if IDs match!
+```
+
+**Type Signatures**: When creating Maps/Sets for lookup purposes, use string keys:
+- `Map<string, AgentInstance>` not `Map<AgentId, AgentInstance>`
+- `Set<string>` not `Set<TaskArchetypeId>`
+
+**Exception**: If you need to preserve the value object type in the signature for type safety, you can still use `.value` for the actual keys, but document this clearly in comments.
+
+**Common Patterns**:
+
+```typescript
+// Pattern 1: Creating lookup maps
+const agentsMap = new Map<string, AgentInstance>(
+  agents.map((agent) => [agent.id.value, agent])
+);
+
+// Pattern 2: Creating lookup sets
+const unlockedArchetypeIds = new Set<string>(
+  unlockRules
+    .flatMap(rule => rule.effects.newTaskArchetypes || [])
+    .map(id => id.value)
+);
+
+// Pattern 3: Lookup operations
+const agent = agentsMap.get(agentId.value);
+const isUnlocked = unlockedArchetypeIds.has(archetype.id.value);
+```
+
+**Anti-Patterns**:
+
+- ❌ **Don't**: Use value objects directly as Map/Set keys
+- ❌ **Don't**: Assume `Identifier.equals()` works for Map/Set lookups
+- ❌ **Don't**: Mix object keys and string keys in the same Map
+- ✅ **Do**: Always use `.value` when creating Maps/Sets with Identifier keys
+- ✅ **Do**: Use `Map<string, T>` and `Set<string>` type signatures
+- ✅ **Do**: Extract `.value` when doing lookups
+
+## Type Annotations (MANDATORY - Solo Development Priority)
+
+### Comprehensive Type Coverage Required
+
+**ALL** TypeScript code must include complete type annotations - this is the #1 priority for solo development:
+
+- **Function parameters**: `function processAudio(data: Uint8Array, sampleRate: number): AudioResult`
+- **Return types**: `(): GameState`, `(): Promise<void>`, `(): Vector2 | null`
+- **Variable annotations**: `const audioBuffer: Float32Array = new Float32Array(1024)`
+- **Class properties**: `private state: GameState`, `public readonly config: GameConfig`
+- **Generic types**: `Map<string, Stressor>`, `Array<AbilityUpgrade>`, `Promise<TestResult>`
+
+### Type Annotation Standards
+
+```typescript
+// Function signatures with complete types
+function processAudio(
+  audioData: Uint8Array,
+  sampleRate: number,
+  channels: number = 1
+): { samples: Float32Array; duration: number; rms: number } {
+  // Implementation
+}
+
+// Class definitions with typed properties
+export class Organization {
+  constructor(
+    public readonly id: OrganizationId,
+    public readonly ownerPlayerId: PlayerId,
+    public readonly createdAt: Timestamp,
+    public lastActiveAt: Timestamp,
+    public readonly progressTracks: Map<TrackKey, ProgressTrack>,
+    public readonly economyState: EconomyState,
+    public lastSimulatedAt: Timestamp
+  ) {
+    this.validate();
+  }
+
+  canAfford(cost: ResourceBundle): boolean {
+    return this.economyState.hasResources(cost);
+  }
+
+  advanceTo(now: Timestamp): void {
+    this.lastSimulatedAt = now;
+    this.lastActiveAt = now;
+  }
+}
+
+// Interface definitions
+export interface TaskResolutionResult {
+  taskId: TaskInstanceId;
+  outcomeCategory: OutcomeCategory;
+  rewards: ResourceBundle;
+  agentChanges: AgentChange[];
+  trackChanges: TrackChange[];
+}
+
+// Generic types
+class ObjectPool<T> {
+  private pool: T[] = [];
+  private factory: () => T;
+  
+  constructor(factory: () => T) {
+    this.factory = factory;
+  }
+  
+  acquire(): T {
+    return this.pool.pop() ?? this.factory();
+  }
+  
+  release(item: T): void {
+    this.pool.push(item);
+  }
+}
+```
+
+### TypeScript Strict Mode
+
+- **Strict mode**: Enabled in `tsconfig.json` (`"strict": true`)
+- **No implicit any**: All types must be explicit
+- **No untyped definitions**: All functions must be typed
+- **No untyped calls**: All function calls must be type-safe
+
+### Type Annotation Anti-Patterns (Solo Development)
+
+- ❌ **Don't**: Use `any` without justification (use `unknown` if type is truly unknown)
+- ❌ **Don't**: Skip return type annotations
+- ❌ **Don't**: Use `@ts-ignore` without explanation
+- ❌ **Don't**: Use type assertions (`as`) without validation
+- ✅ **Do**: Use specific types over `any`
+- ✅ **Do**: Use `null` or `undefined` explicitly with union types
+- ✅ **Do**: Use `unknown` for truly unknown types, then narrow
+- ✅ **Do**: Run `npm run type-check` frequently during development
+
+## Code Quality Standards
+
+### ESLint and Prettier Configuration
+
+- **Line length**: 100 characters maximum
+- **Import organization**: External dependencies, then internal modules
+- **Naming conventions**: `camelCase` for variables/functions, `PascalCase` for classes/interfaces
+- **Whitespace**: 2 spaces for indentation (consistent with project)
+
+### Import Standards
+
+```typescript
+// 1. External dependencies
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { PrismaClient } from '@prisma/client';
+
+// 2. Domain entities and value objects
+import { OrganizationId, TaskOfferId, AgentId } from '$lib/domain/valueObjects/Identifier';
+import { TaskInstance } from '$lib/domain/entities/TaskInstance';
+import { Timestamp, Duration } from '$lib/domain/valueObjects';
+
+// 3. Domain systems
+import { EconomySystem } from '$lib/domain/systems/EconomySystem';
+import { TaskResolutionSystem } from '$lib/domain/systems/TaskResolutionSystem';
+
+// 4. Application services
+import { StartTaskService } from '$lib/app/StartTaskService';
+
+// 5. Repository interfaces and implementations
+import type { TaskRepository } from '$lib/repos/contracts/TaskRepository';
+import { PrismaTaskRepository } from '$lib/repos/prisma/PrismaTaskRepository';
+```
+
+### Function and Class Standards
+
+```typescript
+/**
+ * Resolves task instances that are ready for completion.
+ * 
+ * @param tasks - Task instances to check for resolution
+ * @param agents - Map of agent IDs to agent instances
+ * @param archetypes - Map of task archetype IDs to archetypes
+ * @param facilities - List of facility instances affecting tasks
+ * @param now - Current timestamp for resolution
+ * @returns Array of task resolution results
+ * @throws {DomainError} If inputs are invalid
+ */
+function resolveTasks(
+  tasks: TaskInstance[],
+  agents: Map<AgentId, AgentInstance>,
+  archetypes: Map<TaskArchetypeId, TaskArchetype>,
+  facilities: FacilityInstance[],
+  now: Timestamp
+): TaskResolutionResult[] {
+  if (!now.isValid()) {
+    throw new DomainError('Invalid timestamp');
+  }
+  
+  // Implementation
+  return [];
+}
+```
+
+### Error Handling
+
+```typescript
+// Custom error types
+export class DomainError extends Error {
+  constructor(message: string, public readonly entity?: any) {
+    super(message);
+    this.name = 'DomainError';
+  }
+}
+
+// Error handling pattern
+function safeTaskResolution(
+  system: TaskResolutionSystem,
+  tasks: TaskInstance[],
+  agents: Map<AgentId, AgentInstance>,
+  archetypes: Map<TaskArchetypeId, TaskArchetype>,
+  facilities: FacilityInstance[],
+  now: Timestamp
+): TaskResolutionResult[] {
+  try {
+    // Validate timestamp
+    if (!now.isValid()) {
+      throw new DomainError('Invalid timestamp', { now });
+    }
+    
+    return system.resolveTasks(tasks, agents, archetypes, facilities, now);
+  } catch (error) {
+    if (error instanceof DomainError) {
+      console.error('[Domain] Domain error:', error.message, error.entity);
+      // Handle domain error
+      return [];
+    } else {
+      console.error('[Domain] Unexpected error in task resolution:', error);
+      throw error;
+    }
+  }
+}
+```
+
+## Logging Standards
+
+### Console Logging Patterns
+
+```typescript
+// Good: Structured logging with context
+console.log('[Domain] Task resolved', { taskId: result.taskId, outcome: result.outcomeCategory });
+console.warn('[Domain] Invalid organization state', { orgId: org.id, errors: validation.errors });
+console.error('[Domain] Task resolution failed', { taskId: task.id, error });
+
+// Bad: String interpolation
+console.log(`Resolving task ${task.id}`);
+
+// Good: Error logging with stack traces
+console.error('[Domain] Task resolution error', error);
+if (error instanceof DomainError) {
+  console.error('[Domain] Domain error details:', error.message, error.entity);
+}
+```
+
+### Logging Levels
+
+- **DEBUG**: Detailed diagnostic information (development only)
+- **INFO**: General information about program execution
+- **WARN**: Something unexpected happened but execution continues
+- **ERROR**: Serious problem occurred, may affect functionality
+
+### Logging Anti-Patterns
+
+- ❌ **Don't**: Use string interpolation in log messages
+- ❌ **Don't**: Log sensitive data (user input, tokens)
+- ❌ **Don't**: Leave console.log statements in production code
+- ✅ **Do**: Use structured logging with context objects
+- ✅ **Do**: Include relevant state information
+- ✅ **Do**: Use appropriate log levels
+
+## Code Organization
+
+### Module Structure
+
+```
+src/lib/
+├── domain/
+│   ├── entities/
+│   │   ├── Organization.ts
+│   │   ├── TaskInstance.ts
+│   │   └── AgentInstance.ts
+│   ├── valueObjects/
+│   │   ├── Identifier.ts
+│   │   ├── Timestamp.ts
+│   │   └── ResourceBundle.ts
+│   └── systems/
+│       ├── TaskResolutionSystem.ts
+│       └── EconomySystem.ts
+├── app/
+│   ├── StartTaskService.ts
+│   └── AdvanceWorldService.ts
+├── repos/
+│   ├── contracts/
+│   │   └── TaskRepository.ts
+│   └── prisma/
+│       └── PrismaTaskRepository.ts
+└── stores/
+    └── organization.ts
+```
+
+### Class Organization
+
+```typescript
+export class Organization {
+  // 1. Public readonly properties
+  public readonly id: OrganizationId;
+  public readonly ownerPlayerId: PlayerId;
+  public readonly createdAt: Timestamp;
+  
+  // 2. Public mutable properties
+  public lastActiveAt: Timestamp;
+  public lastSimulatedAt: Timestamp;
+  
+  // 3. Private properties
+  private readonly progressTracks: Map<TrackKey, ProgressTrack>;
+  private readonly economyState: EconomyState;
+  
+  // 4. Constructor
+  constructor(
+    id: OrganizationId,
+    ownerPlayerId: PlayerId,
+    createdAt: Timestamp,
+    lastActiveAt: Timestamp,
+    progressTracks: Map<TrackKey, ProgressTrack>,
+    economyState: EconomyState,
+    lastSimulatedAt: Timestamp
+  ) {
+    // Initialization
+  }
+  
+  // 5. Public methods
+  canAfford(cost: ResourceBundle): boolean {
+    return this.economyState.hasResources(cost);
+  }
+  
+  advanceTo(now: Timestamp): void {
+    this.lastSimulatedAt = now;
+    this.lastActiveAt = now;
+  }
+  
+  // 6. Private methods
+  private validate(): void {
+    // Implementation
+  }
+}
+```
+
+## Performance Standards
+
+### Memory Management
+
+```typescript
+// Repository caching pattern
+class CachedTaskRepository implements TaskRepository {
+  private cache: Map<TaskInstanceId, TaskInstance> = new Map();
+  private cacheExpiry: Map<TaskInstanceId, Timestamp> = new Map();
+  private readonly cacheTTL: Duration = Duration.ofMinutes(5);
+  
+  constructor(private delegate: TaskRepository) {}
+  
+  async getInstanceById(id: TaskInstanceId): Promise<TaskInstance | null> {
+    const cached = this.cache.get(id);
+    const expiry = this.cacheExpiry.get(id);
+    
+    if (cached && expiry && Timestamp.now().value < expiry.value) {
+      return cached;
+    }
+    
+    const instance = await this.delegate.getInstanceById(id);
+    if (instance) {
+      this.cache.set(id, instance);
+      this.cacheExpiry.set(id, Timestamp.now().add(this.cacheTTL));
+    }
+    
+    return instance;
+  }
+  
+  async saveInstance(instance: TaskInstance): Promise<void> {
+    await this.delegate.saveInstance(instance);
+    this.cache.set(instance.id, instance);
+    this.cacheExpiry.set(instance.id, Timestamp.now().add(this.cacheTTL));
+  }
+}
+```
+
+### Frame Rate Optimization
+
+```typescript
+// Efficient batch processing pattern
+class TaskResolutionBatchProcessor {
+  private batchSize: number = 100;
+  private processingQueue: TaskInstance[] = [];
+  
+  async processBatch(
+    system: TaskResolutionSystem,
+    tasks: TaskInstance[],
+    agents: Map<AgentId, AgentInstance>,
+    archetypes: Map<TaskArchetypeId, TaskArchetype>,
+    facilities: FacilityInstance[],
+    now: Timestamp
+  ): Promise<TaskResolutionResult[]> {
+    const results: TaskResolutionResult[] = [];
+    
+    // Process in batches to avoid memory issues
+    for (let i = 0; i < tasks.length; i += this.batchSize) {
+      const batch = tasks.slice(i, i + this.batchSize);
+      const batchResults = system.resolveTasks(
+        batch,
+        agents,
+        archetypes,
+        facilities,
+        now
+      );
+      results.push(...batchResults);
+    }
+    
+    return results;
+  }
+}
+```
+
+### Performance Anti-Patterns (Solo Development)
+
+- ❌ **Don't**: Create objects in hot paths (use object pooling)
+- ❌ **Don't**: Allocate arrays in render loops
+- ❌ **Don't**: Use expensive operations in animation frames
+- ✅ **Do**: Use object pooling for frequently created objects
+- ✅ **Do**: Cache expensive calculations
+- ✅ **Do**: Use requestAnimationFrame for smooth animations
+
+## Testing Standards
+
+### Test Structure
+
+```typescript
+// src/lib/domain/entities/Organization.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { Organization } from './Organization';
+import { OrganizationId, PlayerId } from '../valueObjects/Identifier';
+import { Timestamp } from '../valueObjects/Timestamp';
+import { ResourceBundle } from '../valueObjects/ResourceBundle';
+
+describe('Organization', () => {
+  let organization: Organization;
+  
+  beforeEach(() => {
+    organization = new Organization(
+      OrganizationId.generate(),
+      PlayerId.generate(),
+      Timestamp.now(),
+      Timestamp.now(),
+      new Map(),
+      { wallet: new ResourceBundle([]) },
+      Timestamp.now()
+    );
+  });
+  
+  it('should initialize with valid state', () => {
+    expect(organization.id.isValid()).toBe(true);
+    expect(organization.createdAt.value).toBeGreaterThan(0);
+  });
+  
+  it('should check if organization can afford cost', () => {
+    const org = new Organization(
+      OrganizationId.generate(),
+      PlayerId.generate(),
+      Timestamp.now(),
+      Timestamp.now(),
+      new Map(),
+      { wallet: new ResourceBundle([{ resourceType: 'gold', amount: 100 }]) },
+      Timestamp.now()
+    );
+    
+    const cost = new ResourceBundle([{ resourceType: 'gold', amount: 50 }]);
+    expect(org.canAfford(cost)).toBe(true);
+  });
+  
+  it('should advance to new timestamp', () => {
+    const now = Timestamp.now();
+    const future = now.add(Duration.ofMinutes(10));
+    
+    organization.advanceTo(future);
+    
+    expect(organization.lastSimulatedAt.value).toBe(future.value);
+    expect(organization.lastActiveAt.value).toBe(future.value);
+  });
+});
+```
+
+### Test Naming Conventions
+
+- **Test files**: `*.test.ts` or `*.spec.ts`
+- **Test suites**: `describe('ClassName', () => { ... })`
+- **Test cases**: `it('should do something', () => { ... })`
+- **Fixtures**: `beforeEach`, `afterEach`, `beforeAll`, `afterAll`
+
+## Documentation Standards
+
+### JSDoc Format
+
+```typescript
+/**
+ * Resolves task instances that are ready for completion.
+ * 
+ * @param tasks - Task instances to check for resolution
+ * @param agents - Map of agent IDs to agent instances
+ * @param archetypes - Map of task archetype IDs to archetypes
+ * @param facilities - List of facility instances affecting tasks
+ * @param now - Current timestamp for resolution
+ * @returns Array of task resolution results
+ * @throws {DomainError} If inputs are invalid
+ * 
+ * @example
+ * ```typescript
+ * const system = new TaskResolutionSystem();
+ * const results = system.resolveTasks(tasks, agents, archetypes, facilities, Timestamp.now());
+ * ```
+ */
+resolveTasks(
+  tasks: TaskInstance[],
+  agents: Map<AgentId, AgentInstance>,
+  archetypes: Map<TaskArchetypeId, TaskArchetype>,
+  facilities: FacilityInstance[],
+  now: Timestamp
+): TaskResolutionResult[] {
+  // Implementation
+}
+```
+
+### Type Documentation
+
+```typescript
+/**
+ * Represents the result of resolving a task instance.
+ * 
+ * @property taskId - ID of the resolved task instance
+ * @property outcomeCategory - Category of the outcome (GREAT_SUCCESS, SUCCESS, FAILURE, etc.)
+ * @property rewards - Resource bundle containing rewards
+ * @property agentChanges - Changes to apply to agents (XP, injuries, etc.)
+ * @property trackChanges - Changes to apply to progress tracks
+ */
+export interface TaskResolutionResult {
+  taskId: TaskInstanceId;
+  outcomeCategory: OutcomeCategory;
+  rewards: ResourceBundle;
+  agentChanges: AgentChange[];
+  trackChanges: TrackChange[];
+}
+```
+
+## Solo Development Quality Gates
+
+### Pre-commit Hooks (Simplified)
+
+- **ESLint**: Code quality and style checking
+- **Prettier**: Code formatting
+- **TypeScript**: Type checking (`tsc --noEmit`)
+
+### Solo Development Commands
+
+- **Type checking**: `npm run type-check` (runs `tsc --noEmit`)
+- **Linting**: `npm run lint` (runs ESLint)
+- **Formatting**: `npm run format` (runs Prettier)
+- **Testing**: `npm test` (runs test suite)
+
+### Solo Development Code Review Checklist
+
+- [ ] All functions have type annotations (priority #1)
+- [ ] JSDoc comments follow the standard format
+- [ ] Error handling is comprehensive
+- [ ] Tests cover basic functionality
+- [ ] Logging uses structured format
+- [ ] No hardcoded values or magic numbers
+- [ ] Code follows existing patterns
+- [ ] Performance considerations addressed (object pooling, etc.)
+
+## Solo Development Anti-Patterns
+
+- ❌ **Don't**: Skip type checking (solo project priority)
+- ❌ **Don't**: Use `any` without justification
+- ❌ **Don't**: Over-engineer with complex patterns
+- ❌ **Don't**: Create objects in hot paths
+- ❌ **Don't**: Ignore performance in animation loops
+- ✅ **Do**: Focus on "does it work" over "is it perfect"
+- ✅ **Do**: Use manual testing for rapid iteration
+- ✅ **Do**: Write tests only when you break something
+- ✅ **Do**: Prioritize type checking and code quality
+- ✅ **Do**: Use npm scripts for all operations
