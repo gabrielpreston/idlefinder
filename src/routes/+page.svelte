@@ -5,6 +5,7 @@
 	import ActiveTasks from '$lib/components/ActiveTasks.svelte';
 	import AgentRoster from '$lib/components/AgentRoster.svelte';
 	import FacilityUpgrades from '$lib/components/FacilityUpgrades.svelte';
+	import DevTools from '$lib/components/DevTools.svelte';
 </script>
 
 {#if $gameState}
@@ -14,9 +15,12 @@
 			<TaskBoard />
 			<ActiveTasks />
 			<AgentRoster />
-			<FacilityUpgrades />
+			<div class="facilities-full-width">
+				<FacilityUpgrades />
+			</div>
 		</div>
 	</div>
+	<DevTools />
 {:else}
 	<div>Loading...</div>
 {/if}
@@ -33,5 +37,9 @@
 		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 		gap: 1rem;
 		margin-top: 1rem;
+	}
+
+	.facilities-full-width {
+		grid-column: 1 / -1;
 	}
 </style>

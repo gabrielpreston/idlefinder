@@ -65,7 +65,9 @@ describe('Mission Lifecycle Integration', () => {
 
 			// Get mission start time
 			const state = busManager.getState();
-			const mission = state.missions.find((m: { id: string }) => m.id === 'mission-1');
+			// Mission ID is unique instance ID (mission-1-timestamp-random), find by prefix
+			const mission = state.missions.find((m: { id: string }) => m.id.startsWith('mission-1-'));
+			expect(mission).toBeDefined();
 
 			// Advance time and trigger tick handler manually
 			// MissionSystem uses Date.now() which advances with fake timers
@@ -82,7 +84,8 @@ describe('Mission Lifecycle Integration', () => {
 
 			// Mission should be completed
 			const finalState = busManager.getState();
-			const completedMission = finalState.missions.find((m: { id: string }) => m.id === 'mission-1');
+			// Mission ID is unique instance ID (mission-1-timestamp-random), find by prefix
+			const completedMission = finalState.missions.find((m: { id: string }) => m.id.startsWith('mission-1-'));
 			expect(completedMission?.status).toBe('completed');
 
 			// Adventurer should be freed

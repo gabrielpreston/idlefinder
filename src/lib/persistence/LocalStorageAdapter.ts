@@ -78,5 +78,17 @@ export class LocalStorageAdapter {
 		}
 		return new Date(state.lastPlayed);
 	}
+
+	/**
+	 * Clear saved state from localStorage
+	 * Useful for testing and resetting game state
+	 */
+	clear(): void {
+		try {
+			localStorage.removeItem(STORAGE_KEY);
+		} catch (error) {
+			console.error('[Persistence] Clear error:', error);
+		}
+	}
 }
 

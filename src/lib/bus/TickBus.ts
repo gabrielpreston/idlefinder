@@ -85,20 +85,27 @@ export class TickBus {
 	 * Matches design spec: synthetic tick sequence for elapsed time
 	 * @param elapsedMs Elapsed time in milliseconds
 	 * @param tickIntervalMs Tick interval in milliseconds (default: 1000)
+	 * @param startTimestamp Optional start timestamp for incremental tick timestamps (default: current time)
 	 */
-	async replayTicks(elapsedMs: number, tickIntervalMs: number = 1000): Promise<void> {
+	async replayTicks(
+		elapsedMs: number,
+		tickIntervalMs: number = 1000,
+		startTimestamp?: Date
+	): Promise<void> {
 		const numTicks = Math.floor(elapsedMs / tickIntervalMs);
-		const now = new Date();
+		const startTime = startTimestamp || new Date();
 
-		// Replay full ticks
+		// Replay full ticks with incremental timestamps
 		for (let i = 0; i < numTicks; i++) {
-			await this.emitTick(tickIntervalMs, now);
+			const tickTime = new Date(startTime.getTime() + (i + 1) * tickIntervalMs);
+			await this.emitTick(tickIntervalMs, tickTime);
 		}
 
 		// Handle remainder
 		const remainder = elapsedMs % tickIntervalMs;
 		if (remainder > 0) {
-			await this.emitTick(remainder, now);
+			const finalTime = new Date(startTime.getTime() + numTicks * tickIntervalMs + remainder);
+			await this.emitTick(remainder, finalTime);
 		}
 	}
 }

@@ -58,7 +58,7 @@ describe('StartMissionHandler', () => {
 			expect(result.events).toHaveLength(1);
 			expect(result.events[0].type).toBe('MissionStarted');
 			expect(result.events[0].payload).toMatchObject({
-				missionId: 'mission-1',
+				missionId: expect.stringMatching(/^mission-1-/), // Unique instance ID
 				adventurerIds: ['adv-1']
 			});
 		});
@@ -77,8 +77,8 @@ describe('StartMissionHandler', () => {
 				state
 			);
 
-			expect(result.newState.missions).toHaveLength(1);
-			expect(result.newState.missions[0].id).toBe('mission-1');
+		expect(result.newState.missions).toHaveLength(1);
+		expect(result.newState.missions[0].id).toMatch(/^mission-1-/); // Unique instance ID
 		});
 
 		it('should mark adventurers as onMission', async () => {
@@ -95,9 +95,9 @@ describe('StartMissionHandler', () => {
 				state
 			);
 
-			const updatedAdventurer = result.newState.adventurers.find((a) => a.id === 'adv-1');
-			expect(updatedAdventurer?.status).toBe('onMission');
-			expect(updatedAdventurer?.assignedMissionId).toBe('mission-1');
+		const updatedAdventurer = result.newState.adventurers.find((a) => a.id === 'adv-1');
+		expect(updatedAdventurer?.status).toBe('onMission');
+		expect(updatedAdventurer?.assignedMissionId).toMatch(/^mission-1-/); // Unique instance ID
 		});
 	});
 

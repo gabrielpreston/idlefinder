@@ -79,8 +79,8 @@ export class BusManager {
 			const elapsed = now.getTime() - lastPlayed.getTime();
 
 			if (elapsed > 0) {
-				// Replay ticks for offline progression
-				await this.tickBus.replayTicks(elapsed);
+				// Replay ticks for offline progression with incremental timestamps
+				await this.tickBus.replayTicks(elapsed, 1000, lastPlayed);
 			}
 		}
 	}
@@ -110,5 +110,13 @@ export function initializeBusManager(initialState: PlayerState): BusManager {
 	}
 	busManager = new BusManager(initialState);
 	return busManager;
+}
+
+/**
+ * Reset the singleton BusManager (for testing/debugging)
+ * WARNING: This will destroy the current instance - use with caution!
+ */
+export function resetBusManager(): void {
+	busManager = null;
 }
 

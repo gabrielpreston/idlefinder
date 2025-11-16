@@ -57,8 +57,22 @@ export function createStartMissionHandler(
 			};
 		}
 
+		// Validation: Check for any existing missions with the same template ID that are still in progress
+		// This prevents issues with duplicate IDs (though new missions now have unique IDs)
+		const existingInProgress = state.missions.filter(
+			(m) => m.id.startsWith(payload.missionId) && m.status === 'inProgress'
+		);
+		if (existingInProgress.length > 0) {
+			// This shouldn't happen with unique IDs, but log a warning if it does
+			console.warn(
+				`[StartMissionHandler] Found ${existingInProgress.length} existing in-progress mission(s) with similar ID to ${payload.missionId}`
+			);
+		}
+
 		// For MVP: Simple mission with fixed duration and reward
 		// In future: Look up mission template by missionId
+		// Generate unique mission instance ID to prevent duplicates
+		const missionInstanceId = `${payload.missionId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 		const missionName = `Mission ${payload.missionId}`;
 		const duration = 60000; // 1 minute for testing
 		const reward = {
@@ -67,23 +81,23 @@ export function createStartMissionHandler(
 			experience: 10
 		};
 
-		// Start mission
+		// Start mission with unique instance ID
 		const newState = missionSystem.startMission(
 			state,
-			payload.missionId,
+			missionInstanceId,
 			missionName,
 			duration,
 			payload.adventurerIds,
 			reward
 		);
 
-		const mission = newState.missions.find((m) => m.id === payload.missionId)!;
+		const mission = newState.missions.find((m) => m.id === missionInstanceId)!;
 
 		// Emit MissionStarted event
 		const missionStartedEvent: DomainEvent = {
 			type: 'MissionStarted',
 			payload: {
-				missionId: payload.missionId,
+				missionId: missionInstanceId,
 				adventurerIds: payload.adventurerIds,
 				startTime: mission.startTime,
 				duration: mission.duration

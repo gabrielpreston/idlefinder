@@ -105,7 +105,9 @@ describe('Player Journey Integration', () => {
 
 			// 4. Verify mission completed and rewards applied
 			state = busManager.getState();
-			const completedMission = state.missions.find((m: { id: string }) => m.id === 'mission-1');
+			// Mission ID is unique instance ID (mission-1-timestamp-random), find by prefix
+			const completedMission = state.missions.find((m: { id: string }) => m.id.startsWith('mission-1-'));
+			expect(completedMission).toBeDefined();
 			expect(completedMission?.status).toBe('completed');
 
 			// 5. Upgrade facility (if resources available)

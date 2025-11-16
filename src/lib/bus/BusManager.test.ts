@@ -83,6 +83,7 @@ describe('BusManager', () => {
 		});
 
 		it('should handle offline catch-up with tick replay', async () => {
+			vi.useFakeTimers();
 			const initialState = createTestPlayerState();
 			const manager = new BusManager(initialState);
 
@@ -96,7 +97,10 @@ describe('BusManager', () => {
 			await manager.initialize();
 
 			// Should have replayed ticks for elapsed time (5 seconds = 5 ticks)
+			// Using fake timers prevents normal tick interval from firing
 			expect(tickHandler).toHaveBeenCalledTimes(5);
+			
+			vi.useRealTimers();
 		});
 
 		it('should not replay ticks if no elapsed time', async () => {

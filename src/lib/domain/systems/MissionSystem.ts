@@ -43,14 +43,21 @@ export class MissionSystem {
 					const elapsed = now - startTime;
 
 					if (elapsed >= mission.duration) {
-						// Dispatch CompleteMission command - let the handler do all the work
-						await this.commandBus.dispatch({
-							type: 'CompleteMission',
-							payload: {
-								missionId: mission.id
-							},
-							timestamp: timestamp.toISOString()
-						});
+						// Re-check state before dispatching to prevent duplicate completions
+						const currentState = this.stateGetter();
+						const currentMission = currentState.missions.find((m) => m.id === mission.id);
+
+						// Only dispatch if mission is still in progress
+						if (currentMission && currentMission.status === 'inProgress') {
+							// Dispatch CompleteMission command - let the handler do all the work
+							await this.commandBus.dispatch({
+								type: 'CompleteMission',
+								payload: {
+									missionId: mission.id
+								},
+								timestamp: timestamp.toISOString()
+							});
+						}
 					}
 				}
 			}

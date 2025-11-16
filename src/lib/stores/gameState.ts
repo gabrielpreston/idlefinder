@@ -11,7 +11,7 @@ import { getBusManager } from '../bus/BusManager';
  * Game state store - reactive wrapper around BusManager state
  */
 function createGameStateStore() {
-	const { subscribe, set, update } = writable<PlayerState | null>(null);
+	const { subscribe, set } = writable<PlayerState | null>(null);
 
 	// Subscribe to domain events to update store
 	// Note: This will be set up after BusManager is initialized
@@ -22,19 +22,19 @@ function createGameStateStore() {
 			const busManager = getBusManager();
 			unsubscribeFunctions = [
 				busManager.domainEventBus.subscribe('ResourcesChanged', () => {
-					update(() => busManager.getState());
+					set(busManager.getState());
 				}),
 				busManager.domainEventBus.subscribe('MissionStarted', () => {
-					update(() => busManager.getState());
+					set(busManager.getState());
 				}),
 				busManager.domainEventBus.subscribe('MissionCompleted', () => {
-					update(() => busManager.getState());
+					set(busManager.getState());
 				}),
 				busManager.domainEventBus.subscribe('AdventurerRecruited', () => {
-					update(() => busManager.getState());
+					set(busManager.getState());
 				}),
 				busManager.domainEventBus.subscribe('FacilityUpgraded', () => {
-					update(() => busManager.getState());
+					set(busManager.getState());
 				})
 			];
 		} catch {

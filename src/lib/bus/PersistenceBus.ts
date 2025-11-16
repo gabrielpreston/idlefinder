@@ -80,6 +80,11 @@ export class PersistenceBus {
 	 * Save current state to localStorage
 	 */
 	private save(): void {
+		// Don't save if we're in the middle of a reset
+		if (typeof window !== 'undefined' && sessionStorage.getItem('__resetting') === 'true') {
+			return;
+		}
+		
 		const state = this.stateGetter();
 		this.adapter.save(state);
 	}
@@ -108,6 +113,14 @@ export class PersistenceBus {
 			this.saveTimeout = null;
 		}
 		this.save();
+	}
+
+	/**
+	 * Clear saved state from localStorage
+	 * Useful for testing and resetting game state
+	 */
+	clear(): void {
+		this.adapter.clear();
 	}
 }
 

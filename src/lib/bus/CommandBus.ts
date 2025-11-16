@@ -22,6 +22,8 @@ export class CommandBus<S = unknown> {
 	private domainEventBus: DomainEventBus;
 	private stateGetter: () => S;
 	private stateSetter: (state: S) => void;
+	private commandQueue: Array<{ command: Command; resolve: () => void; reject: (error: Error) => void }> = [];
+	private isProcessing = false;
 
 	constructor(
 		domainEventBus: DomainEventBus,
@@ -48,8 +50,40 @@ export class CommandBus<S = unknown> {
 	/**
 	 * Dispatch a command
 	 * Returns void - results propagate via domain events
+	 * Commands are queued and executed sequentially to prevent race conditions
 	 */
 	async dispatch(command: Command): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.commandQueue.push({ command, resolve, reject });
+			if (!this.isProcessing) {
+				// Process queue immediately if not already processing
+				// This ensures commands execute synchronously when possible
+				this.processQueue();
+			}
+		});
+	}
+
+	/**
+	 * Process command queue sequentially
+	 */
+	private async processQueue(): Promise<void> {
+		this.isProcessing = true;
+		while (this.commandQueue.length > 0) {
+			const queueItem = this.commandQueue.shift()!;
+			try {
+				await this.executeCommand(queueItem.command);
+				queueItem.resolve();
+			} catch (error) {
+				queueItem.reject(error instanceof Error ? error : new Error(String(error)));
+			}
+		}
+		this.isProcessing = false;
+	}
+
+	/**
+	 * Execute a single command
+	 */
+	private async executeCommand(command: Command): Promise<void> {
 		const handler = this.handlers.get(command.type as CommandType);
 		if (!handler) {
 			// Emit CommandFailed event
