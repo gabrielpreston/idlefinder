@@ -1,58 +1,75 @@
 <script lang="ts">
-	import { organizationStore } from '$lib/stores/organization';
+	import { resources, missions } from '$lib/stores/gameState';
+	import { AnimatedNumber } from './ui';
 </script>
 
-{#if $organizationStore}
-	<div class="organization-overview">
-		<h2>Organization</h2>
+<div class="organization-overview">
+	<h1>Guild Overview</h1>
+
+	{#if $resources}
 		<div class="resources">
-			<h3>Resources</h3>
-			{#each Object.entries($organizationStore.wallet) as [type, amount]}
-				<div class="resource-item">
-					<span class="resource-type">{type}:</span>
-					<span class="resource-amount">{amount}</span>
-				</div>
-			{/each}
+			<h2>Resources</h2>
+			<div class="resource-item">
+				<span class="resource-label">Gold:</span>
+				<span class="resource-value">
+					<AnimatedNumber value={$resources.gold} />
+				</span>
+			</div>
+			<div class="resource-item">
+				<span class="resource-label">Supplies:</span>
+				<span class="resource-value">
+					<AnimatedNumber value={$resources.supplies} />
+				</span>
+			</div>
+			<div class="resource-item">
+				<span class="resource-label">Relics:</span>
+				<span class="resource-value">
+					<AnimatedNumber value={$resources.relics} />
+				</span>
+			</div>
 		</div>
-		<div class="tracks">
-			<h3>Progress Tracks</h3>
-			{#each Object.entries($organizationStore.progressTracks) as [key, value]}
-				<div class="track-item">
-					<span class="track-key">{key}:</span>
-					<span class="track-value">{value.toFixed(1)}</span>
-				</div>
-			{/each}
+	{/if}
+
+	<div class="stats">
+		<div class="stat-item">
+			<span class="stat-label">Active Missions:</span>
+			<span class="stat-value">{$missions.filter(m => m.status === 'inProgress').length}</span>
+		</div>
+		<div class="stat-item">
+			<span class="stat-label">Completed Missions:</span>
+			<span class="stat-value">{$missions.filter(m => m.status === 'completed').length}</span>
 		</div>
 	</div>
-{/if}
+</div>
 
 <style>
 	.organization-overview {
-		background: #f5f5f5;
+		background: #fff;
 		padding: 1rem;
 		border-radius: 8px;
+		border: 1px solid #ddd;
 		margin-bottom: 1rem;
 	}
 
-	.organization-overview h2 {
-		margin-top: 0;
-	}
-
-	.resources,
-	.tracks {
-		margin-top: 1rem;
+	.resources {
+		margin-bottom: 1rem;
 	}
 
 	.resource-item,
-	.track-item {
+	.stat-item {
 		display: flex;
 		justify-content: space-between;
-		padding: 0.25rem 0;
+		padding: 0.5rem 0;
+		border-bottom: 1px solid #eee;
 	}
 
-	.resource-type,
-	.track-key {
-		font-weight: 500;
+	.resource-label,
+	.stat-label {
+		font-weight: bold;
+	}
+
+	.resource-value,
+	.stat-value {
+		color: #666;
 	}
 </style>
-

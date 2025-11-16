@@ -7,6 +7,9 @@ import svelteParser from 'svelte-eslint-parser';
 import globals from 'globals';
 
 export default [
+	{
+		ignores: ['coverage/**', '**/coverage/**']
+	},
 	js.configs.recommended,
 	{
 		ignores: ['.svelte-kit/**', 'build/**', 'node_modules/**', '.output/**']

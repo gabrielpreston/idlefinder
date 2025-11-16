@@ -1,8 +1,27 @@
 import { writable, get, type Readable, type Writable } from 'svelte/store';
 import { organizationStore } from './organization';
-import { PollingTier, startDataPolling } from './dataPolling';
+// import { PollingTier, startDataPolling } from './dataPolling'; // Removed - will be replaced in Phase 6
 import type { TaskInstanceDTO } from '$lib/types';
 import type { AgentDTO } from '$lib/types';
+
+// Temporary types for Phase 1 cleanup - will be replaced in Phase 6
+const PollingTier = {
+	HIGH: 5000,
+	MEDIUM: 10000,
+	LOW: 30000,
+	CRITICAL: 2000
+} as const;
+
+// Temporary stub - will be replaced in Phase 6
+function startDataPolling(
+	_pollFn: () => Promise<void> | void,
+	_pollInterval: number,
+	_checkStore?: Readable<unknown>
+): () => void {
+	// Stub implementation - this file will be replaced in Phase 6
+	console.warn('[lifecycleStores] startDataPolling called - will be replaced in Phase 6');
+	return () => {}; // Return no-op cleanup
+}
 
 /**
  * Registry for managing entity stores and their polling cleanup functions.
@@ -89,7 +108,7 @@ export function createEntityPollingStore<T>(
 	options: EntityPollingOptions = {}
 ): { store: Writable<T | null>; cleanup: () => void } {
 	const store = entityStoreRegistry.getOrCreate<T>(entityType, entityId);
-	const { pollInterval = PollingTier.HIGH, checkStore } = options;
+	const { pollInterval = PollingTier.HIGH as number, checkStore } = options;
 
 	const poll = async () => {
 		try {
@@ -101,7 +120,7 @@ export function createEntityPollingStore<T>(
 	};
 
 	// Set up polling using existing infrastructure
-	const cleanup = startDataPolling(poll, pollInterval as PollingTier, checkStore);
+	const cleanup = startDataPolling(poll, pollInterval, checkStore);
 
 	// Store cleanup function in registry
 	entityStoreRegistry.setCleanup(entityType, entityId, cleanup);
@@ -168,7 +187,7 @@ export function createAgentStore(agentId: string): Writable<AgentDTO | null> {
 			return await response.json();
 		},
 		{
-			pollInterval: PollingTier.HIGH, // 5000ms for agents
+			pollInterval: PollingTier.HIGH as number, // 5000ms for agents
 			checkStore: organizationStore
 		}
 	);

@@ -73,6 +73,10 @@ describe('LifecycleEventBus', () => {
 
 	describe('Error isolation', () => {
 		it('should isolate handler errors and continue processing', () => {
+			// Suppress console.error for this test (error logging is expected)
+			const originalError = console.error;
+			console.error = vi.fn();
+
 			const errorHandler = vi.fn(() => {
 				throw new Error('Handler error');
 			});
@@ -89,6 +93,9 @@ describe('LifecycleEventBus', () => {
 
 			cleanup1();
 			cleanup2();
+
+			// Restore console.error
+			console.error = originalError;
 		});
 	});
 

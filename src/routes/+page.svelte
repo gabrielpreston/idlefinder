@@ -1,18 +1,20 @@
 <script lang="ts">
-	import { organizationStore } from '$lib/stores/organization';
+	import { gameState } from '$lib/stores/gameState';
 	import OrganizationOverview from '$lib/components/OrganizationOverview.svelte';
 	import TaskBoard from '$lib/components/TaskBoard.svelte';
 	import ActiveTasks from '$lib/components/ActiveTasks.svelte';
 	import AgentRoster from '$lib/components/AgentRoster.svelte';
+	import FacilityUpgrades from '$lib/components/FacilityUpgrades.svelte';
 </script>
 
-{#if $organizationStore}
+{#if $gameState}
 	<div class="game-container">
 		<OrganizationOverview />
 		<div class="main-content">
 			<TaskBoard />
 			<ActiveTasks />
 			<AgentRoster />
+			<FacilityUpgrades />
 		</div>
 	</div>
 {:else}

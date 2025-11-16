@@ -2,8 +2,8 @@
 	import { onDestroy } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { createTaskStore } from '$lib/stores/lifecycleStores';
-	import { computeVisualProgress, serverTimeBaseline } from '$lib/stores/organization';
 	import { entityStoreRegistry } from '$lib/stores/lifecycleStores';
+	import { DurationProgress } from './ui';
 
 	export let taskId: string;
 
@@ -11,7 +11,6 @@
 	const taskStore = createTaskStore(taskId);
 
 	let previousStatus: string | null = null;
-	let previousProgress = 0;
 
 	// Reactively detect changes
 	$: if ($taskStore) {
@@ -32,21 +31,6 @@
 			}
 		}
 		previousStatus = task.status;
-
-		// Detect progress changes (for visual updates)
-		const progress = computeVisualProgress(
-			task.startedAt,
-			task.expectedCompletionAt,
-			$serverTimeBaseline
-		);
-
-		if (Math.abs(progress - previousProgress) > 0.01) {
-			dispatch('progress-updated', {
-				taskId,
-				progress
-			});
-			previousProgress = progress;
-		}
 	}
 
 	onDestroy(() => {
@@ -58,26 +42,14 @@
 {#if $taskStore}
 	<div class="task-instance">
 		<h3>{$taskStore.category}</h3>
-		<div class="progress-bar">
-			<div
-				class="progress-fill"
-				style="width: {computeVisualProgress(
-					$taskStore.startedAt,
-					$taskStore.expectedCompletionAt,
-					$serverTimeBaseline
-				) * 100}%"
-			></div>
-		</div>
+		<DurationProgress
+			startTime={$taskStore.startedAt}
+			duration={$taskStore.expectedCompletionAt - $taskStore.startedAt}
+			label={$taskStore.category}
+		/>
 		<div class="task-info">
 			<p>Status: {$taskStore.status}</p>
 			<p>Agents: {$taskStore.assignedAgentIds.length}</p>
-			<p>
-				Progress: {Math.round(computeVisualProgress(
-					$taskStore.startedAt,
-					$taskStore.expectedCompletionAt,
-					$serverTimeBaseline
-				) * 100)}%
-			</p>
 		</div>
 	</div>
 {/if}
@@ -94,26 +66,12 @@
 		margin-top: 0;
 	}
 
-	.progress-bar {
-		width: 100%;
-		height: 20px;
-		background: #e0e0e0;
-		border-radius: 10px;
-		overflow: hidden;
-		margin: 0.5rem 0;
-	}
-
-	.progress-fill {
-		height: 100%;
-		background: #4caf50;
-		transition: width 0.1s ease-out;
-	}
-
 	.task-info {
 		display: flex;
 		gap: 1rem;
 		font-size: 0.9em;
 		color: #666;
+		margin-top: 0.5rem;
 	}
 </style>
 

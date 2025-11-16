@@ -1,178 +1,115 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { organizationStore, updateOrganizationFromServer } from '$lib/stores/organization';
-	import { useComponentDataLoader } from '$lib/stores/componentDataLoader';
-	import { PollingTier } from '$lib/stores/dataPolling';
-	import { lifecycleEvents, EventPriority } from '$lib/stores/lifecycleEvents';
-	import type { TaskOfferDTO, AgentDTO } from '$lib/types';
+	import { onMount } from 'svelte';
+	import { adventurers } from '$lib/stores/gameState';
+	import { dispatchCommand } from '$lib/bus/commandDispatcher';
+	import { getBusManager } from '$lib/bus/BusManager';
+	import type { CommandFailedEvent } from '$lib/bus/types';
 
-	let offers: TaskOfferDTO[] = [];
-	let agents: AgentDTO[] = [];
-	let loading = false;
+	// For MVP: Simple mission offers (in future, this would come from a mission template system)
+	const missionOffers = [
+		{ id: 'mission-1', name: 'Explore Forest', duration: 60000 }, // 1 minute
+		{ id: 'mission-2', name: 'Clear Cave', duration: 120000 }, // 2 minutes
+		{ id: 'mission-3', name: 'Rescue Villagers', duration: 180000 } // 3 minutes
+	];
+
 	let error: string | null = null;
-	let cleanupOffers: (() => void) | null = null;
-	let cleanupAgents: (() => void) | null = null;
+	let selectedMission: string | null = null;
+	let selectedAdventurers: string[] = [];
 
-	async function loadOffers() {
-		const org = $organizationStore;
-		if (!org) {
-			return;
-		}
-
-		loading = true;
-		error = null;
-
-		try {
-			const response = await fetch(`/api/organization/task-board?organizationId=${org.id}`);
-			if (!response.ok) {
-				throw new Error(`Failed to load offers: ${response.statusText}`);
-			}
-			offers = await response.json();
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load offers';
-			console.error('[TaskBoard] Error loading offers:', err);
-		} finally {
-			loading = false;
-		}
-	}
-
-	async function loadAgents() {
-		const org = $organizationStore;
-		if (!org) {
-			return;
-		}
-
-		try {
-			const response = await fetch(`/api/agents?organizationId=${org.id}`);
-			if (!response.ok) {
-				throw new Error(`Failed to load agents: ${response.statusText}`);
-			}
-			agents = await response.json();
-		} catch (err) {
-			console.error('[TaskBoard] Error loading agents:', err);
-		}
-	}
-
-	async function startTask(offerId: string, agentIds: string[]) {
-		const org = $organizationStore;
-		if (!org) {
-			return;
-		}
-
-		try {
-			const response = await fetch('/api/tasks/start', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					organizationId: org.id,
-					offerId,
-					agentIds
-				})
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Failed to start task');
-			}
-
-			const result = await response.json();
-			
-			// Update organization store immediately with updated snapshot
-			if (result.snapshot && result.serverTime) {
-				updateOrganizationFromServer(result.snapshot, result.serverTime);
-			}
-			
-			// Reload offers after starting task (agents will update reactively via AgentItem)
-			await loadOffers();
-			
-			// Clear error on success
-			error = null;
-			
-			// Trigger a page-level event to refresh ActiveTasks component
-			lifecycleEvents.dispatch('task-started', {}, EventPriority.CRITICAL);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to start task';
-			console.error('[TaskBoard] Error starting task:', err);
-		}
-	}
-
+	// Subscribe to command failures
 	onMount(() => {
-		// Use composable twice (once for offers, once for agents)
-		// Both listen to same 'tasks-completed' event, each has independent polling instance
-		cleanupOffers = useComponentDataLoader(loadOffers, {
-			pollingTier: PollingTier.HIGH,
-			events: ['tasks-completed'],
-			checkStore: organizationStore
+		const busManager = getBusManager();
+		const unsubscribe = busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
+			const failed = payload as CommandFailedEvent;
+			if (failed.commandType === 'StartMission') {
+				error = failed.reason;
+			}
 		});
 
-		cleanupAgents = useComponentDataLoader(loadAgents, {
-			pollingTier: PollingTier.HIGH,
-			events: ['tasks-completed'],
-			checkStore: organizationStore
-		});
+		return unsubscribe;
 	});
 
-	onDestroy(() => {
-		if (cleanupOffers) {
-			cleanupOffers();
+	async function startMission() {
+		if (!selectedMission) {
+			error = 'Please select a mission';
+			return;
 		}
-		if (cleanupAgents) {
-			cleanupAgents();
+
+		if (selectedAdventurers.length === 0) {
+			error = 'Please select at least one adventurer';
+			return;
 		}
-	});
+
+		error = null;
+		await dispatchCommand('StartMission', {
+			missionId: selectedMission,
+			adventurerIds: selectedAdventurers
+		});
+
+		// Clear selection
+		selectedMission = null;
+		selectedAdventurers = [];
+	}
+
+	function toggleAdventurer(id: string) {
+		if (selectedAdventurers.includes(id)) {
+			selectedAdventurers = selectedAdventurers.filter((aid) => aid !== id);
+		} else {
+			selectedAdventurers = [...selectedAdventurers, id];
+		}
+	}
 </script>
 
 <div class="task-board">
-	<h2>Available Tasks</h2>
+	<h2>Mission Board</h2>
 
-	{#if loading}
-		<div>Loading offers...</div>
-	{:else if error}
+	{#if error}
 		<div class="error">{error}</div>
-	{:else if offers.length === 0}
-		<div>No available tasks</div>
-	{:else}
-		{#each offers as offer}
-			<div class="task-offer">
-				<h3>{offer.category}</h3>
-				<p>Agents: {offer.minAgents}-{offer.maxAgents}</p>
-				<div class="cost-reward">
-					<p>
-						Cost:
-						{#each Object.entries(offer.entryCost) as [type, amount]}
-							{type}: {amount}
-						{/each}
-					</p>
-					<p>
-						Reward:
-						{#each Object.entries(offer.baseReward) as [type, amount]}
-							{type}: {amount}
-						{/each}
-					</p>
-				</div>
-				{#if offer.expiresAt}
-					<p class="expires">Expires: {new Date(offer.expiresAt).toLocaleTimeString()}</p>
-				{/if}
-
-				<!-- Agent selection (simplified for MVP - just use first available agent) -->
-				<button
-					onclick={() => {
-						const availableAgents = agents.filter((a) => a.status === 'IDLE');
-						if (availableAgents.length >= offer.minAgents) {
-							const selectedAgents = availableAgents
-								.slice(0, Math.min(offer.maxAgents, availableAgents.length))
-								.map((a) => a.id);
-							startTask(offer.id, selectedAgents);
-						} else {
-							error = `Need at least ${offer.minAgents} available agents (found ${availableAgents.length})`;
-						}
-					}}
-				>
-					Start Task
-				</button>
-			</div>
-		{/each}
 	{/if}
+
+	<div class="missions">
+		<h3>Available Missions</h3>
+		{#each missionOffers as offer}
+			<label class="mission-option">
+				<input
+					type="radio"
+					name="mission"
+					value={offer.id}
+					bind:group={selectedMission}
+				/>
+				<span>{offer.name} ({Math.floor(offer.duration / 1000)}s)</span>
+			</label>
+		{/each}
+	</div>
+
+	<div class="adventurers">
+		<h3>Select Adventurers</h3>
+		{#if $adventurers.length === 0}
+			<p>No adventurers available. Recruit some first!</p>
+		{:else}
+			{#each $adventurers as adventurer}
+				<label class="adventurer-option">
+					<input
+						type="checkbox"
+						value={adventurer.id}
+						checked={selectedAdventurers.includes(adventurer.id)}
+						onchange={() => toggleAdventurer(adventurer.id)}
+						disabled={adventurer.status === 'onMission'}
+					/>
+					<span>
+						{adventurer.name} (Level {adventurer.level})
+						{#if adventurer.status === 'onMission'}
+							- On Mission
+						{/if}
+					</span>
+				</label>
+			{/each}
+		{/if}
+	</div>
+
+	<button onclick={startMission} disabled={!selectedMission || selectedAdventurers.length === 0}>
+		Start Mission
+	</button>
 </div>
 
 <style>
@@ -183,49 +120,24 @@
 		border: 1px solid #ddd;
 	}
 
-	.task-board h2 {
-		margin-top: 0;
+	.error {
+		color: red;
+		margin-bottom: 1rem;
 	}
 
-	.task-offer {
-		padding: 1rem;
-		margin: 1rem 0;
-		border: 1px solid #eee;
-		border-radius: 4px;
+	.missions,
+	.adventurers {
+		margin-bottom: 1rem;
 	}
 
-	.task-offer h3 {
-		margin-top: 0;
-	}
-
-	.cost-reward {
+	.mission-option,
+	.adventurer-option {
+		display: block;
 		margin: 0.5rem 0;
 	}
 
-	.expires {
-		font-size: 0.9em;
-		color: #666;
-	}
-
 	button {
-		background: #4caf50;
-		color: white;
-		border: none;
+		margin-top: 1rem;
 		padding: 0.5rem 1rem;
-		border-radius: 4px;
-		cursor: pointer;
-		margin-top: 0.5rem;
-	}
-
-	button:hover {
-		background: #45a049;
-	}
-
-	.error {
-		color: #d32f2f;
-		padding: 0.5rem;
-		background: #ffebee;
-		border-radius: 4px;
 	}
 </style>
-

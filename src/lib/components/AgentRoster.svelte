@@ -1,89 +1,74 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { organizationStore } from '$lib/stores/organization';
-	import { useComponentDataLoader } from '$lib/stores/componentDataLoader';
-	import { PollingTier } from '$lib/stores/dataPolling';
-	import AgentItem from './AgentItem.svelte';
-	import type { AgentDTO } from '$lib/types';
+	import { adventurers } from '$lib/stores/gameState';
+	import { dispatchCommand } from '$lib/bus/commandDispatcher';
+	import { getBusManager } from '$lib/bus/BusManager';
+	import type { CommandFailedEvent } from '$lib/bus/types';
 
-	let agentIds: string[] = [];
-	let loading = false;
-	let cleanup: (() => void) | null = null;
+	let name = '';
+	let traits: string[] = [];
+	let error: string | null = null;
 
-	async function loadAgentIds(): Promise<void> {
-		const org = $organizationStore;
-		if (!org) {
+	// Subscribe to command failures
+	const busManager = getBusManager();
+	busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
+		const failed = payload as CommandFailedEvent;
+		if (failed.commandType === 'RecruitAdventurer') {
+			error = failed.reason;
+		}
+	});
+
+	async function recruit() {
+		if (!name.trim()) {
+			error = 'Please enter a name';
 			return;
 		}
 
-		loading = true;
-		try {
-			const response = await fetch(`/api/agents?organizationId=${org.id}`);
-			if (!response.ok) {
-				throw new Error(`Failed to load agents: ${response.statusText}`);
-			}
-			const agents: AgentDTO[] = await response.json();
-			agentIds = agents.map(a => a.id);
-		} catch (error) {
-			console.error('[AgentRoster] Error loading agents:', error);
-		} finally {
-			loading = false;
-		}
-	}
-
-	function handleStatusChanged(_event: CustomEvent) {
-		// Status change handled silently
-	}
-
-	function handleXpGained(_event: CustomEvent) {
-		// XP gain handled silently
-	}
-
-	function handleLevelUp(_event: CustomEvent) {
-		// Level up handled silently
-	}
-
-	onMount(() => {
-		// Load agent IDs initially
-		loadAgentIds();
-
-		// Use composable for polling agent list (to detect new agents)
-		cleanup = useComponentDataLoader(loadAgentIds, {
-			pollingTier: PollingTier.HIGH,
-			events: ['tasks-completed'],
-			checkStore: organizationStore
+		error = null;
+		await dispatchCommand('RecruitAdventurer', {
+			name: name.trim(),
+			traits: traits.filter((t) => t.trim().length > 0)
 		});
-	});
 
-	onDestroy(() => {
-		if (cleanup) {
-			cleanup();
-		}
-	});
+		// Clear form
+		name = '';
+		traits = [];
+	}
 </script>
 
 <div class="agent-roster">
-	<h2>Agents</h2>
+	<h2>Adventurer Roster</h2>
 
-	{#if loading}
-		<div>Loading agents...</div>
-	{:else if agentIds.length === 0}
-		<div>No agents</div>
-	{:else}
-		<div class="agents-grid">
-			{#each agentIds as agentId}
-				<AgentItem
-					{agentId}
-					on:status-changed={handleStatusChanged}
-					on:xp-gained={handleXpGained}
-					on:level-up={handleLevelUp}
-					on:injured={() => {}}
-					on:recovered={() => {}}
-					on:released={() => {}}
-				/>
-			{/each}
-		</div>
+	{#if error}
+		<div class="error">{error}</div>
 	{/if}
+
+	<div class="recruit-form">
+		<h3>Recruit New Adventurer</h3>
+		<input type="text" bind:value={name} placeholder="Adventurer name" />
+		<button onclick={recruit}>Recruit</button>
+	</div>
+
+	<div class="adventurers-list">
+		<h3>Adventurers ({$adventurers.length})</h3>
+		{#if $adventurers.length === 0}
+			<p>No adventurers recruited yet.</p>
+		{:else}
+			{#each $adventurers as adventurer}
+				<div class="adventurer-item">
+					<div class="adventurer-name">{adventurer.name}</div>
+					<div class="adventurer-details">
+						Level {adventurer.level} | XP: {adventurer.experience} | Status:{' '}
+						{adventurer.status === 'idle' ? 'Available' : 'On Mission'}
+					</div>
+					{#if adventurer.traits.length > 0}
+						<div class="adventurer-traits">
+							Traits: {adventurer.traits.join(', ')}
+						</div>
+					{/if}
+				</div>
+			{/each}
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -94,15 +79,41 @@
 		border: 1px solid #ddd;
 	}
 
-	.agent-roster h2 {
-		margin-top: 0;
+	.error {
+		color: red;
+		margin-bottom: 1rem;
 	}
 
-	.agents-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-		gap: 1rem;
-		margin-top: 1rem;
+	.recruit-form {
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid #eee;
+	}
+
+	.recruit-form input {
+		margin-right: 0.5rem;
+		padding: 0.5rem;
+	}
+
+	.adventurer-item {
+		padding: 0.5rem;
+		margin: 0.5rem 0;
+		background: #f9f9f9;
+		border-radius: 4px;
+	}
+
+	.adventurer-name {
+		font-weight: bold;
+	}
+
+	.adventurer-details {
+		font-size: 0.9em;
+		color: #666;
+	}
+
+	.adventurer-traits {
+		font-size: 0.85em;
+		color: #888;
+		margin-top: 0.25rem;
 	}
 </style>
-
