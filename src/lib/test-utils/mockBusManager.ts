@@ -6,14 +6,17 @@
 import { BusManager } from '../bus/BusManager';
 import type { PlayerState } from '../domain/entities/PlayerState';
 import { createTestPlayerState } from './testFactories';
+import { SimulatedTimeSource } from '../time/DomainTimeSource';
+import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 /**
  * Create test BusManager with mocked persistence
  * Persistence operations are mocked - no real localStorage
  */
-export function createTestBusManager(initialState?: PlayerState): BusManager {
+export function createTestBusManager(initialState?: PlayerState, timeSource?: import('../time/DomainTimeSource').DomainTimeSource): BusManager {
 	const state = initialState ?? createTestPlayerState();
-	const manager = new BusManager(state);
+	const ts = timeSource ?? new SimulatedTimeSource(Timestamp.from(Date.now()));
+	const manager = new BusManager(state, ts);
 
 	// Mock persistence to avoid localStorage
 	// Note: PersistenceBus methods are private, so we mock the adapter instead

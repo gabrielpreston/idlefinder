@@ -4,9 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BusManager } from '../../bus/BusManager';
-import { registerHandlers } from '../../handlers';
-import { createTestPlayerState, createTestCommand, setupMockLocalStorage } from '../../test-utils';
+import { createTestCommand, setupIntegrationTest } from '../../test-utils';
+import type { BusManager } from '../../bus/BusManager';
 import type { DomainEvent } from '../../bus/types';
 
 describe('Command Flow Integration', () => {
@@ -14,33 +13,9 @@ describe('Command Flow Integration', () => {
 	let publishedEvents: DomainEvent[];
 
 	beforeEach(() => {
-		setupMockLocalStorage();
-		const initialState = createTestPlayerState();
-		busManager = new BusManager(initialState);
-		registerHandlers(busManager);
-
-		publishedEvents = [];
-		busManager.domainEventBus.subscribe('MissionStarted', (payload: DomainEvent['payload']) => {
-			publishedEvents.push({
-				type: 'MissionStarted',
-				payload: payload as DomainEvent['payload'],
-				timestamp: new Date().toISOString()
-			});
-		});
-		busManager.domainEventBus.subscribe('AdventurerRecruited', (payload: DomainEvent['payload']) => {
-			publishedEvents.push({
-				type: 'AdventurerRecruited',
-				payload: payload as DomainEvent['payload'],
-				timestamp: new Date().toISOString()
-			});
-		});
-		busManager.domainEventBus.subscribe('ResourcesChanged', (payload: DomainEvent['payload']) => {
-			publishedEvents.push({
-				type: 'ResourcesChanged',
-				payload: payload as DomainEvent['payload'],
-				timestamp: new Date().toISOString()
-			});
-		});
+		({ busManager, publishedEvents } = setupIntegrationTest({
+			eventTypes: ['MissionStarted', 'AdventurerRecruited', 'ResourcesChanged']
+		}));
 	});
 
 	describe('command → handler → event → state flow', () => {

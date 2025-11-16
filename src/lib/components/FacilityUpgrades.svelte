@@ -1,25 +1,36 @@
 <script lang="ts">
+	import { getContext, onMount } from 'svelte';
 	import { facilities, resources } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import { getBusManager } from '$lib/bus/BusManager';
-	import { FacilitySystem } from '$lib/domain/systems/FacilitySystem';
+	import { FacilitySystem } from '$lib/domain/systems';
 	import type { CommandFailedEvent } from '$lib/bus/types';
+	import type { GameRuntime } from '$lib/runtime/startGame';
+	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+
+	// Get runtime from context
+	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
+	if (!runtime) {
+		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
+	}
 
 	let error: string | null = null;
 	const facilitySystem = new FacilitySystem();
 
 	// Subscribe to command failures
-	const busManager = getBusManager();
-	busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-		const failed = payload as CommandFailedEvent;
-		if (failed.commandType === 'UpgradeFacility') {
-			error = failed.reason;
-		}
+	onMount(() => {
+		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
+			const failed = payload as CommandFailedEvent;
+			if (failed.commandType === 'UpgradeFacility') {
+				error = failed.reason;
+			}
+		});
+
+		return unsubscribe;
 	});
 
 	async function upgradeFacility(facility: string) {
 		error = null;
-		await dispatchCommand('UpgradeFacility', { facility });
+		await dispatchCommand(runtime, 'UpgradeFacility', { facility });
 	}
 
 	function canAfford(facility: 'tavern' | 'guildHall' | 'blacksmith'): boolean {

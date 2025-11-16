@@ -1,6 +1,14 @@
 <script lang="ts">
-	import { getBusManager } from '$lib/bus/BusManager';
+	import { getContext } from 'svelte';
 	import { missions } from '$lib/stores/gameState';
+	import type { GameRuntime } from '$lib/runtime/startGame';
+	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+
+	// Get runtime from context
+	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
+	if (!runtime) {
+		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
+	}
 
 	let showDevTools = false;
 	let showDebugInfo = false;
@@ -31,16 +39,8 @@
 				
 				// Step 2: Also try clearing via persistence bus if available
 				try {
-					const busManager = getBusManager();
-					busManager.persistenceBus.clear();
+					runtime.busManager.persistenceBus.clear();
 					console.log('✓ Cleared via PersistenceBus');
-					
-					// Also reset the singleton to force a fresh start
-					// @ts-expect-error - resetBusManager is available but TypeScript might not see it
-					if (window.__resetBusManager) {
-						window.__resetBusManager();
-						console.log('✓ Reset BusManager singleton');
-					}
 				} catch {
 					console.log('PersistenceBus not available (this is OK)');
 				}
@@ -77,8 +77,7 @@
 	}
 
 	function logMissionState() {
-		const busManager = getBusManager();
-		const state = busManager.getState();
+		const state = runtime.busManager.getState();
 		const now = Date.now();
 		
 		console.log('=== Mission State Debug ===');
@@ -108,15 +107,14 @@
 		});
 		
 		console.log('\n--- Tick Handler Status ---');
-		const tickBus = busManager.tickBus;
+		const tickBus = runtime.busManager.tickBus;
 		console.log('Tick handlers registered:', (tickBus as any).handlers?.size || 'unknown');
 		
 		console.log('\n========================');
 	}
 
 	async function triggerTick() {
-		const busManager = getBusManager();
-		const tickBus = busManager.tickBus;
+		const tickBus = runtime.busManager.tickBus;
 		const now = new Date();
 		
 		console.log('=== Triggering Manual Tick ===');
@@ -135,7 +133,7 @@
 				console.log('Tick handlers completed');
 				
 				// Log state after tick
-				const state = busManager.getState();
+				const state = runtime.busManager.getState();
 				const inProgress = state.missions.filter(m => m.status === 'inProgress').length;
 				const completed = state.missions.filter(m => m.status === 'completed').length;
 				console.log(`After tick - In Progress: ${inProgress}, Completed: ${completed}`);
@@ -148,8 +146,7 @@
 	}
 
 	async function completeStuckMissions() {
-		const busManager = getBusManager();
-		const state = busManager.getState();
+		const state = runtime.busManager.getState();
 		const now = Date.now();
 		
 		console.log('=== Completing Stuck Missions ===');
@@ -181,7 +178,7 @@
 		const maxAttempts = stuckMissions.length * 2; // Allow retries for duplicate IDs
 		
 		while (attempts < maxAttempts) {
-			const currentState = busManager.getState();
+			const currentState = runtime.busManager.getState();
 			const stillStuck = currentState.missions.filter(m => {
 				if (m.status !== 'inProgress') return false;
 				const startTime = new Date(m.startTime).getTime();
@@ -198,14 +195,14 @@
 			const missionToComplete = stillStuck[0];
 			try {
 				console.log(`Attempting to complete mission ${missionToComplete.id} (${missionToComplete.name})...`);
-				await busManager.commandBus.dispatch({
+				await runtime.busManager.commandBus.dispatch({
 					type: 'CompleteMission',
 					payload: { missionId: missionToComplete.id },
 					timestamp: new Date().toISOString()
 				});
 				
 				// Check if it was actually completed
-				const afterState = busManager.getState();
+				const afterState = runtime.busManager.getState();
 				const missionAfter = afterState.missions.find(m => m.id === missionToComplete.id);
 				if (missionAfter && missionAfter.status === 'completed') {
 					console.log(`✓ Completed ${missionToComplete.id}`);
@@ -257,7 +254,7 @@
 									completedMissionIds: [...updatedState.completedMissionIds, mission.id]
 								};
 								
-								busManager.setState(updatedState);
+								runtime.busManager.setState(updatedState);
 								console.log(`✓ Force-completed duplicate mission ${mission.id} (started ${mission.startTime})`);
 								completed++;
 							} catch (error) {
@@ -273,7 +270,7 @@
 			attempts++;
 		}
 		
-		const finalState = busManager.getState();
+		const finalState = runtime.busManager.getState();
 		const stillStuckFinal = finalState.missions.filter(m => {
 			if (m.status !== 'inProgress') return false;
 			const startTime = new Date(m.startTime).getTime();
@@ -301,7 +298,7 @@
 				🐛 {showDebugInfo ? 'Hide' : 'Show'} Debug Info
 			</button>
 			<button class="dev-button" onclick={logMissionState}>
-				📋 Log Mission State
+				📋 Log Mission State to Console
 			</button>
 			<button class="dev-button" onclick={triggerTick}>
 				⏱️ Trigger Tick (Test Completion)

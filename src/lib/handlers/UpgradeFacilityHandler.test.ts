@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createUpgradeFacilityHandler } from './UpgradeFacilityHandler';
-import { FacilitySystem } from '../domain/systems/FacilitySystem';
+import { FacilitySystem } from '../domain/systems';
 import { createTestPlayerState } from '../test-utils';
 
 describe('UpgradeFacilityHandler', () => {

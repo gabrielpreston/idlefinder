@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createCompleteMissionHandler } from './CompleteMissionHandler';
-import { AdventurerSystem } from '../domain/systems/AdventurerSystem';
+import { AdventurerSystem } from '../domain/systems';
 import { createTestPlayerState, createTestMission, createTestAdventurer } from '../test-utils';
 
 describe('CompleteMissionHandler', () => {

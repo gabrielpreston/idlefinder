@@ -13,10 +13,11 @@ prototype evolves.
 Components communicate by sending commands and events rather than direct function calls. This
 decouples modules, allowing for easier testing, extensibility and offline simulation.
 
-- Layered Buses – Different types of messages flow through specialized buses: command bus (user intent), domain event bus (game state changes), tick scheduler bus (time progression), persistence
+- Single Bus System – There is only one official bus system (`src/lib/bus/*`) containing specialized buses: CommandBus (user intent), DomainEventBus (game state changes), TickBus (time progression), and PersistenceBus (saving/loading). Each bus is small and focused to maintain separation of concerns. Future buses (network, analytics) would be added to this same system.
 
-bus (saving/loading), and network bus (multiplayer) with analytics bus as an optional sink. Each bus
-is small and focused to maintain separation of concerns.
+- Explicit Runtime Factory – The game runtime (BusManager, PlayerState, gameState store, handlers) is created via a `startGame()` factory function. This runtime instance is passed to the UI via Svelte context/props. No global singletons are used.
+
+- Single Runtime per Tab – Only one active game simulation runs in a given browser tab. Save slots may exist under the hood, but only one is ever loaded into memory at once.
 
 - Client‑First Simulation – For the MVP, all game logic runs on the client. Persistence is local, and there is no server dependency. The architecture leaves room for adding a server‑side idle loop later.
 
@@ -25,8 +26,9 @@ Components
 1. UI Layer
 
 The user interface (built in SvelteKit or similar) displays game state and captures player actions. It is dumb—
-UI elements do not contain business logic. Instead, they dispatch commands to the command bus and react
-to events from the domain event bus.
+UI elements do not contain business logic. Instead, they dispatch commands to the command bus and subscribe
+directly to the domain event bus to react to state changes. The UI receives the game runtime (including bus manager)
+via Svelte context, which is created by the `startGame()` factory function.
 
 2. Command Bus
 
@@ -39,7 +41,9 @@ synchronously; their effects are emitted as domain events.
 
 Carries events that describe what happened in the game (e.g., MissionStarted , ResourcesChanged ,
 MissionCompleted ). These events are immutable facts about the state changes. Multiple listeners can
-subscribe: the UI to update visuals, the persistence layer to queue saves, analytics to log metrics, etc.
+subscribe: the UI subscribes directly to update visuals, the persistence layer subscribes to queue saves,
+analytics can subscribe to log metrics, etc. There is no separate UI/FX bus—the UI subscribes directly to
+domain events for presentation updates.
 
 4. Tick/Scheduler Bus
 
@@ -49,21 +53,22 @@ sequence of tick messages can be fed into the system based on elapsed real time.
 
 5. Persistence Bus
 
-## Responsible for saving and loading game state. In the MVP, this bus listens to domain events and
-
-periodically writes a snapshot of the state to local storage. When the game starts, it rehydrates state and
-may apply a sequence of unsaved commands or events to catch up.
+Part of the main bus system (`src/lib/bus/*`). Responsible for saving and loading game state. In the MVP,
+this bus listens to domain events and periodically writes a snapshot of the state to local storage using a
+DTO layer (domain models are converted to DTOs before serialization). When the game starts, it rehydrates
+state and performs deterministic tick-by-tick replay to catch up offline progress. The MVP supports exactly
+one autosave slot.
 
 6. Network Bus (Future)
 
-In a future multiplayer version, a network bus bridges local events to a server or other players. For the MVP,
-this bus can be stubbed out. Its interface is symmetrical to the domain bus, forwarding inbound remote
-events to local subscribers and sending outbound events to remote channels.
+In a future multiplayer version, a network bus would be added to the main bus system (`src/lib/bus/*`). It
+would bridge local events to a server or other players. For the MVP, this is not implemented.
 
-7. Analytics/Telemetry Bus (Optional)
+7. Analytics/Telemetry Bus (Optional, Future)
 
-Collects analytics events to help tune the game and identify usage patterns. Messages from this bus can be
-logged to the console during development or forwarded to analytics services later.
+If implemented, would be added to the main bus system (`src/lib/bus/*`). Collects analytics events to help
+tune the game and identify usage patterns. Messages from this bus can be logged to the console during
+development or forwarded to analytics services later.
 
 ## Interactions
 
@@ -83,9 +88,14 @@ event bus.
 
 For the initial POC:
 
-- Implement the command bus, domain event bus and tick bus in full. They form the backbone of gameplay and offline progression.
-- Implement a minimal persistence bus that saves state after significant events and loads it on game start.
-- Stub the network bus and analytics bus; design their interfaces but leave implementations empty.
+- Implement the command bus, domain event bus, tick bus, and persistence bus in full. They form the backbone
+  of gameplay and offline progression. All buses are part of the single bus system (`src/lib/bus/*`).
+- Implement the `startGame()` factory function that creates the game runtime (BusManager, PlayerState store,
+  handlers) and passes it to the UI via Svelte context.
+- Implement DTO layer for persistence (domain models are converted to DTOs before serialization).
+- Implement deterministic offline catch-up using tick-by-tick replay (no approximation shortcuts).
+- Network bus and analytics bus are not implemented for MVP; they would be added to the main bus system
+  if needed in the future.
 
 This provides extension points without adding complexity.
 
@@ -98,5 +108,8 @@ This provides extension points without adding complexity.
 
 ## This overview sets the stage for implementing the message bus architecture. See
 
-idle_game_message_bus_architecture.md for detailed bus responsibilities and message definitions.
+`06-message-bus-architecture.md` for detailed bus responsibilities and message definitions.
+
+**Note**: This document describes the MVP architecture as implemented. For authoritative technical specifications,
+see `07-authoritative-tech-spec.md`.
 

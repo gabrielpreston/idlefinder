@@ -32,7 +32,6 @@ export function createContinuousTimeSource(interval: number = 100): TimeSource {
 	let isTabVisible = true;
 
 	// Track tab visibility with SSR safety check
-	// Pattern reference: src/lib/stores/lifecycleEvents.ts:270
 	if (typeof document !== 'undefined') {
 		const handleVisibilityChange = () => {
 			isTabVisible = !document.hidden;

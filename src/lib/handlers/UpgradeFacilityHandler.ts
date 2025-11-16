@@ -6,7 +6,7 @@
 import type { CommandHandler } from '../bus/CommandBus';
 import type { UpgradeFacilityCommand, DomainEvent } from '../bus/types';
 import type { PlayerState, FacilityMap } from '../domain/entities/PlayerState';
-import { FacilitySystem } from '../domain/systems/FacilitySystem';
+import { FacilitySystem } from '../domain/systems';
 
 /**
  * Create UpgradeFacility command handler

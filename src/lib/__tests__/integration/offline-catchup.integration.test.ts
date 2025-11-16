@@ -8,17 +8,20 @@ import { BusManager } from '../../bus/BusManager';
 import { registerHandlers } from '../../handlers';
 import { createTestPlayerState, createTestMission, createTestAdventurer, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
+import { SimulatedTimeSource } from '../../time/DomainTimeSource';
+import { Timestamp } from '../../domain/valueObjects/Timestamp';
 
 describe('Offline Catch-Up Integration', () => {
 	let busManager: BusManager;
 	let publishedEvents: DomainEvent[];
+	const testTimeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
 
 	beforeEach(() => {
 		vi.useFakeTimers();
 		setupMockLocalStorage();
 
 		const initialState = createTestPlayerState();
-		busManager = new BusManager(initialState);
+		busManager = new BusManager(initialState, testTimeSource);
 		registerHandlers(busManager);
 
 		publishedEvents = [];
@@ -58,7 +61,7 @@ describe('Offline Catch-Up Integration', () => {
 				missions: [mission]
 			});
 
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 			registerHandlers(manager);
 
 			// Mock persistence to return state with old lastPlayed
@@ -103,7 +106,7 @@ describe('Offline Catch-Up Integration', () => {
 				missions: [mission]
 			});
 
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 			registerHandlers(manager);
 
 			const lastPlayed = new Date(Date.now() - 10000);
@@ -138,7 +141,7 @@ describe('Offline Catch-Up Integration', () => {
 				missions: [mission]
 			});
 
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 			registerHandlers(manager);
 
 			const lastPlayed = new Date(Date.now() - 10000);

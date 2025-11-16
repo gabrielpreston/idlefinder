@@ -6,13 +6,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TickBus } from './TickBus';
 import type { TickHandler } from './TickBus';
+import { SimulatedTimeSource } from '../time/DomainTimeSource';
+import { Timestamp } from '../domain/valueObjects/Timestamp';
+import { Duration } from '../domain/valueObjects/Duration';
 
 describe('TickBus', () => {
 	let tickBus: TickBus;
+	let testTimeSource: SimulatedTimeSource;
 
 	beforeEach(() => {
 		vi.useFakeTimers();
-		tickBus = new TickBus();
+		testTimeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
+		tickBus = new TickBus(testTimeSource);
 	});
 
 	afterEach(() => {
@@ -71,12 +76,15 @@ describe('TickBus', () => {
 			const handler: TickHandler = vi.fn();
 			tickBus.subscribe(handler);
 
+			testTimeSource.advance(Duration.ofSeconds(1));
 			vi.advanceTimersByTime(1000);
 			expect(handler).toHaveBeenCalledTimes(1);
 
+			testTimeSource.advance(Duration.ofSeconds(1));
 			vi.advanceTimersByTime(1000);
 			expect(handler).toHaveBeenCalledTimes(2);
 
+			testTimeSource.advance(Duration.ofSeconds(1));
 			vi.advanceTimersByTime(1000);
 			expect(handler).toHaveBeenCalledTimes(3);
 		});
@@ -85,11 +93,13 @@ describe('TickBus', () => {
 			const handler = vi.fn<TickHandler>();
 			tickBus.subscribe(handler);
 
+			// Advance simulated time source to match timer advancement
+			testTimeSource.advance(Duration.ofSeconds(1));
 			vi.advanceTimersByTime(1000);
 
 			expect(handler).toHaveBeenCalledTimes(1);
 			const call = handler.mock.calls[0];
-			expect(call[0]).toBe(1000); // deltaMs
+			expect(call[0]).toBe(1000); // deltaMs should be 1000ms
 			expect(call[1]).toBeInstanceOf(Date); // timestamp
 		});
 

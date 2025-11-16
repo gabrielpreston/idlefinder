@@ -3,10 +3,7 @@
  */
 
 import type { BusManager } from '../bus/BusManager';
-import type { PlayerState } from '../domain/entities/PlayerState';
-import { MissionSystem } from '../domain/systems/MissionSystem';
-import { AdventurerSystem } from '../domain/systems/AdventurerSystem';
-import { FacilitySystem } from '../domain/systems/FacilitySystem';
+import { MissionSystem, AdventurerSystem, FacilitySystem } from '../domain/systems';
 import { createStartMissionHandler } from './StartMissionHandler';
 import { createRecruitAdventurerHandler } from './RecruitAdventurerHandler';
 import { createUpgradeFacilityHandler } from './UpgradeFacilityHandler';
@@ -17,17 +14,9 @@ import { createCompleteMissionHandler } from './CompleteMissionHandler';
  */
 export function registerHandlers(busManager: BusManager): void {
 	const stateGetter = () => busManager.getState();
-	const stateSetter = (state: PlayerState) => {
-		busManager.setState(state);
-	};
 
-	// Create domain systems
-	const missionSystem = new MissionSystem(
-		stateGetter,
-		stateSetter,
-		busManager.domainEventBus,
-		busManager.commandBus
-	);
+	// Create domain systems (pure - no bus dependencies)
+	const missionSystem = new MissionSystem();
 	const adventurerSystem = new AdventurerSystem();
 	const facilitySystem = new FacilitySystem();
 
@@ -47,7 +36,8 @@ export function registerHandlers(busManager: BusManager): void {
 	);
 
 	// Subscribe mission system to tick bus for automatic mission completion
-	const tickHandler = missionSystem.createTickHandler();
+	// Pass commandBus and stateGetter as parameters (not stored in MissionSystem)
+	const tickHandler = missionSystem.createTickHandler(busManager.commandBus, stateGetter);
 	busManager.tickBus.subscribe(tickHandler);
 }
 

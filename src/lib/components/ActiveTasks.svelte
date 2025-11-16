@@ -1,13 +1,7 @@
 <script lang="ts">
 	import { missions } from '$lib/stores/gameState';
-	import { getBusManager } from '$lib/bus/BusManager';
 	import { DurationProgress } from './ui';
-
-	// Subscribe to mission completion events to refresh
-	const busManager = getBusManager();
-	busManager.domainEventBus.subscribe('MissionCompleted', () => {
-		// Store will update automatically via gameState subscription
-	});
+	// Note: Store updates automatically via gameState subscription, no need for direct bus access
 </script>
 
 <div class="active-tasks">

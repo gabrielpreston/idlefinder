@@ -9,7 +9,7 @@
 import type { CommandHandler } from '../bus/CommandBus';
 import type { CompleteMissionCommand, DomainEvent } from '../bus/types';
 import type { PlayerState } from '../domain/entities/PlayerState';
-import { AdventurerSystem } from '../domain/systems/AdventurerSystem';
+import { AdventurerSystem } from '../domain/systems';
 
 /**
  * Create CompleteMission command handler

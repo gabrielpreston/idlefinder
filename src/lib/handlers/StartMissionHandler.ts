@@ -6,7 +6,7 @@
 import type { CommandHandler } from '../bus/CommandBus';
 import type { StartMissionCommand, DomainEvent } from '../bus/types';
 import type { PlayerState } from '../domain/entities/PlayerState';
-import { MissionSystem } from '../domain/systems/MissionSystem';
+import { MissionSystem } from '../domain/systems';
 
 /**
  * Create StartMission command handler
@@ -82,32 +82,21 @@ export function createStartMissionHandler(
 		};
 
 		// Start mission with unique instance ID
-		const newState = missionSystem.startMission(
+		const startTime = new Date().toISOString();
+		const { newState, events } = missionSystem.startMission(
 			state,
 			missionInstanceId,
 			missionName,
 			duration,
 			payload.adventurerIds,
-			reward
+			reward,
+			startTime
 		);
 
-		const mission = newState.missions.find((m) => m.id === missionInstanceId)!;
-
-		// Emit MissionStarted event
-		const missionStartedEvent: DomainEvent = {
-			type: 'MissionStarted',
-			payload: {
-				missionId: missionInstanceId,
-				adventurerIds: payload.adventurerIds,
-				startTime: mission.startTime,
-				duration: mission.duration
-			},
-			timestamp: new Date().toISOString()
-		};
-
+		// Return new state and events (CommandBus will dispatch events)
 		return {
 			newState,
-			events: [missionStartedEvent]
+			events
 		};
 	};
 }

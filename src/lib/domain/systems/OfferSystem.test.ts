@@ -7,47 +7,18 @@ import { UnlockRule } from '../entities/UnlockRule';
 import { Identifier } from '../valueObjects/Identifier';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
-import { ResourceBundle, ResourceUnit } from '../valueObjects';
-import { ProgressTrack } from '../entities/ProgressTrack';
+import { createTestOrganization, createTestTaskArchetype, createTestProgressTrack, createTestGold } from '../../test-utils';
 import type {
-	OrganizationId,
-	PlayerId,
 	TaskArchetypeId
 } from '../valueObjects/Identifier';
 
 describe('OfferSystem', () => {
 	const createOrganization = (): Organization => {
-		const orgId: OrganizationId = Identifier.generate();
-		const playerId: PlayerId = Identifier.generate();
-		const createdAt = Timestamp.now();
-		const wallet = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);
-		return new Organization(
-			orgId,
-			playerId,
-			createdAt,
-			createdAt,
-			new Map(),
-			{ wallet },
-			createdAt
-		);
+		return createTestOrganization();
 	};
 
 	const createArchetype = (id?: TaskArchetypeId): TaskArchetype => {
-		const archetypeId = id || Identifier.generate();
-		const entryCost = ResourceBundle.fromArray([new ResourceUnit('gold', 10)]);
-		const baseReward = ResourceBundle.fromArray([new ResourceUnit('gold', 50)]);
-		return new TaskArchetype(
-			archetypeId,
-			'test-category',
-			Duration.ofMinutes(5),
-			1,
-			3,
-			'strength',
-			[],
-			entryCost,
-			baseReward,
-			new Map()
-		);
+		return createTestTaskArchetype({ id });
 	};
 
 	const system = new OfferSystem();
@@ -59,8 +30,11 @@ describe('OfferSystem', () => {
 			const archetype = createArchetype(archetypeId);
 
 			// Create unlock rule
-			const trackId = Identifier.generate();
-			const track = new ProgressTrack(trackId, org.id, 'exploration', 100);
+			const track = createTestProgressTrack({
+				ownerOrganizationId: org.id,
+				trackKey: 'exploration',
+				currentValue: 100
+			});
 			org.progressTracks.set('exploration', track);
 
 			const rule = new UnlockRule('rule-1', 'exploration', 50, {
@@ -85,25 +59,20 @@ describe('OfferSystem', () => {
 		it('should filter by track thresholds', () => {
 			const org = createOrganization();
 			const archetypeId = Identifier.generate();
-			const entryCost = ResourceBundle.fromArray([new ResourceUnit('gold', 10)]);
-			const baseReward = ResourceBundle.fromArray([new ResourceUnit('gold', 50)]);
 			const requiredTracks = new Map([['research', 50]]);
-			const archetype = new TaskArchetype(
-				archetypeId,
-				'test',
-				Duration.ofMinutes(5),
-				1,
-				3,
-				'strength',
-				[],
-				entryCost,
-				baseReward,
-				requiredTracks
-			);
+			const archetype = createTestTaskArchetype({
+				id: archetypeId,
+				entryCost: createTestGold(10),
+				baseReward: createTestGold(50),
+				requiredTrackThresholds: requiredTracks
+			});
 
 			// Create unlock rule
-			const trackId1 = Identifier.generate();
-			const track1 = new ProgressTrack(trackId1, org.id, 'exploration', 100);
+			const track1 = createTestProgressTrack({
+				ownerOrganizationId: org.id,
+				trackKey: 'exploration',
+				currentValue: 100
+			});
 			org.progressTracks.set('exploration', track1);
 
 			const rule = new UnlockRule('rule-1', 'exploration', 50, {
@@ -115,8 +84,11 @@ describe('OfferSystem', () => {
 			expect(offers1.length).toBe(0);
 
 			// Add track that meets threshold
-			const trackId2 = Identifier.generate();
-			const track2 = new ProgressTrack(trackId2, org.id, 'research', 100);
+			const track2 = createTestProgressTrack({
+				ownerOrganizationId: org.id,
+				trackKey: 'research',
+				currentValue: 100
+			});
 			org.progressTracks.set('research', track2);
 
 			const offers2 = system.generateOffers(org, [archetype], [rule], Timestamp.now());

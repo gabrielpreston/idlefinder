@@ -46,6 +46,20 @@ Before executing this command, ensure:
 
 ### Phase 2: Implementation
 
+0. **Determine implementation approach**
+   - Use `read_file` to check if plan specifies refactoring approach
+     - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
+   - If plan calls for aggressive refactoring:
+     - Use `codebase_search` to identify all affected code paths
+       - Example: `codebase_search` with `query: "Where is [component being refactored] used?"` and `target_directories: []`
+     - Use `grep` to find all import statements and references
+       - Example: `grep` with `pattern: "import.*Component"` and `path: "src"`
+     - Note: Skip migration paths and compatibility layers
+     - Note: Update all dependent code directly
+     - Note: Remove deprecated code immediately
+     - Note: Prioritize type-check over comprehensive testing
+   - Otherwise, follow standard implementation approach
+
 1. **Begin plan implementation**
    - Follow plan's implementation order section
    - For each phase or step in the plan:
@@ -53,16 +67,28 @@ Before executing this command, ensure:
        - Example: `codebase_search` with `query: "How is [feature] currently implemented?"` and `target_directories: ["src"]`
      - Use `read_file` to read relevant files before making changes
        - Example: `read_file` with `target_file: "file-to-modify.ts"`
+     - If aggressive refactoring:
+       - Refactor core components first, accepting breaking changes
+       - Use `grep` to find all files importing or using refactored code
+         - Example: `grep` with `pattern: "from.*refactored-module"` and `path: "src"`
+       - Update all dependent code immediately in single pass
+       - Do NOT create compatibility layers or adapters
+       - Remove deprecated code entirely (do not mark as deprecated)
      - Use `search_replace` or `write` to make changes
        - Example: `search_replace` with `file_path: "file.ts"`, `old_string: "old code"`, `new_string: "new code"`
 
 2. **Validate changes after each major step**
    - Use `run_terminal_cmd` to run type checking
      - Command: `npm run type-check` with `is_background: false`
+   - If aggressive refactoring:
+     - Fix type errors immediately - do not defer or create workarounds
+     - Address all breaking changes by updating dependent code directly
+     - Continue refactoring only after type-check passes
    - Use `run_terminal_cmd` to run linting (if script exists)
      - Command: `npm run lint` with `is_background: false` (check script exists first)
-   - Use `run_terminal_cmd` to run tests (if script exists)
+   - Use `run_terminal_cmd` to run tests (if script exists and not aggressive refactoring)
      - Command: `npm test` with `is_background: false` (check script exists first)
+     - Note: For aggressive refactoring, skip comprehensive testing - focus on type safety
    - If scripts don't exist, use `read_file` to verify package.json and note missing scripts
 
 3. **Continue implementation following plan**
@@ -78,7 +104,11 @@ Before executing this command, ensure:
      - Command: `npm run type-check` with `is_background: false`
    - Use `run_terminal_cmd` to run linting (if available)
      - Command: `npm run lint` with `is_background: false` (verify script exists first)
-   - Use `run_terminal_cmd` to run tests (if available)
+   - If aggressive refactoring:
+     - Focus on type safety - ensure type-check passes
+     - Skip comprehensive test suites
+     - Address all type errors without creating compatibility layers
+   - Otherwise, use `run_terminal_cmd` to run tests (if available)
      - Command: `npm test` with `is_background: false` (verify script exists first)
    - Use `read_lints` to check for linting errors
      - Example: `read_lints` with `paths: ["src"]` or specific file paths
@@ -101,7 +131,8 @@ Before executing this command, ensure:
 
 - **Type checking errors**: If `npm run type-check` fails
   - Detection: `run_terminal_cmd` returns non-zero exit code
-  - Resolution: Review error output, fix type errors, re-run type-check
+  - Resolution: Review error output, fix type errors immediately (do not defer or create workarounds), re-run type-check
+  - If aggressive refactoring: Update all dependent code directly, do not create compatibility layers
 
 - **Linting errors**: If `npm run lint` fails
   - Detection: `run_terminal_cmd` returns non-zero exit code or `read_lints` shows errors
@@ -143,3 +174,10 @@ Implementation progress tracked through:
 - Update plan status at start (In Progress) and end (Completed) of implementation
 - Mark plan to-dos as completed as you work through implementation steps
 - Follow plan's implementation order and dependencies
+- **Aggressive refactoring**: When plan calls for aggressive refactoring:
+  - Prioritize speed over migration safety
+  - Accept breaking changes and update all dependent code directly
+  - Do not create compatibility layers or adapters
+  - Remove deprecated code entirely, do not maintain both versions
+  - Focus on type safety (type-check) over comprehensive testing
+  - Update all usages in single pass, do not defer updates

@@ -82,7 +82,19 @@ Before executing this command, ensure:
    - Consider unified patterns vs multiple narrow fixes
    - Evaluate predictability and maintainability
 
-5. **Add scorecards and confidence scores**
+5. **Determine refactoring approach**
+   - Assess if aggressive refactoring is appropriate for this plan
+   - Use `codebase_search` to understand scope of changes
+     - Example: `codebase_search` with `query: "How many files use [component being refactored]?"` and `target_directories: []`
+   - If breaking changes are acceptable and speed is prioritized:
+     - Note in plan: "**Refactoring Approach**: Aggressive - Accept breaking changes, update all dependent code directly"
+     - Specify: "No migration paths or compatibility layers required"
+     - Specify: "Remove deprecated code immediately, do not maintain both versions"
+     - Specify: "Update all usages in single pass, do not create adapters"
+   - If migration safety needed, note migration strategy instead
+   - Include refactoring approach in Implementation Plan section
+
+6. **Add scorecards and confidence scores**
    - Provide confidence score for each change with supporting arguments
    - Include scorecard of initial proposal near beginning of document
    - Use `run_terminal_cmd` to get date for plan creation timestamp
@@ -127,6 +139,7 @@ Before executing this command, ensure:
 - [ ] npm scripts referenced in plan exist in package.json or are documented as needed
 - [ ] Plan includes scorecard and confidence scores
 - [ ] Plan reviewed for over-engineering and holistic approach
+- [ ] Refactoring approach determined (aggressive vs migration-based)
 - [ ] Plan structure follows template format with HTML comment UUID and status tracking
 
 ## Output Format

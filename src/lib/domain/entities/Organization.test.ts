@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { Organization } from './Organization';
-import { Identifier } from '$lib/domain/valueObjects/Identifier';
-import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
 import { Duration } from '$lib/domain/valueObjects/Duration';
-import { ResourceBundle, ResourceUnit } from '$lib/domain/valueObjects';
-import { ProgressTrack } from './ProgressTrack';
+import { createTestOrganization, createTestGold, createTestProgressTrack } from '$lib/test-utils';
+import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
+import { ResourceBundle } from '$lib/domain/valueObjects';
 import type { OrganizationId, PlayerId } from '$lib/domain/valueObjects/Identifier';
 
 describe('Organization', () => {
@@ -14,21 +13,8 @@ describe('Organization', () => {
 		playerId: PlayerId;
 		createdAt: Timestamp;
 	} => {
-		const orgId: OrganizationId = Identifier.generate();
-		const playerId: PlayerId = Identifier.generate();
-		const createdAt = Timestamp.now();
-		const wallet = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);
-		const progressTracks = new Map<string, ProgressTrack>();
-		const org = new Organization(
-			orgId,
-			playerId,
-			createdAt,
-			createdAt,
-			progressTracks,
-			{ wallet },
-			createdAt
-		);
-		return { org, orgId, playerId, createdAt };
+		const org = createTestOrganization();
+		return { org, orgId: org.id, playerId: org.ownerPlayerId, createdAt: org.createdAt };
 	};
 
 	describe('constructor', () => {
@@ -39,40 +25,23 @@ describe('Organization', () => {
 		});
 
 		it('should throw error for missing wallet', () => {
-			const orgId: OrganizationId = Identifier.generate();
-			const playerId: PlayerId = Identifier.generate();
-			const createdAt = Timestamp.now();
 			expect(
 				() =>
-					new Organization(
-						orgId,
-						playerId,
-						createdAt,
-						createdAt,
-						new Map(),
-						{ wallet: null as unknown as ResourceBundle },
-						createdAt
-					)
+					createTestOrganization({
+						economyState: { wallet: null as unknown as ResourceBundle }
+					})
 			).toThrow('Organization economyState.wallet is required');
 		});
 
 		it('should throw error if lastSimulatedAt is before createdAt', () => {
-			const orgId: OrganizationId = Identifier.generate();
-			const playerId: PlayerId = Identifier.generate();
 			const createdAt = Timestamp.now();
 			const earlier = createdAt.subtract(Duration.ofSeconds(1));
-			const wallet = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);
 			expect(
 				() =>
-					new Organization(
-						orgId,
-						playerId,
+					createTestOrganization({
 						createdAt,
-						createdAt,
-						new Map(),
-						{ wallet },
-						earlier
-					)
+						lastSimulatedAt: earlier
+					})
 			).toThrow('lastSimulatedAt cannot be before createdAt');
 		});
 	});
@@ -80,13 +49,13 @@ describe('Organization', () => {
 	describe('canAfford', () => {
 		it('should return true when wallet has sufficient resources', () => {
 			const { org } = createOrganization();
-			const cost = ResourceBundle.fromArray([new ResourceUnit('gold', 50)]);
+			const cost = createTestGold(50);
 			expect(org.canAfford(cost)).toBe(true);
 		});
 
 		it('should return false when wallet lacks resources', () => {
 			const { org } = createOrganization();
-			const cost = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
+			const cost = createTestGold(200);
 			expect(org.canAfford(cost)).toBe(false);
 		});
 	});
@@ -112,9 +81,10 @@ describe('Organization', () => {
 	describe('getProgressTrack', () => {
 		it('should return progress track by key', () => {
 			const { org } = createOrganization();
-			const trackId = Identifier.generate();
-			const orgId = Identifier.generate();
-			const track = new ProgressTrack(trackId, orgId, 'test-track', 50);
+			const track = createTestProgressTrack({
+				ownerOrganizationId: org.id,
+				currentValue: 50
+			});
 			org.progressTracks.set('test-track', track);
 			expect(org.getProgressTrack('test-track')).toBe(track);
 		});

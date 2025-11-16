@@ -99,6 +99,26 @@ Before executing this command, ensure:
    - Check for appropriate references and citations
    - Verify validation section exists
 
+6. **Assess refactoring approach**
+   - Use `read_file` to check if plan specifies refactoring approach
+     - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
+   - If plan calls for aggressive refactoring:
+     - Use `codebase_search` to identify all affected code paths
+       - Example: `codebase_search` with `query: "Where is [component being refactored] used?"` and `target_directories: []`
+     - Use `grep` to find all import statements and references
+       - Example: `grep` with `pattern: "import.*Component"` and `path: "src"`
+     - Verify breaking changes are acceptable
+     - Confirm that all dependent code can be updated directly
+     - Validate that no migration paths are needed
+   - If plan includes migration paths but aggressive refactoring is appropriate:
+     - Recommend removing migration complexity in analysis findings
+     - Suggest direct updates instead of compatibility layers
+     - Use `search_replace` to add recommendation to plan
+       - Example: `search_replace` with `file_path: ".cursor/plans/{plan-name}-{uuid}.plan.md"`, `old_string: "## Analysis Findings"`, `new_string: "## Analysis Findings\n\n### Refactoring Approach Recommendation\n\n[Recommendation content]"`
+   - If plan doesn't specify refactoring approach but significant refactoring is needed:
+     - Assess if aggressive refactoring would be more appropriate
+     - Recommend refactoring approach in analysis findings
+
 ### Phase 3: Reporting and Integration
 
 1. **Report findings**
@@ -156,6 +176,7 @@ Before executing this command, ensure:
 - [ ] Plan validated against actual codebase state
 - [ ] Documentation impact analyzed
 - [ ] Plan structure verified for adherence
+- [ ] Refactoring approach assessed and recommendations provided
 - [ ] Findings reported with confidence scores
 - [ ] Fixes integrated into plan document
 - [ ] Plan status updated to "Analysis Complete" with date

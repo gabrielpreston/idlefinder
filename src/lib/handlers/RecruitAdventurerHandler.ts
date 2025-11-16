@@ -6,7 +6,7 @@
 import type { CommandHandler } from '../bus/CommandBus';
 import type { RecruitAdventurerCommand, DomainEvent } from '../bus/types';
 import type { PlayerState } from '../domain/entities/PlayerState';
-import { AdventurerSystem } from '../domain/systems/AdventurerSystem';
+import { AdventurerSystem } from '../domain/systems';
 // Generate unique ID - using crypto.randomUUID() which is available in modern browsers
 
 /**

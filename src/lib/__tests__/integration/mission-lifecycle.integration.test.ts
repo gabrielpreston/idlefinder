@@ -8,17 +8,20 @@ import { BusManager } from '../../bus/BusManager';
 import { registerHandlers } from '../../handlers';
 import { createTestPlayerState, createTestCommand, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
+import { SimulatedTimeSource } from '../../time/DomainTimeSource';
+import { Timestamp } from '../../domain/valueObjects/Timestamp';
 
 describe('Mission Lifecycle Integration', () => {
 	let busManager: BusManager;
 	let publishedEvents: DomainEvent[];
+	const testTimeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
 
 	beforeEach(() => {
 		vi.useFakeTimers();
 		setupMockLocalStorage();
 
 		const initialState = createTestPlayerState();
-		busManager = new BusManager(initialState);
+		busManager = new BusManager(initialState, testTimeSource);
 		registerHandlers(busManager);
 
 		publishedEvents = [];

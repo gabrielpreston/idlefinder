@@ -4,9 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import type { MissionSystem } from '../domain/systems/MissionSystem';
-import type { AdventurerSystem } from '../domain/systems/AdventurerSystem';
-import type { FacilitySystem } from '../domain/systems/FacilitySystem';
+import type { MissionSystem, AdventurerSystem, FacilitySystem } from '../domain/systems';
 import type { PlayerState } from '../domain/entities/PlayerState';
 
 /**

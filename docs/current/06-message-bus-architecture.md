@@ -11,10 +11,12 @@ coupling—publishers and consumers of messages do not need to know about each o
 key for an idle game where multiple subsystems (game logic, UI, persistence, networking) run concurrently
 and react to events at different times.
 
-The game can be built around several specialized buses, each owning a different kind of flow. The following
-sections describe the responsibilities, message definitions and design considerations for each bus. The
-document is language‑agnostic—interfaces can be implemented in any language (TypeScript, C#, etc.) as
-long as they follow the described contracts.
+The game is built around a **single bus system** (`src/lib/bus/*`) containing several specialized buses, each
+owning a different kind of flow. The following sections describe the responsibilities, message definitions and
+design considerations for each bus. The document is language‑agnostic—interfaces can be implemented in
+any language (TypeScript, C#, etc.) as long as they follow the described contracts.
+
+**Note**: All buses are part of the same system (`src/lib/bus/*`). There is only one official bus system.
 
 1. Command Bus (User Intent → Domain Logic)
 
@@ -60,7 +62,8 @@ Flow Example
 
 ResourcesChanged which are emitted to the domain event bus.
 
-4. Persist / Respond – The persistence bus may enqueue a snapshot. The UI reacts to domain events via the UI/FX bus.
+4. Persist / Respond – The persistence bus may enqueue a snapshot. The UI subscribes directly to domain events
+   from the domain event bus to update visuals.
 
 Benefits
 
@@ -73,9 +76,7 @@ Considerations
 - Commands should be idempotent; repeated dispatch with the same parameters should have predictable results.
 - Use asynchronous command handlers if actions may take time (e.g., contacting a server). The bus should not block the UI; results come back via events.
 
-2. Domain Event Bus vs. UI/FX Bus
-
-Domain Event Bus
+2. Domain Event Bus
 
 ## An event bus carries events—objects describing something that happened in the system. Unlike
 
@@ -104,15 +105,16 @@ sequence they were emitted.
 Event Handler (except via separate commands) but may trigger side effects (e.g., start a timer,
 record analytics). Multiple handlers can react to the same event.
 
-UI/FX Bus
+UI Subscription to Domain Events
 
-The UI/FX bus is a specialization of the event bus for presentation and user feedback. It listens to domain
-events and produces presentation actions: animations, sounds, toast notifications, or screen updates.
-Separating domain events from UI/FX events enforces a clear boundary: domain logic remains
-framework‑agnostic, while the UI layer handles how information is displayed. For example:
+**Note**: There is no separate UI/FX bus. The UI subscribes directly to the Domain Event Bus for presentation
+updates. This is a conceptual separation—the UI layer handles how information is displayed (animations,
+sounds, toast notifications, screen updates) while subscribing to business-oriented domain events. For example:
 
-- On MissionCompleted , the UI/FX bus might trigger a celebration animation and queue a notification.
+- On MissionCompleted , the UI might trigger a celebration animation and queue a notification.
 - On ResourcesChanged , it might animate resource counters and play a sound.
+
+This maintains loose coupling: domain logic does not import UI code, and UI can change without touching game logic.
 
 Benefits
 
@@ -168,16 +170,21 @@ Benefits
 - Efficiency – Avoiding per‑component polling reduces CPU load; only active systems process ticks.
 - Testing – Time can be simulated by feeding synthetic ticks, making unit and integration testing easier.
 
-4. Persistence / Sync Bus (Local + Server)
+4. Persistence Bus (Part of Main Bus System)
 
 Purpose
 
+**Note**: PersistenceBus is part of the main bus system (`src/lib/bus/*`), not a separate architectural layer.
+
 Idle games need to persist progress locally and, in multiplayer scenarios, synchronize with a server. Treating
 persistence as a message stream simplifies this: rather than scattered localStorage calls, all save/load
-operations flow through a persistence bus. In offline‑first architectures, an effective pattern is the
-command queue, where user actions are appended to a local queue and the UI state becomes the
-acknowledged server state plus the local queue. The client begins syncing commands in the background,
-and while the queue is non‑empty the UI indicates that changes are pending.
+operations flow through the persistence bus. The persistence bus listens to domain events and schedules saves.
+
+For the MVP, persistence is client-side only. The architecture is designed to be migratable to remote DB in the
+future. In offline‑first architectures, an effective pattern is the command queue, where user actions are
+appended to a local queue and the UI state becomes the acknowledged server state plus the local queue. The
+client begins syncing commands in the background, and while the queue is non‑empty the UI indicates that
+changes are pending.
 
 Interface
 
@@ -202,15 +209,21 @@ Command command is persisted and then applied to the domain state immediately. W
 Queue connectivity resumes, the queue is replayed against the server to synchronize
 differences.
 
-Flow Example
+Flow Example (MVP)
 
 1. User dispatches command – e.g., UpgradeFacility(level 2) .
-2. Local update – Command handler updates the domain state and records the command in the local command queue.
-3. Persistence bus – Emits SaveSnapshot(reason="upgrade") . The local persistence listener serializes the state to localStorage or IndexedDB.
-4. Sync – Background sync module (network listener) attempts to send queued commands to the server. If offline, the queue grows; the UI shows a “syncing” indicator.
-5. Conflict resolution – When the server responds, ApplyServerPatch events reconcile differences.
+2. Local update – Command handler updates the domain state and emits domain events.
+3. Persistence bus – Listens to domain events (e.g., FacilityUpgraded) and schedules a save. When triggered,
+   it converts domain state to DTO using `domainToDTO()`, then serializes the DTO to localStorage.
+4. Load – On game start, persistence bus loads DTO from localStorage, converts to domain using `dtoToDomain()`,
+   and performs deterministic tick-by-tick replay for offline catch-up.
 
-If conflicts cannot be resolved automatically, present them to the player.
+Future (Server Sync)
+
+5. Sync – Background sync module (network listener) attempts to send queued commands to the server. If offline,
+   the queue grows; the UI shows a "syncing" indicator.
+6. Conflict resolution – When the server responds, ApplyServerPatch events reconcile differences.
+   If conflicts cannot be resolved automatically, present them to the player.
 
 Benefits
 
@@ -273,8 +286,8 @@ with the mission details.
 
 3. Receiving remote events – The server pushes MissionCompleted events to subscribed topics.
 
-The network bus translates them into domain events, which then flow through the domain event bus
-and UI/FX bus.
+The network bus translates them into domain events, which then flow through the domain event bus.
+UI subscribes directly to these domain events for presentation updates.
 
 Benefits
 
@@ -290,50 +303,43 @@ Considerations
 
 ## Putting It All Together
 
-The idle game can be architected by layering these buses around the core domain model. An overview of
-the flow:
+The idle game is architected using a **single bus system** (`src/lib/bus/*`) containing specialized buses layered
+around the core domain model. An overview of the flow:
 
 ┌───────────────────────────────────────────────────────────────┐
 │ User Interface (UI) │
 │ - Dispatches Commands → Command Bus │
-│ - Receives UI/FX events ← UI/FX Bus │
+│ - Subscribes to Domain Event Bus ← Domain Event Bus │
 └───────────────────────────────────────────────────────────────┘
 ↓ ↑
-┌───────────────────────┐ ┌───────────────────────────────┐
-│ Command Bus │ │ UI/FX Bus │
-│ – Validates & routes │ │ – Listens to domain events │
-│ commands to domain │ │ – Emits presentation actions │
-└──────────────┬────────┘ └───────────────┬───────────────┘
-↓ ↑
-┌─────────────────────────────────────────────────────┐
-│ Domain Event Bus │
-│ – Publishes domain events (e.g., MissionStarted) │
-│ – Listeners: game systems, analytics, persistence │
-└──────────────┬──────────────────────────────────────┘
-
-┌────────────────────────────────────┐
-│ Tick / Scheduler Bus │
-│ – Emits periodic Tick events │
-│ – Subsystems update timers, cooldowns │
-└────────────────────────────────────┘
-
-┌────────────────────────────────────┐
-│ Persistence / Sync Bus │
-│ – Handles SaveSnapshot, LoadSnapshot │
-│ – Manages command queue & sync to server |
-└────────────────────────────────────┘
-
-┌────────────────────────────────────┐
-│ Network / WebSocket Bus │
-
-│ – Publishes/receives network events|
-│ – Bridges local events to remote peers |
-└────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ Single Bus System (`src/lib/bus/*`) │
+│ │
+│ ┌───────────────────────┐ ┌───────────────────────────────┐ │
+│ │ Command Bus │ │ Domain Event Bus │ │
+│ │ – Validates & routes │ │ – Publishes domain events │ │
+│ │ commands to domain │ │ – Listeners: UI, persistence │ │
+│ └──────────────┬────────┘ └───────────────┬───────────────┘ │
+│ │ │
+│ ┌───────────────────────┐ ┌───────────────────────────────┐ │
+│ │ Tick Bus │ │ Persistence Bus │ │
+│ │ – Emits periodic ticks │ │ – Listens to domain events │ │
+│ │ – Time-based updates │ │ – Saves via DTO layer │ │
+│ └───────────────────────┘ └───────────────────────────────┘ │
+│ │
+│ ┌───────────────────────────────────────────────────────────┐ │
+│ │ Network Bus (Future) │ │
+│ │ – Would bridge local events to server │ │
+│ └───────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────┘
 
 Each bus is specialized yet built on the same principles: messages are immutable data structures that flow
 through a pipeline of middleware and handlers. Commands represent intent and have one handler; events
 represent facts and may have many handlers. The tick bus provides a heartbeat for time‑based logic.
-Persistence and network buses adapt messages to storage and network transports; they use command
-queues and pub/sub models to support offline play and multiplayer. Together, these buses provide a
-modular, testable and scalable foundation for an idle web game.
+Persistence bus adapts messages to storage using a DTO layer; it uses deterministic replay for offline catch-up.
+Future network buses would adapt messages to network transports using command queues and pub/sub models
+to support multiplayer. Together, these buses provide a modular, testable and scalable foundation for an idle web game.
+
+**Note**: This document describes the message bus architecture as implemented. For authoritative technical specifications,
+see `07-authoritative-tech-spec.md`.
 

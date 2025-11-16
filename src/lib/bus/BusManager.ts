@@ -9,10 +9,14 @@ import { TickBus } from './TickBus';
 import { PersistenceBus } from './PersistenceBus';
 import { LocalStorageAdapter } from '../persistence/LocalStorageAdapter';
 import type { PlayerState } from '../domain/entities/PlayerState';
+import type { DomainTimeSource } from '../time/DomainTimeSource';
+import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 /**
  * Bus Manager - wires all buses together
- * Singleton pattern for easy access throughout app
+ * Instance-based (no singleton) - created via startGame() factory
+ * 
+ * Note: Comment about singleton pattern removed - this is now instance-based
  */
 export class BusManager {
 	public readonly commandBus: CommandBus<PlayerState>;
@@ -23,9 +27,11 @@ export class BusManager {
 	private state: PlayerState;
 	private stateGetter: () => PlayerState;
 	private stateSetter: (state: PlayerState) => void;
+	private readonly timeSource: DomainTimeSource;
 
-	constructor(initialState: PlayerState) {
+	constructor(initialState: PlayerState, timeSource: DomainTimeSource) {
 		this.state = initialState;
+		this.timeSource = timeSource;
 		this.stateGetter = () => this.state;
 		this.stateSetter = (state: PlayerState) => {
 			this.state = state;
@@ -38,7 +44,7 @@ export class BusManager {
 			this.stateGetter,
 			this.stateSetter
 		);
-		this.tickBus = new TickBus();
+		this.tickBus = new TickBus(timeSource);
 
 		const adapter = new LocalStorageAdapter();
 		this.persistenceBus = new PersistenceBus(
@@ -75,8 +81,9 @@ export class BusManager {
 		// Handle offline catch-up
 		const lastPlayed = this.persistenceBus.getLastPlayed();
 		if (lastPlayed) {
-			const now = new Date();
-			const elapsed = now.getTime() - lastPlayed.getTime();
+			const now = this.timeSource.now();
+			const lastPlayedTimestamp = Timestamp.from(lastPlayed);
+			const elapsed = now.value - lastPlayedTimestamp.value;
 
 			if (elapsed > 0) {
 				// Replay ticks for offline progression with incremental timestamps
@@ -84,39 +91,5 @@ export class BusManager {
 			}
 		}
 	}
-}
-
-// Singleton instance
-let busManager: BusManager | null = null;
-
-/**
- * Get the singleton BusManager instance
- * Throws if not initialized - call initializeBusManager() first
- */
-export function getBusManager(): BusManager {
-	if (!busManager) {
-		throw new Error('BusManager not initialized. Call initializeBusManager() first.');
-	}
-	return busManager;
-}
-
-/**
- * Initialize the singleton BusManager
- * @param initialState Initial player state (will be replaced with saved state if available)
- */
-export function initializeBusManager(initialState: PlayerState): BusManager {
-	if (busManager) {
-		return busManager;
-	}
-	busManager = new BusManager(initialState);
-	return busManager;
-}
-
-/**
- * Reset the singleton BusManager (for testing/debugging)
- * WARNING: This will destroy the current instance - use with caution!
- */
-export function resetBusManager(): void {
-	busManager = null;
 }
 

@@ -1,29 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { TaskInstance } from './TaskInstance';
-import { Identifier } from '$lib/domain/valueObjects/Identifier';
 import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
 import { Duration } from '$lib/domain/valueObjects/Duration';
-import type {
-	TaskInstanceId,
-	OrganizationId,
-	TaskArchetypeId
-} from '$lib/domain/valueObjects/Identifier';
+import { createTestTaskInstance } from '$lib/test-utils';
 
 describe('TaskInstance', () => {
 	const createTask = (): TaskInstance => {
-		const id: TaskInstanceId = Identifier.generate();
-		const orgId: OrganizationId = Identifier.generate();
-		const archetypeId: TaskArchetypeId = Identifier.generate();
-		const startedAt = Timestamp.now();
-		const expectedCompletionAt = startedAt.add(Duration.ofMinutes(5));
-		return new TaskInstance(
-			id,
-			orgId,
-			archetypeId,
-			startedAt,
-			expectedCompletionAt,
-			'IN_PROGRESS'
-		);
+		return createTestTaskInstance();
 	};
 
 	describe('constructor', () => {
@@ -34,21 +17,14 @@ describe('TaskInstance', () => {
 		});
 
 		it('should throw error if expectedCompletionAt is before startedAt', () => {
-			const id: TaskInstanceId = Identifier.generate();
-			const orgId: OrganizationId = Identifier.generate();
-			const archetypeId: TaskArchetypeId = Identifier.generate();
 			const startedAt = Timestamp.now();
 			const expectedCompletionAt = startedAt.subtract(Duration.ofMinutes(1));
 			expect(
 				() =>
-					new TaskInstance(
-						id,
-						orgId,
-						archetypeId,
+					createTestTaskInstance({
 						startedAt,
-						expectedCompletionAt,
-						'IN_PROGRESS'
-					)
+						expectedCompletionAt
+					})
 			).toThrow('expectedCompletionAt');
 		});
 	});
@@ -82,7 +58,7 @@ describe('TaskInstance', () => {
 	describe('markCompleted', () => {
 		it('should mark task as completed', () => {
 			const task = createTask();
-			task.markCompleted('SUCCESS', { reward: 100 });
+			task.markCompleted('SUCCESS', { reward: 100 }, Timestamp.now());
 			expect(task.status).toBe('COMPLETED');
 			expect(task.outcomeCategory).toBe('SUCCESS');
 			expect(task.outcomeDetails).toEqual({ reward: 100 });
@@ -92,7 +68,7 @@ describe('TaskInstance', () => {
 		it('should throw error if task is not IN_PROGRESS', () => {
 			const task = createTask();
 			task.status = 'COMPLETED';
-			expect(() => task.markCompleted('SUCCESS', {})).toThrow('Cannot mark task as completed');
+			expect(() => task.markCompleted('SUCCESS', {}, Timestamp.now())).toThrow('Cannot mark task as completed');
 		});
 	});
 });

@@ -12,6 +12,10 @@ can evolve smoothly.
 
 and provides context for AI tools to generate code 1 .
 
+- Documentation Split – Documentation is split into two sections:
+  - `docs/current/` – Describes the MVP architecture exactly as implemented. Must always remain 1:1 with actual code.
+  - `docs/future/` – Contains long-term design goals (server authoritative model, Prisma/SQLite/remote DB plans, advanced progression systems, multiplayer). Clearly distinguished from present implementation.
+
 - Decision Log – Keep a simple log (e.g., docs/decisions.md ) noting key architectural or gameplay decisions. For each entry, record the decision, the options considered and the rationale. This follows
 
 the spirit of Architecture Decision Records (ADRs), which capture important choices and aid future
@@ -34,6 +38,10 @@ clarifies the role of each subsystem.
 
 safe refactoring and are part of a robust design document practice 3 .
 
+- **Mandatory Testing Requirements**:
+  - **Domain Unit Tests** – All meaningful domain changes require unit tests. Domain systems must be fully deterministic and easily testable.
+  - **Bus-Level Integration Tests** – Any significant runtime behavior must have an integration test covering command dispatch, event flow, tick progression, state updates, and persistence interactions. This ensures wiring and sequencing remain correct through refactors.
+
 - Error Handling & Recovery – Ensure that each command handler validates preconditions and emits
 
 CommandFailed events on errors. Document typical failure scenarios and recovery steps.
@@ -49,7 +57,21 @@ subsequent generations.
 
 - Continuous Learning – When unexpected behaviour occurs, update the design or guidelines to reflect new understanding. This iterative approach is central to process‑based documentation 3 .
 
-4. Minimal Testing & Acceptance Criteria
+4. Testing Requirements & Acceptance Criteria
+
+### Mandatory Testing Requirements
+
+- **Domain Unit Tests** – All meaningful domain changes require unit tests. Domain systems must be fully deterministic and easily testable.
+- **Bus-Level Integration Tests** – Any significant runtime behavior must have an integration test covering:
+  - Command dispatch
+  - Event flow
+  - Tick progression
+  - State updates
+  - Persistence interactions
+
+This ensures wiring and sequencing remain correct through refactors.
+
+### Acceptance Criteria
 
 For the MVP, each subsystem should satisfy the following acceptance criteria:
 
@@ -58,11 +80,11 @@ For the MVP, each subsystem should satisfy the following acceptance criteria:
 CommandFailed event. Unhandled commands are logged and do not crash the app.
 
 2. Mission System – Missions progress over time based on tick messages. When a mission is complete, it emits a MissionCompleted event with rewards matching the mission definition.
-3. Persistence – Player state saves to local storage after significant events and reloads correctly on refresh. Offline catch‑up uses the stored timestamp to process elapsed ticks.
+3. Persistence – Player state saves to local storage after significant events and reloads correctly on refresh. Offline catch‑up uses deterministic tick-by-tick replay (no approximation shortcuts).
 4. Adventurer Management – Recruiting and retiring adventurers updates the roster and persists correctly. Adventurers cannot be assigned to multiple missions simultaneously.
 5. UI Responsiveness – The UI updates reactively to domain events (e.g., progress bars tick down, resources increment). Error messages from CommandFailed events are displayed to the player.
 
-When each criterion passes, consider the feature “done” for the POC.
+When each criterion passes and mandatory tests are written, consider the feature "done" for the POC.
 
 5. Future Extensions
 
@@ -79,6 +101,9 @@ the MVP we focus on functional correctness.
 
 By following these guidelines, you and your AI tools can build the Idlefinder prototype systematically,
 maintain clear communication and set the stage for future growth.
+
+**Note**: This document describes development guidelines for the MVP. For authoritative technical specifications,
+see `07-authoritative-tech-spec.md`.
 
 1 Software Design Document [Tips & Best Practices] | The Workstream
 https://www.atlassian.com/work-management/knowledge-sharing/documentation/software-design-document

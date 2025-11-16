@@ -7,6 +7,8 @@
 
 // TickBus emits tick events - TickMessage type defined in types.ts for reference
 
+import type { DomainTimeSource } from '../time/DomainTimeSource';
+
 export type TickHandler = (deltaMs: number, timestamp: Date) => void | Promise<void>;
 
 /**
@@ -16,8 +18,14 @@ export type TickHandler = (deltaMs: number, timestamp: Date) => void | Promise<v
 export class TickBus {
 	private handlers = new Set<TickHandler>();
 	private intervalId: ReturnType<typeof setInterval> | null = null;
-	private lastTick: number = Date.now();
+	private lastTick: number;
 	private readonly tickIntervalMs: number = 1000; // 1 second default
+	private readonly timeSource: DomainTimeSource;
+
+	constructor(timeSource: DomainTimeSource) {
+		this.timeSource = timeSource;
+		this.lastTick = timeSource.now().value;
+	}
 
 	/**
 	 * Subscribe to tick events
@@ -45,13 +53,13 @@ export class TickBus {
 	 * Start emitting ticks
 	 */
 	private start(): void {
-		this.lastTick = Date.now();
+		this.lastTick = this.timeSource.now().value;
 		this.intervalId = setInterval(() => {
-			const now = Date.now();
+			const now = this.timeSource.now().value;
 			const deltaMs = now - this.lastTick;
 			this.lastTick = now;
 
-			this.emitTick(deltaMs, new Date());
+			this.emitTick(deltaMs, new Date(now));
 		}, this.tickIntervalMs);
 	}
 

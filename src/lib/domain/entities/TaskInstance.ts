@@ -51,13 +51,16 @@ export class TaskInstance {
 
 	/**
 	 * Marks the task as completed with the specified outcome.
+	 * @param outcome Outcome category
+	 * @param details Outcome details
+	 * @param completedAt Timestamp when task was completed (must be passed from handler/infrastructure)
 	 */
-	markCompleted(outcome: OutcomeCategory, details: unknown): void {
+	markCompleted(outcome: OutcomeCategory, details: unknown, completedAt: Timestamp): void {
 		if (this.status !== 'IN_PROGRESS') {
 			throw new Error(`Cannot mark task as completed: task status is ${this.status}`);
 		}
 		this.status = 'COMPLETED';
-		this.completedAt = Timestamp.now();
+		this.completedAt = completedAt;
 		this.outcomeCategory = outcome;
 		this.outcomeDetails = details;
 	}

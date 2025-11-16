@@ -1,20 +1,31 @@
 <script lang="ts">
+	import { getContext, onMount } from 'svelte';
 	import { adventurers } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import { getBusManager } from '$lib/bus/BusManager';
 	import type { CommandFailedEvent } from '$lib/bus/types';
+	import type { GameRuntime } from '$lib/runtime/startGame';
+	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+
+	// Get runtime from context
+	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
+	if (!runtime) {
+		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
+	}
 
 	let name = '';
 	let traits: string[] = [];
 	let error: string | null = null;
 
 	// Subscribe to command failures
-	const busManager = getBusManager();
-	busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-		const failed = payload as CommandFailedEvent;
-		if (failed.commandType === 'RecruitAdventurer') {
-			error = failed.reason;
-		}
+	onMount(() => {
+		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
+			const failed = payload as CommandFailedEvent;
+			if (failed.commandType === 'RecruitAdventurer') {
+				error = failed.reason;
+			}
+		});
+
+		return unsubscribe;
 	});
 
 	async function recruit() {
@@ -24,7 +35,7 @@
 		}
 
 		error = null;
-		await dispatchCommand('RecruitAdventurer', {
+		await dispatchCommand(runtime, 'RecruitAdventurer', {
 			name: name.trim(),
 			traits: traits.filter((t) => t.trim().length > 0)
 		});

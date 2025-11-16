@@ -1,9 +1,16 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { adventurers } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import { getBusManager } from '$lib/bus/BusManager';
 	import type { CommandFailedEvent } from '$lib/bus/types';
+	import type { GameRuntime } from '$lib/runtime/startGame';
+	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+
+	// Get runtime from context
+	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
+	if (!runtime) {
+		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
+	}
 
 	// For MVP: Simple mission offers (in future, this would come from a mission template system)
 	const missionOffers = [
@@ -18,8 +25,7 @@
 
 	// Subscribe to command failures
 	onMount(() => {
-		const busManager = getBusManager();
-		const unsubscribe = busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
+		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
 			const failed = payload as CommandFailedEvent;
 			if (failed.commandType === 'StartMission') {
 				error = failed.reason;
@@ -41,7 +47,7 @@
 		}
 
 		error = null;
-		await dispatchCommand('StartMission', {
+		await dispatchCommand(runtime, 'StartMission', {
 			missionId: selectedMission,
 			adventurerIds: selectedAdventurers
 		});

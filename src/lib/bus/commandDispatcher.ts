@@ -2,22 +2,25 @@
  * Command Dispatcher - helper for dispatching commands from UI
  */
 
-import { getBusManager } from './BusManager';
 import type { Command, CommandType, CommandPayload } from './types';
+import type { GameRuntime } from '../runtime/startGame';
 
 /**
  * Dispatch a command
+ * @param runtime Game runtime instance (from Svelte context)
+ * @param type Command type
+ * @param payload Command payload
  */
 export async function dispatchCommand<T extends CommandPayload>(
+	runtime: GameRuntime,
 	type: CommandType,
 	payload: T
 ): Promise<void> {
-	const busManager = getBusManager();
 	const command: Command = {
 		type,
 		payload,
 		timestamp: new Date().toISOString()
 	};
-	await busManager.commandBus.dispatch(command);
+	await runtime.busManager.commandBus.dispatch(command);
 }
 

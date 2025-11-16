@@ -3,40 +3,18 @@
  * Speed target: <300ms total
  */
 
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { createStartMissionHandler } from './StartMissionHandler';
-import { MissionSystem } from '../domain/systems/MissionSystem';
+import { MissionSystem } from '../domain/systems';
 import { createTestPlayerState, createTestAdventurer } from '../test-utils';
-import type { PlayerState } from '../domain/entities/PlayerState';
 
 describe('StartMissionHandler', () => {
 	let missionSystem: MissionSystem;
 	let handler: ReturnType<typeof createStartMissionHandler>;
-	let stateGetter: () => PlayerState;
-	let stateSetter: Mock<(state: PlayerState) => void>;
-	let eventBus: { publish: Mock };
-	let commandBus: { dispatch: Mock };
 
 	beforeEach(() => {
-		const state = createTestPlayerState();
-		stateGetter = () => state;
-		stateSetter = vi.fn((newState) => {
-			// Update state reference
-			Object.assign(state, newState);
-		});
-		eventBus = {
-			publish: vi.fn().mockResolvedValue(undefined)
-		};
-		commandBus = {
-			dispatch: vi.fn().mockResolvedValue(undefined)
-		};
-
-		missionSystem = new MissionSystem(
-			stateGetter,
-			stateSetter,
-			eventBus as unknown as import('../bus/DomainEventBus').DomainEventBus,
-			commandBus as unknown as import('../bus/CommandBus').CommandBus<PlayerState>
-		);
+		// MissionSystem is now pure - no constructor parameters
+		missionSystem = new MissionSystem();
 		handler = createStartMissionHandler(missionSystem);
 	});
 

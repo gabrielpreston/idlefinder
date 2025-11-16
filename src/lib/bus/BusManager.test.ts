@@ -6,8 +6,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BusManager } from './BusManager';
 import { createTestPlayerState, setupMockLocalStorage } from '../test-utils';
+import { SimulatedTimeSource } from '../time/DomainTimeSource';
+import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 describe('BusManager', () => {
+	const testTimeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
+
 	beforeEach(() => {
 		// Setup mock localStorage for node environment
 		setupMockLocalStorage();
@@ -16,7 +20,7 @@ describe('BusManager', () => {
 	describe('constructor', () => {
 		it('should create BusManager instance', () => {
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			expect(manager).toBeInstanceOf(BusManager);
 		});
@@ -25,7 +29,7 @@ describe('BusManager', () => {
 	describe('bus wiring', () => {
 		it('should have all buses accessible', () => {
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			expect(manager.commandBus).toBeDefined();
 			expect(manager.domainEventBus).toBeDefined();
@@ -35,7 +39,7 @@ describe('BusManager', () => {
 
 		it('should have buses wired correctly', () => {
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			// CommandBus should use DomainEventBus
 			expect(manager.commandBus).toBeDefined();
@@ -49,7 +53,7 @@ describe('BusManager', () => {
 	describe('state management', () => {
 		it('should initialize with provided state', () => {
 			const initialState = createTestPlayerState({ fame: 100 });
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			const state = manager.getState();
 
@@ -58,7 +62,7 @@ describe('BusManager', () => {
 
 		it('should update state with setState', () => {
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			const newState = createTestPlayerState({ fame: 50 });
 			manager.setState(newState);
@@ -71,7 +75,7 @@ describe('BusManager', () => {
 		it('should load saved state on initialize', async () => {
 			const savedState = createTestPlayerState({ fame: 200 });
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			// Mock persistence bus to return saved state
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(savedState);
@@ -85,7 +89,7 @@ describe('BusManager', () => {
 		it('should handle offline catch-up with tick replay', async () => {
 			vi.useFakeTimers();
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			const lastPlayed = new Date(Date.now() - 5000); // 5 seconds ago
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(null);
@@ -105,7 +109,7 @@ describe('BusManager', () => {
 
 		it('should not replay ticks if no elapsed time', async () => {
 			const initialState = createTestPlayerState();
-			const manager = new BusManager(initialState);
+			const manager = new BusManager(initialState, testTimeSource);
 
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(null);
 			vi.spyOn(manager.persistenceBus, 'getLastPlayed').mockReturnValue(null);
