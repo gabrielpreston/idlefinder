@@ -7,8 +7,8 @@
 
 import { BusManager } from '../bus/BusManager';
 import { RealTimeSource, type DomainTimeSource } from '../time/DomainTimeSource';
-import { registerHandlers } from '../handlers';
-import type { PlayerState } from '../domain/entities/PlayerState';
+import { registerHandlersV2 } from '../handlers/indexV2';
+import type { GameState } from '../domain/entities/GameState';
 import { writable, type Readable } from 'svelte/store';
 
 /**
@@ -17,30 +17,30 @@ import { writable, type Readable } from 'svelte/store';
 export interface GameRuntime {
 	readonly busManager: BusManager;
 	readonly timeSource: DomainTimeSource;
-	readonly playerState: Readable<PlayerState>;
-	refreshPlayerState(): void;
+	readonly gameState: Readable<GameState>;
+	refreshGameState(): void;
 	destroy(): void;
 }
 
 /**
  * Start game - creates runtime instance
  * 
- * @param initialState Initial player state
+ * @param initialState Initial game state
  * @param timeSource Optional time source (defaults to RealTimeSource)
  * @returns Game runtime instance
  */
 export function startGame(
-	initialState: PlayerState,
+	initialState: GameState,
 	timeSource?: DomainTimeSource
 ): GameRuntime {
 	const ts = timeSource ?? new RealTimeSource();
 	const busManager = new BusManager(initialState, ts);
 	
-	// Register command handlers
-	registerHandlers(busManager);
+	// Register command handlers (V2 - Actions-based)
+	registerHandlersV2(busManager);
 	
-	// Create reactive playerState store
-	const { subscribe, set } = writable<PlayerState>(initialState);
+	// Create reactive gameState store
+	const { subscribe, set } = writable<GameState>(initialState);
 	
 	// Set initial state
 	set(initialState);
@@ -61,18 +61,24 @@ export function startGame(
 		}),
 		busManager.domainEventBus.subscribe('FacilityUpgraded', () => {
 			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('AdventurerGainedXP', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('AdventurerLeveledUp', () => {
+			set(busManager.getState());
 		})
 	];
 	
-	const playerState: Readable<PlayerState> = {
+	const gameState: Readable<GameState> = {
 		subscribe
 	};
 	
 	return {
 		busManager,
 		timeSource: ts,
-		playerState,
-		refreshPlayerState: () => {
+		gameState,
+		refreshGameState: () => {
 			// Update store with current state (e.g., after loading saved state)
 			set(busManager.getState());
 		},

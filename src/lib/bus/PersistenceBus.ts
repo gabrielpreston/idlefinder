@@ -8,7 +8,7 @@
 import type { DomainEventType } from './types';
 import { DomainEventBus } from './DomainEventBus';
 import { LocalStorageAdapter } from '../persistence/LocalStorageAdapter';
-import type { PlayerState } from '../domain/entities/PlayerState';
+import type { GameState } from '../domain/entities/GameState';
 
 /**
  * Persistence Bus - handles save/load operations
@@ -16,13 +16,13 @@ import type { PlayerState } from '../domain/entities/PlayerState';
  */
 export class PersistenceBus {
 	private adapter: LocalStorageAdapter;
-	private stateGetter: () => PlayerState;
+	private stateGetter: () => GameState;
 	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	private readonly saveIntervalMs = 10000; // 10 seconds
 
 	constructor(
 		adapter: LocalStorageAdapter,
-		stateGetter: () => PlayerState,
+		stateGetter: () => GameState,
 		eventBus: DomainEventBus
 	) {
 		this.adapter = adapter;
@@ -92,7 +92,7 @@ export class PersistenceBus {
 	/**
 	 * Load state from localStorage
 	 */
-	load(): PlayerState | null {
+	load(): GameState | null {
 		return this.adapter.load();
 	}
 

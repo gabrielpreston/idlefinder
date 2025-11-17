@@ -180,10 +180,12 @@ describe('DomainEventBus', () => {
 				type: 'MissionCompleted',
 				payload: {
 					missionId: 'mission-1',
-					reward: {
-						resources: { gold: 50, supplies: 10, relics: 0 },
-						fame: 1,
-						experience: 10
+					adventurerIds: [],
+					outcome: 'Success',
+					rewards: {
+						gold: 50,
+						xp: 10,
+						fame: 1
 					}
 				},
 				timestamp: new Date().toISOString()

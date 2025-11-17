@@ -64,20 +64,20 @@
 		{#if $adventurers.length === 0}
 			<p>No adventurers recruited yet.</p>
 		{:else}
-			{#each $adventurers as adventurer}
-				<div class="adventurer-item">
-					<div class="adventurer-name">{adventurer.name}</div>
-					<div class="adventurer-details">
-						Level {adventurer.level} | XP: {adventurer.experience} | Status:{' '}
-						{adventurer.status === 'idle' ? 'Available' : 'On Mission'}
-					</div>
-					{#if adventurer.traits.length > 0}
-						<div class="adventurer-traits">
-							Traits: {adventurer.traits.join(', ')}
-						</div>
-					{/if}
+		{#each $adventurers as adventurer}
+			<div class="adventurer-item">
+				<div class="adventurer-name">{(adventurer.metadata.name as string) || 'Unnamed Adventurer'}</div>
+				<div class="adventurer-details">
+					Level {adventurer.attributes.level} | XP: {adventurer.attributes.xp} | Status:{' '}
+					{adventurer.state === 'Idle' ? 'Available' : adventurer.state === 'OnMission' ? 'On Mission' : adventurer.state}
 				</div>
-			{/each}
+				{#if adventurer.tags.length > 0}
+					<div class="adventurer-traits">
+						Traits: {adventurer.tags.join(', ')}
+					</div>
+				{/if}
+			</div>
+		{/each}
 		{/if}
 	</div>
 </div>

@@ -4,9 +4,10 @@
  * Uses DTO layer for persistence
  */
 
-import type { PlayerState } from '../domain/entities/PlayerState';
-import type { PlayerStateDTO } from './dto/PlayerStateDTO';
-import { domainToDTO, dtoToDomain } from './mappers/PlayerStateMapper';
+import type { GameState } from '../domain/entities/GameState';
+import type { GameStateDTO } from './dto/GameStateDTO';
+import { domainToDTO, dtoToDomain } from './mappers/GameStateMapper';
+import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 const STORAGE_KEY = 'idlefinder_state';
 
@@ -34,7 +35,7 @@ export class LocalStorageAdapter {
 	 * Converts domain model to DTO before serialization
 	 * No-op if localStorage is not available (e.g., SSR)
 	 */
-	save(state: PlayerState): void {
+	save(state: GameState): void {
 		const storage = getLocalStorage();
 		if (!storage) {
 			return;
@@ -42,10 +43,7 @@ export class LocalStorageAdapter {
 
 		try {
 			// Update lastPlayed timestamp
-			const stateWithTimestamp: PlayerState = {
-				...state,
-				lastPlayed: new Date().toISOString()
-			};
+			const stateWithTimestamp = state.updateLastPlayed(Timestamp.now());
 			
 			// Convert to DTO and serialize
 			const dto = domainToDTO(stateWithTimestamp);
@@ -60,7 +58,7 @@ export class LocalStorageAdapter {
 	 * Deserializes DTO and converts to domain model
 	 * Returns null if localStorage is not available (e.g., SSR)
 	 */
-	load(): PlayerState | null {
+	load(): GameState | null {
 		const storage = getLocalStorage();
 		if (!storage) {
 			return null;
@@ -72,7 +70,7 @@ export class LocalStorageAdapter {
 				return null;
 			}
 
-			const dto: PlayerStateDTO = JSON.parse(stored);
+			const dto: GameStateDTO = JSON.parse(stored);
 
 			// Convert DTO to domain (handles version migration)
 			return dtoToDomain(dto);
@@ -90,7 +88,7 @@ export class LocalStorageAdapter {
 		if (!state || !state.lastPlayed) {
 			return null;
 		}
-		return new Date(state.lastPlayed);
+		return new Date(state.lastPlayed.value);
 	}
 
 	/**

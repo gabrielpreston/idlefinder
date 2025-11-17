@@ -72,6 +72,20 @@ Before executing this command, ensure:
 3. **Populate plan with evidence-based content**
    - Use `codebase_search` to find existing patterns
      - Example: `codebase_search` with `query: "How is [pattern] implemented?"` and `target_directories: ["src"]`
+   - **Identify reusable building blocks**:
+     - Use `codebase_search` to find existing domain primitives
+       - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
+     - Use `grep` to find existing entity patterns
+       - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
+     - Use `codebase_search` to find existing systems
+       - Example: `codebase_search` with `query: "What systems handle [functionality]?"` and `target_directories: ["src/lib/domain/systems"]`
+     - Use `read_file` to review systems primitives spec
+       - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
+   - **Verify composition over duplication**:
+     - Check if solution can compose from existing primitives rather than creating new ones
+     - Verify if new entity can extend existing entity pattern
+     - Confirm if new system can reuse existing system patterns
+     - Validate solution uses systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
    - Cite specific files and line numbers when claiming to follow patterns
    - Use `read_file` to verify integration points
      - Example: `read_file` with `target_file: "specific-file.ts"` and `offset: start_line` and `limit: end_line - start_line`

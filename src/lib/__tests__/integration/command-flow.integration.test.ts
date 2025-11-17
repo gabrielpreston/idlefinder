@@ -33,8 +33,10 @@ describe('Command Flow Integration', () => {
 
 			// Verify state updated
 			const state = busManager.getState();
-			expect(state.adventurers).toHaveLength(1);
-			expect(state.adventurers[0].name).toBe('Test Adventurer');
+			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
+			expect(adventurers).toHaveLength(1);
+			const adventurer = adventurers[0] as import('../../domain/entities/Adventurer').Adventurer;
+			expect(adventurer.metadata.name).toBe('Test Adventurer');
 		});
 
 		it('should complete full flow for StartMission command', async () => {
@@ -45,7 +47,9 @@ describe('Command Flow Integration', () => {
 			});
 			await busManager.commandBus.dispatch(recruitCommand);
 
-			const adventurerId = busManager.getState().adventurers[0].id;
+			const stateAfterRecruit = busManager.getState();
+			const adventurersAfterRecruit = Array.from(stateAfterRecruit.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurerId = adventurersAfterRecruit[0].id;
 
 			// Then start a mission
 			const startCommand = createTestCommand('StartMission', {
@@ -61,8 +65,10 @@ describe('Command Flow Integration', () => {
 
 			// Verify state updated
 			const state = busManager.getState();
-			expect(state.missions).toHaveLength(1);
-			expect(state.adventurers[0].status).toBe('onMission');
+			const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission');
+			expect(missions).toHaveLength(1);
+			const adventurer = Array.from(state.entities.values()).find(e => e.id === adventurerId) as import('../../domain/entities/Adventurer').Adventurer;
+			expect(adventurer.state).toBe('OnMission');
 		});
 
 		it('should handle multiple commands in sequence', async () => {
@@ -75,7 +81,8 @@ describe('Command Flow Integration', () => {
 			);
 
 			const state = busManager.getState();
-			expect(state.adventurers).toHaveLength(2);
+			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
+			expect(adventurers).toHaveLength(2);
 			expect(publishedEvents).toHaveLength(2);
 		});
 
@@ -86,7 +93,8 @@ describe('Command Flow Integration', () => {
 			);
 
 			const state1 = busManager.getState();
-			const adventurerId = state1.adventurers[0].id;
+			const adventurers1 = Array.from(state1.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurerId = adventurers1[0].id;
 
 			// Start mission
 			await busManager.commandBus.dispatch(
@@ -97,11 +105,13 @@ describe('Command Flow Integration', () => {
 			);
 
 			const state2 = busManager.getState();
+			const adventurers2 = Array.from(state2.entities.values()).filter(e => e.type === 'Adventurer');
 
 			// Verify adventurer still exists and is updated
-			expect(state2.adventurers).toHaveLength(1);
-			expect(state2.adventurers[0].id).toBe(adventurerId);
-			expect(state2.adventurers[0].status).toBe('onMission');
+			expect(adventurers2).toHaveLength(1);
+			expect(adventurers2[0].id).toBe(adventurerId);
+			const adventurer = adventurers2[0] as import('../../domain/entities/Adventurer').Adventurer;
+			expect(adventurer.state).toBe('OnMission');
 		});
 	});
 

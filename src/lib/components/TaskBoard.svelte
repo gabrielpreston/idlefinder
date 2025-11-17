@@ -13,14 +13,15 @@
 	}
 
 	// For MVP: Simple mission offers (in future, this would come from a mission template system)
+	// These are template IDs - each mission start will generate a unique instance ID
 	const missionOffers = [
-		{ id: 'mission-1', name: 'Explore Forest', duration: 60000 }, // 1 minute
-		{ id: 'mission-2', name: 'Clear Cave', duration: 120000 }, // 2 minutes
-		{ id: 'mission-3', name: 'Rescue Villagers', duration: 180000 } // 3 minutes
+		{ templateId: 'explore-forest', name: 'Explore Forest', duration: 60000 }, // 1 minute
+		{ templateId: 'clear-cave', name: 'Clear Cave', duration: 120000 }, // 2 minutes
+		{ templateId: 'rescue-villagers', name: 'Rescue Villagers', duration: 180000 } // 3 minutes
 	];
 
 	let error: string | null = null;
-	let selectedMission: string | null = null;
+	let selectedMissionTemplate: string | null = null;
 	let selectedAdventurers: string[] = [];
 
 	// Subscribe to command failures
@@ -36,7 +37,7 @@
 	});
 
 	async function startMission() {
-		if (!selectedMission) {
+		if (!selectedMissionTemplate) {
 			error = 'Please select a mission';
 			return;
 		}
@@ -46,14 +47,18 @@
 			return;
 		}
 
+		// Generate unique mission instance ID from template
+		// Format: templateId-timestamp-random
+		const uniqueMissionId = `${selectedMissionTemplate}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
 		error = null;
 		await dispatchCommand(runtime, 'StartMission', {
-			missionId: selectedMission,
+			missionId: uniqueMissionId,
 			adventurerIds: selectedAdventurers
 		});
 
 		// Clear selection
-		selectedMission = null;
+		selectedMissionTemplate = null;
 		selectedAdventurers = [];
 	}
 
@@ -80,8 +85,8 @@
 				<input
 					type="radio"
 					name="mission"
-					value={offer.id}
-					bind:group={selectedMission}
+					value={offer.templateId}
+					bind:group={selectedMissionTemplate}
 				/>
 				<span>{offer.name} ({Math.floor(offer.duration / 1000)}s)</span>
 			</label>
@@ -94,17 +99,18 @@
 			<p>No adventurers available. Recruit some first!</p>
 		{:else}
 			{#each $adventurers as adventurer}
+				{@const adventurerName = (adventurer.metadata.name as string) || 'Unnamed Adventurer'}
 				<label class="adventurer-option">
 					<input
 						type="checkbox"
 						value={adventurer.id}
 						checked={selectedAdventurers.includes(adventurer.id)}
 						onchange={() => toggleAdventurer(adventurer.id)}
-						disabled={adventurer.status === 'onMission'}
+						disabled={adventurer.state === 'OnMission'}
 					/>
 					<span>
-						{adventurer.name} (Level {adventurer.level})
-						{#if adventurer.status === 'onMission'}
+						{adventurerName} (Level {adventurer.attributes.level})
+						{#if adventurer.state === 'OnMission'}
 							- On Mission
 						{/if}
 					</span>
@@ -113,7 +119,7 @@
 		{/if}
 	</div>
 
-	<button onclick={startMission} disabled={!selectedMission || selectedAdventurers.length === 0}>
+	<button onclick={startMission} disabled={!selectedMissionTemplate || selectedAdventurers.length === 0}>
 		Start Mission
 	</button>
 </div>

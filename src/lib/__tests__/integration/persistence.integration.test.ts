@@ -7,19 +7,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PersistenceBus } from '../../bus/PersistenceBus';
 import { DomainEventBus } from '../../bus/DomainEventBus';
 import { LocalStorageAdapter } from '../../persistence/LocalStorageAdapter';
-import { createTestPlayerState, setupMockLocalStorage } from '../../test-utils';
+import { createTestGameState, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
+import type { GameState } from '../../domain/entities/GameState';
 
 describe('Persistence Integration', () => {
 	let eventBus: DomainEventBus;
-	let stateGetter: () => ReturnType<typeof createTestPlayerState>;
+	let stateGetter: () => GameState;
 	let adapter: LocalStorageAdapter;
 	let persistenceBus: PersistenceBus;
 
 	beforeEach(() => {
 		setupMockLocalStorage();
 		eventBus = new DomainEventBus();
-		const state = createTestPlayerState();
+		const state = createTestGameState();
 		stateGetter = () => state;
 		adapter = new LocalStorageAdapter();
 		// Create PersistenceBus for tests that need it
@@ -27,8 +28,13 @@ describe('Persistence Integration', () => {
 	});
 
 	describe('save/load cycle', () => {
-		it('should save and load state correctly', () => {
-			const state = createTestPlayerState({ fame: 100 });
+		it('should save and load state correctly', async () => {
+			const { ResourceUnit } = await import('../../domain/valueObjects/ResourceUnit');
+			const { ResourceBundle } = await import('../../domain/valueObjects/ResourceBundle');
+			const baseResources = createTestGameState().resources;
+			const fameBundle = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
+			const resources = baseResources.add(fameBundle);
+			const state = createTestGameState({ resources });
 			stateGetter = () => state;
 
 			// Save state
@@ -38,7 +44,7 @@ describe('Persistence Integration', () => {
 			const loaded = adapter.load();
 
 			expect(loaded).not.toBeNull();
-			expect(loaded?.fame).toBe(100);
+			expect(loaded?.resources.get('fame')).toBe(100);
 		});
 
 		it('should return null when no saved state exists', () => {
@@ -55,9 +61,10 @@ describe('Persistence Integration', () => {
 			const event: DomainEvent = {
 				type: 'FacilityUpgraded',
 				payload: {
-					facility: 'guildHall',
-					newLevel: 2,
-					effects: ['Level 2 guild hall - 6 mission slots']
+					facilityId: 'facility-1',
+					facilityType: 'Guildhall',
+					newTier: 2,
+					bonusMultipliers: {}
 				},
 				timestamp: new Date().toISOString()
 			};
@@ -138,10 +145,12 @@ describe('Persistence Integration', () => {
 				type: 'MissionCompleted',
 				payload: {
 					missionId: 'mission-1',
-					reward: {
-						resources: { gold: 50, supplies: 10, relics: 0 },
-						fame: 1,
-						experience: 10
+					adventurerIds: ['adv-1'],
+					outcome: 'Success',
+					rewards: {
+						gold: 50,
+						xp: 10,
+						fame: 1
 					}
 				},
 				timestamp: new Date().toISOString()
@@ -151,10 +160,12 @@ describe('Persistence Integration', () => {
 				type: 'MissionCompleted',
 				payload: {
 					missionId: 'mission-2',
-					reward: {
-						resources: { gold: 75, supplies: 15, relics: 0 },
-						fame: 2,
-						experience: 15
+					adventurerIds: ['adv-2'],
+					outcome: 'Success',
+					rewards: {
+						gold: 75,
+						xp: 15,
+						fame: 2
 					}
 				},
 				timestamp: new Date().toISOString()
@@ -224,10 +235,12 @@ describe('Persistence Integration', () => {
 				type: 'MissionCompleted',
 				payload: {
 					missionId: 'mission-1',
-					reward: {
-						resources: { gold: 50, supplies: 10, relics: 0 },
-						fame: 1,
-						experience: 10
+					adventurerIds: ['adv-1'],
+					outcome: 'Success',
+					rewards: {
+						gold: 50,
+						xp: 10,
+						fame: 1
 					}
 				},
 				timestamp: new Date().toISOString()
@@ -251,8 +264,13 @@ describe('Persistence Integration', () => {
 	});
 
 	describe('version migration', () => {
-		it('should handle version migration', () => {
-			const state = createTestPlayerState({ fame: 50 });
+		it('should handle version migration', async () => {
+			const { ResourceUnit } = await import('../../domain/valueObjects/ResourceUnit');
+			const { ResourceBundle } = await import('../../domain/valueObjects/ResourceBundle');
+			const baseResources = createTestGameState().resources;
+			const fameBundle = ResourceBundle.fromArray([new ResourceUnit('fame', 50)]);
+			const resources = baseResources.add(fameBundle);
+			const state = createTestGameState({ resources });
 
 			// Save with version
 			adapter.save(state);
@@ -260,7 +278,7 @@ describe('Persistence Integration', () => {
 			// Load should return state (migration logic in adapter)
 			const loaded = adapter.load();
 			expect(loaded).not.toBeNull();
-			expect(loaded?.fame).toBe(50);
+			expect(loaded?.resources.get('fame')).toBe(50);
 		});
 	});
 
@@ -276,7 +294,7 @@ describe('Persistence Integration', () => {
 				throw new Error('Storage quota exceeded');
 			});
 
-			const state = createTestPlayerState();
+			const state = createTestGameState();
 
 			// Should not throw
 			expect(() => {

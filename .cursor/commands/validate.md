@@ -5,6 +5,26 @@ Execute solo development validation suite focusing on type checking, basic funct
 
 ## Steps
 
+## Building Block Validation
+
+Before validating code, check for proper use of reusable building blocks:
+
+- **Check for domain primitive reuse**
+  - Verify code uses existing Identifier, Timestamp, Duration, ResourceBundle
+  - Check that new value objects aren't duplicating existing primitives
+  - Validate Map/Set keys use `.value` property for value objects
+- **Verify entity pattern consistency**
+  - Ensure new entities follow existing entity patterns (constructor-based, validation)
+  - Check that entities compose from existing value objects
+  - Verify entities follow systems primitives pattern (id, type, attributes, tags, state, timers)
+- **Validate system reuse**
+  - Verify new systems follow existing system patterns (pure functions, no side effects)
+  - Check that business logic uses existing systems rather than duplicating
+  - Ensure systems don't depend on infrastructure (bus, UI, etc.)
+- **Check systems primitives vocabulary**
+  - Verify solution uses existing primitives (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
+  - Check that new features compose from primitives rather than creating new fundamental types
+
 ## NPM Scripts for Validation
 
 The following npm scripts are available for validation:

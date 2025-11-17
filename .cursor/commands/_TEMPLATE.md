@@ -20,6 +20,95 @@ Before executing this command, ensure:
 - [Required tools or dependencies]
 - [Required files or directories exist]
 
+## Reusable Building Blocks & Best Principles
+
+Before implementing changes, identify and reuse existing building blocks:
+
+### Domain Primitives (Always Reuse)
+
+**Core Value Objects** (from `src/lib/domain/valueObjects/`):
+- **Identifier**: Use `Identifier.generate<T>()` or `Identifier.from<T>()` for all entity IDs
+  - Type aliases: `OrganizationId`, `TaskInstanceId`, `AgentId`, `TaskArchetypeId`, etc.
+- **Timestamp**: Use `Timestamp.now()` or `Timestamp.from()` for time values
+  - Domain systems receive timestamps as parameters (never call `Date.now()`)
+- **Duration**: Use `Duration.ofMinutes()`, `Duration.ofHours()`, `Duration.ofSeconds()` for time spans
+- **ResourceBundle**: Use `ResourceBundle.fromArray()` or `ResourceBundle.empty()` for resource collections
+- **ResourceUnit**: Use `new ResourceUnit(type, amount)` for individual resources
+- **NumericStatMap**: Use for stat collections (ability mods, etc.)
+
+**Design Rule**: Always use `.value` property when using value objects as Map/Set keys (JavaScript uses reference equality, not value equality).
+
+### Systems Primitives (Compose, Don't Duplicate)
+
+**Entity Pattern** (from `docs/current/08-systems-primitives-spec.md`):
+- All entities have: `id`, `type`, `attributes`, `tags`, `state`, `timers`, `metadata`
+- Core systems reason over `type`, `attributes`, `tags`, `state` - never special-case specific IDs
+- Use existing entity patterns: `Organization`, `TaskInstance`, `AgentInstance`, `TaskArchetype`, `FacilityInstance`, `ProgressTrack`
+
+**Systems Primitives Vocabulary**:
+- **Entities**: Typed things with identity (`Adventurer`, `Mission`, `Facility`)
+- **Attributes**: Capabilities, stats, configuration (read-only during actions)
+- **Tags**: Lightweight labels for classification/synergy (`["wilderness", "divine"]`)
+- **State**: Finite state machine label (`Idle`, `OnMission`, `InProgress`, `Completed`)
+- **Timers**: Time-related fields (`startedAt`, `endsAt`, `cooldownUntil`)
+- **Resources**: Quantities (`gold`, `xp`, `fame`) - use ResourceBundle/ResourceUnit
+- **Requirements**: Predicates/checks (pure functions, no side effects)
+- **Actions**: Verbs (`StartMission`, `ResolveMission`, `UpgradeFacility`)
+- **Effects**: State/resource changes (data describing mutations)
+- **Events**: Notifications (`MissionStarted`, `MissionCompleted`)
+
+### Domain Entities (Compose, Don't Duplicate)
+
+**Core Entities** (from `src/lib/domain/entities/`):
+- **Organization**: Core player entity with progress tracks and economy state
+- **TaskInstance**: Task execution instances (compose from TaskArchetype)
+- **AgentInstance**: Agent entities (compose from AgentTemplate)
+- **ProgressTrack**: Progression tracking (reuse for all track types)
+- **TaskArchetype**: Task templates (reuse pattern for all task types)
+- **FacilityInstance**: Facility entities (compose from FacilityTemplate)
+
+**Entity Pattern Rules**:
+- Constructor-based initialization (not `Partial<T>` spreads)
+- Validation in constructors (throw errors for invalid state)
+- Immutable value objects in entity properties
+- Public readonly for identity, mutable for state that changes
+
+### Domain Systems (Use Existing)
+
+**Core Systems** (from `src/lib/domain/systems/`):
+- **TaskResolutionSystem**: Task completion logic (pure function, no side effects)
+- **EconomySystem**: Resource management (apply costs/rewards)
+- **ProgressionSystem**: Track progression and unlocks
+- **OfferSystem**: Task offer generation
+- **RosterSystem**: Agent management and recovery
+
+**System Pattern Rules**:
+- Pure functions: given inputs, produce outputs (no side effects)
+- No dependencies on infrastructure (bus, UI, etc.)
+- Deterministic: same inputs = same outputs
+- Time passed as parameters (never call `Date.now()`)
+
+### Pattern Reuse Checklist
+
+Before creating new code:
+- [ ] Check if domain primitive exists before creating new value object
+- [ ] Verify existing entity pattern before creating new entity class
+- [ ] Identify existing system before creating new business logic
+- [ ] Use existing repository pattern before creating new data access
+- [ ] Follow established application service pattern for orchestration
+- [ ] Compose from existing building blocks rather than duplicating
+- [ ] Verify solution uses systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
+
+### Architecture Principles
+
+- **Domain Purity**: Domain entities/systems must not depend on infrastructure (bus, UI, etc.)
+- **Value Object Immutability**: All value objects must be immutable
+- **Entity Validation**: All entities must validate state in constructors
+- **System Purity**: Systems must be pure functions (no side effects)
+- **Repository Abstraction**: Data access through interfaces, not direct Prisma
+- **Composition over Duplication**: Compose from primitives rather than creating duplicates
+- **Systems Primitives First**: Express new features using existing primitives vocabulary
+
 ## AI Execution Steps
 
 ### Phase 1: Context Gathering

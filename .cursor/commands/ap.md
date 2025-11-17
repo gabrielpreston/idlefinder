@@ -58,6 +58,15 @@ Before executing this command, ensure:
 1. **Review for over-engineering and holistic approach**
    - Use `codebase_search` to find similar implementations
      - Example: `codebase_search` with `query: "How is [similar feature] implemented?"` and `target_directories: ["src"]`
+   - **Validate building block reuse**:
+     - Use `codebase_search` to verify plan uses existing domain primitives
+       - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
+     - Use `grep` to check if plan duplicates existing entities
+       - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
+     - Use `read_file` to review systems primitives spec
+       - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
+     - Verify plan composes from existing building blocks rather than creating duplicates
+     - Check if plan follows systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
    - Assess if plan solutions are unnecessarily complex
    - Check if fixes are too narrow in scope
    - Evaluate if unified patterns could replace multiple narrow fixes

@@ -7,18 +7,18 @@ import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { CommandBus } from './CommandBus';
 import { DomainEventBus } from './DomainEventBus';
 import type { DomainEvent } from './types';
-import { createTestPlayerState, createTestCommand } from '../test-utils';
-import type { PlayerState as PlayerStateType } from '../domain/entities/PlayerState';
+import { createTestGameState, createTestCommand } from '../test-utils';
+import type { GameState } from '../domain/entities/GameState';
 
 describe('CommandBus', () => {
-	let commandBus: CommandBus<PlayerStateType>;
+	let commandBus: CommandBus<GameState>;
 	let domainEventBus: DomainEventBus;
-	let state: PlayerStateType;
-	let stateGetter: () => PlayerStateType;
-	let stateSetter: Mock<(state: PlayerStateType) => void>;
+	let state: GameState;
+	let stateGetter: () => GameState;
+	let stateSetter: Mock<(state: GameState) => void>;
 
 	beforeEach(() => {
-		state = createTestPlayerState();
+		state = createTestGameState();
 		domainEventBus = new DomainEventBus();
 		stateSetter = vi.fn((newState) => {
 			state = newState;
@@ -63,7 +63,7 @@ describe('CommandBus', () => {
 		});
 
 		it('should update state after handler execution', async () => {
-			const newState = createTestPlayerState({ fame: 10 });
+			const newState = createTestGameState();
 			const handler = vi.fn().mockResolvedValue({
 				newState,
 				events: []

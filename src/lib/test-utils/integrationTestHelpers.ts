@@ -5,13 +5,13 @@
 
 import type { BusManager } from '../bus/BusManager';
 import { BusManager as BusManagerImpl } from '../bus/BusManager';
-import { registerHandlers } from '../handlers';
-import { createTestPlayerState } from './testFactories';
+import { registerHandlersV2 } from '../handlers/indexV2';
+import { createTestGameState } from './testFactories';
 import { setupMockLocalStorage } from './mockLocalStorage';
 import { SimulatedTimeSource } from '../time/DomainTimeSource';
 import { Timestamp } from '../domain/valueObjects/Timestamp';
 import type { DomainEvent, DomainEventType } from '../bus/types';
-import type { PlayerState } from '../domain/entities/PlayerState';
+import type { GameState } from '../domain/entities/GameState';
 import { vi } from 'vitest';
 
 /**
@@ -29,7 +29,7 @@ export interface IntegrationTestContext {
  */
 export function setupIntegrationTest(options?: {
 	useFakeTimers?: boolean;
-	initialState?: PlayerState;
+	initialState?: GameState;
 	eventTypes?: DomainEventType[];
 }): IntegrationTestContext {
 	if (options?.useFakeTimers) {
@@ -38,10 +38,10 @@ export function setupIntegrationTest(options?: {
 
 	setupMockLocalStorage();
 
-	const initialState = options?.initialState ?? createTestPlayerState();
+	const initialState = options?.initialState ?? createTestGameState();
 	const testTimeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
 	const busManager = new BusManagerImpl(initialState, testTimeSource);
-	registerHandlers(busManager);
+	registerHandlersV2(busManager);
 
 	const publishedEvents: DomainEvent[] = [];
 	const eventTypes = options?.eventTypes ?? [];

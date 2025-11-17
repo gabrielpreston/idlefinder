@@ -104,7 +104,13 @@ export function createCompleteMissionHandler(
 			type: 'MissionCompleted',
 			payload: {
 				missionId: payload.missionId,
-				reward: mission.reward
+				adventurerIds: mission.assignedAdventurerIds,
+				outcome: 'Success',
+				rewards: {
+					gold: mission.reward.resources.gold,
+					xp: mission.reward.experience,
+					fame: mission.reward.fame
+				}
 			},
 			timestamp: new Date().toISOString()
 		};

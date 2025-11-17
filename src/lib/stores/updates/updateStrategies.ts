@@ -44,6 +44,12 @@ export function continuousInterpolation(
 	timeSource: TimeSource
 ): Readable<number> {
 	return derived([config, timeSource.now], ([cfg, now]) => {
+		// Handle invalid values
+		if (isNaN(cfg.startTime) || isNaN(cfg.duration) || isNaN(now) || 
+		    !isFinite(cfg.startTime) || !isFinite(cfg.duration) || !isFinite(now)) {
+			return 0;
+		}
+		
 		const elapsed = now - cfg.startTime;
 		
 		// Handle edge cases

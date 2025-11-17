@@ -62,6 +62,21 @@ Before executing this command, ensure:
 
 1. **Begin plan implementation**
    - Follow plan's implementation order section
+   - **Before creating new code, identify reusable building blocks**:
+     - Use `codebase_search` to find existing domain primitives
+       - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
+     - Use `grep` to find existing entity patterns
+       - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
+     - Use `read_file` to review existing entity implementations
+       - Example: `read_file` with `target_file: "src/lib/domain/entities/Organization.ts"`
+     - Use `read_file` to review systems primitives spec
+       - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
+   - **Compose from existing building blocks**:
+     - Reuse domain primitives (Identifier, Timestamp, Duration, ResourceBundle) rather than creating new ones
+     - Follow existing entity patterns (constructor-based, validation in constructor)
+     - Use existing systems (TaskResolutionSystem, EconomySystem) rather than duplicating logic
+     - Compose new entities from existing value objects and primitives
+     - Express new features using systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
    - For each phase or step in the plan:
      - Use `codebase_search` to understand current implementation
        - Example: `codebase_search` with `query: "How is [feature] currently implemented?"` and `target_directories: ["src"]`

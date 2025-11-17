@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
-import { registerHandlers } from '../../handlers';
-import { createTestPlayerState, createTestCommand, setupMockLocalStorage } from '../../test-utils';
+import { registerHandlersV2 } from '../../handlers/indexV2';
+import { createTestGameState, createTestCommand, createTestResourceBundle, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
@@ -20,9 +20,9 @@ describe('Player Journey Integration', () => {
 		vi.useFakeTimers();
 		setupMockLocalStorage();
 
-		const initialState = createTestPlayerState();
+		const initialState = createTestGameState();
 		busManager = new BusManager(initialState, testTimeSource);
-		registerHandlers(busManager);
+		registerHandlersV2(busManager);
 
 		publishedEvents = [];
 		busManager.domainEventBus.subscribe('AdventurerRecruited', (payload: DomainEvent['payload']) => {
@@ -77,8 +77,9 @@ describe('Player Journey Integration', () => {
 			);
 
 			let state = busManager.getState();
-			expect(state.adventurers).toHaveLength(1);
-			const adventurerId = state.adventurers[0].id;
+			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
+			expect(adventurers).toHaveLength(1);
+			const adventurerId = adventurers[0].id;
 
 			// 2. Start mission
 			await busManager.commandBus.dispatch(
@@ -89,12 +90,15 @@ describe('Player Journey Integration', () => {
 			);
 
 			state = busManager.getState();
-			expect(state.missions).toHaveLength(1);
-			expect(state.adventurers[0].status).toBe('onMission');
+			const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			expect(missions).toHaveLength(1);
+			const adventurer = Array.from(state.entities.values()).find(e => e.id === adventurerId) as import('../../domain/entities/Adventurer').Adventurer;
+			expect(adventurer.state).toBe('OnMission');
 
 			// 3. Wait for mission completion (advance time)
-			const mission = state.missions[0];
-			const elapsed = mission.duration + 1000; // Mission duration + buffer
+			const mission = missions[0];
+			const endsAt = mission.timers.get('endsAt');
+			const elapsed = endsAt ? endsAt.value - Date.now() + 1000 : 61000; // Mission duration + buffer
 
 			// Advance time
 			vi.advanceTimersByTime(elapsed);
@@ -108,27 +112,37 @@ describe('Player Journey Integration', () => {
 
 			// 4. Verify mission completed and rewards applied
 			state = busManager.getState();
-			// Mission ID is unique instance ID (mission-1-timestamp-random), find by prefix
-			const completedMission = state.missions.find((m: { id: string }) => m.id.startsWith('mission-1-'));
+			const finalMissions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			const completedMission = finalMissions.find(m => m.id.startsWith('mission-1-') || m.metadata.missionId === 'mission-1');
 			expect(completedMission).toBeDefined();
-			expect(completedMission?.status).toBe('completed');
+			expect(completedMission?.state).toBe('Completed');
 
 			// 5. Upgrade facility (if resources available)
 			state = busManager.getState();
-			const currentGold = state.resources.gold;
-			// Level 1 -> 2 costs 100 gold, 10 supplies
-			if (currentGold >= 100 && state.resources.supplies >= 10) {
-				await busManager.commandBus.dispatch(
-					createTestCommand('UpgradeFacility', {
-						facility: 'tavern'
-					})
-				);
+			const currentGold = state.resources.get('gold') || 0;
+			const facilities = Array.from(state.entities.values()).filter(e => e.type === 'Facility') as import('../../domain/entities/Facility').Facility[];
+			const facility = facilities.find(f => f.attributes.facilityType === 'Guildhall');
+			
+			if (facility) {
+				// Upgrade cost: (currentTier + 1) * 100
+				// For tier 1 -> 2: cost = 2 * 100 = 200
+				const upgradeCost = (facility.attributes.tier + 1) * 100;
+				
+				if (currentGold >= upgradeCost) {
+					await busManager.commandBus.dispatch(
+						createTestCommand('UpgradeFacility', {
+							facility: facility.id
+						})
+					);
 
-				state = busManager.getState();
-				expect(state.facilities.tavern.level).toBeGreaterThan(1);
-			} else {
-				// Skip upgrade if not enough resources (mission rewards may not be enough)
-				// This is acceptable - test verifies the journey works
+					state = busManager.getState();
+					const updatedFacilities = Array.from(state.entities.values()).filter(e => e.type === 'Facility') as import('../../domain/entities/Facility').Facility[];
+					const updatedFacility = updatedFacilities.find(f => f.id === facility.id);
+					expect(updatedFacility?.attributes.tier).toBeGreaterThan(facility.attributes.tier);
+				} else {
+					// Skip upgrade if not enough resources (mission rewards may not be enough)
+					// This is acceptable - test verifies the journey works
+				}
 			}
 
 			// Verify event sequence
@@ -143,7 +157,8 @@ describe('Player Journey Integration', () => {
 			);
 
 			const state1 = busManager.getState();
-			const adventurerId = state1.adventurers[0].id;
+			const adventurers1 = Array.from(state1.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurerId = adventurers1[0].id;
 
 			// Start mission
 			await busManager.commandBus.dispatch(
@@ -154,27 +169,31 @@ describe('Player Journey Integration', () => {
 			);
 
 			const state2 = busManager.getState();
+			const adventurers2 = Array.from(state2.entities.values()).filter(e => e.type === 'Adventurer');
+			const missions2 = Array.from(state2.entities.values()).filter(e => e.type === 'Mission');
 
 			// Verify adventurer still exists and is updated
-			expect(state2.adventurers).toHaveLength(1);
-			expect(state2.adventurers[0].id).toBe(adventurerId);
-			expect(state2.adventurers[0].status).toBe('onMission');
-			expect(state2.missions).toHaveLength(1);
+			expect(adventurers2).toHaveLength(1);
+			expect(adventurers2[0].id).toBe(adventurerId);
+			const adventurer = adventurers2[0] as import('../../domain/entities/Adventurer').Adventurer;
+			expect(adventurer.state).toBe('OnMission');
+			expect(missions2).toHaveLength(1);
 		});
 
 		it('should accumulate resources correctly', async () => {
-			const initialState = createTestPlayerState({
-				resources: { gold: 0, supplies: 0, relics: 0 }
-			});
+			const resources = createTestResourceBundle({ gold: 0, fame: 0 });
+			const initialState = createTestGameState({ resources });
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlers(manager);
+			registerHandlersV2(manager);
 
 			// Recruit and start mission
 			await manager.commandBus.dispatch(
 				createTestCommand('RecruitAdventurer', { name: 'Test', traits: [] })
 			);
 
-			const adventurerId = manager.getState().adventurers[0].id;
+			const stateAfterRecruit = manager.getState();
+			const adventurers = Array.from(stateAfterRecruit.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurerId = adventurers[0].id;
 
 			await manager.commandBus.dispatch(
 				createTestCommand('StartMission', {
@@ -196,9 +215,10 @@ describe('Player Journey Integration', () => {
 
 			// Resources should have increased
 			const finalState = manager.getState();
-			// Note: Rewards are applied when mission completes via CompleteMissionHandler
+			const finalMissions = Array.from(finalState.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			// Note: Rewards are applied when mission completes via ResolveMissionAction
 			// For now, verify mission is completed
-			expect(finalState.missions[0].status).toBe('completed');
+			expect(finalMissions[0].state).toBe('Completed');
 		});
 	});
 });

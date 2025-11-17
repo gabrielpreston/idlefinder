@@ -12,19 +12,13 @@
 			<div class="resource-item">
 				<span class="resource-label">Gold:</span>
 				<span class="resource-value">
-					<AnimatedNumber value={$resources.gold} />
+					<AnimatedNumber value={$resources.get('gold') || 0} />
 				</span>
 			</div>
 			<div class="resource-item">
-				<span class="resource-label">Supplies:</span>
+				<span class="resource-label">Fame:</span>
 				<span class="resource-value">
-					<AnimatedNumber value={$resources.supplies} />
-				</span>
-			</div>
-			<div class="resource-item">
-				<span class="resource-label">Relics:</span>
-				<span class="resource-value">
-					<AnimatedNumber value={$resources.relics} />
+					<AnimatedNumber value={$resources.get('fame') || 0} />
 				</span>
 			</div>
 		</div>
@@ -33,11 +27,11 @@
 	<div class="stats">
 		<div class="stat-item">
 			<span class="stat-label">Active Missions:</span>
-			<span class="stat-value">{$missions.filter(m => m.status === 'inProgress').length}</span>
+			<span class="stat-value">{$missions.filter(m => m.state === 'InProgress').length}</span>
 		</div>
 		<div class="stat-item">
 			<span class="stat-label">Completed Missions:</span>
-			<span class="stat-value">{$missions.filter(m => m.status === 'completed').length}</span>
+			<span class="stat-value">{$missions.filter(m => m.state === 'Completed').length}</span>
 		</div>
 	</div>
 </div>

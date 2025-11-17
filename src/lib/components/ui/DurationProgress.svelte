@@ -12,11 +12,23 @@
 		? new Date(startTime).getTime()
 		: startTime;
 
+	// Validate inputs to prevent NaN values
+	const isValid = !isNaN(start) && !isNaN(duration) && duration > 0 && start > 0;
+
 	// Create derived store for duration config
-	const config = derived(gameTime.now, () => ({
-		startTime: start,
-		duration
-	}));
+	const config = derived(gameTime.now, () => {
+		if (!isValid) {
+			// Return a safe default config that shows 0% progress
+			return {
+				startTime: Date.now(),
+				duration: 1
+			};
+		}
+		return {
+			startTime: start,
+			duration
+		};
+	});
 
 	const {
 		progress,
@@ -26,14 +38,18 @@
 </script>
 
 <div class="duration-progress">
-	<ProgressBar
-		progress={$progress}
-		label={label}
-		variant={$isNearComplete ? 'success' : 'default'}
-	/>
-	<div class="time-info">
-		<span class="time-remaining">{$timeRemaining} remaining</span>
-	</div>
+	{#if isValid}
+		<ProgressBar
+			progress={$progress}
+			label={label}
+			variant={$isNearComplete ? 'success' : 'default'}
+		/>
+		<div class="time-info">
+			<span class="time-remaining">{$timeRemaining} remaining</span>
+		</div>
+	{:else}
+		<div class="error-message">Invalid mission timer data</div>
+	{/if}
 </div>
 
 <style>
@@ -49,6 +65,12 @@
 
 	.time-remaining {
 		font-variant-numeric: tabular-nums;
+	}
+
+	.error-message {
+		color: #f44336;
+		font-size: 0.85em;
+		font-style: italic;
 	}
 </style>
 

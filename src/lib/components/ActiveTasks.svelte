@@ -7,23 +7,28 @@
 <div class="active-tasks">
 	<h2>Active Missions</h2>
 
-	{#if $missions.filter(m => m.status === 'inProgress').length === 0}
+	{#if $missions.filter(m => m.state === 'InProgress').length === 0}
 		<div>No active missions</div>
 	{:else}
-		{#each $missions.filter(m => m.status === 'inProgress') as mission}
+		{#each $missions.filter(m => m.state === 'InProgress') as mission}
+			{@const startedAt = mission.timers.get('startedAt')}
+			{@const endsAt = mission.timers.get('endsAt')}
+			{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id}`}
+			{@const duration = startedAt && endsAt ? endsAt.value - startedAt.value : mission.attributes.baseDuration.toMilliseconds()}
 			<div class="mission-item">
-				<div class="mission-name">{mission.name}</div>
+				<div class="mission-name">{missionName}</div>
 				<div class="mission-details">
-					Adventurers: {mission.assignedAdventurerIds.length} | Duration:{' '}
-					{Math.floor(mission.duration / 1000)}s
+					Duration: {Math.floor(duration / 1000)}s
 				</div>
-				<div class="mission-progress">
-					<DurationProgress
-						startTime={mission.startTime}
-						duration={mission.duration}
-						label={mission.name}
-					/>
-				</div>
+				{#if startedAt && endsAt && duration > 0 && !isNaN(duration) && !isNaN(startedAt.value)}
+					<div class="mission-progress">
+						<DurationProgress
+							startTime={startedAt.value}
+							duration={duration}
+							label={missionName}
+						/>
+					</div>
+				{/if}
 			</div>
 		{/each}
 	{/if}

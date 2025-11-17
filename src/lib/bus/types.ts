@@ -70,7 +70,11 @@ export interface UpgradeFacilityCommand {
 export type DomainEventType =
 	| 'MissionStarted'
 	| 'MissionCompleted'
+	| 'MissionFailed'
 	| 'AdventurerRecruited'
+	| 'AdventurerAssigned'
+	| 'AdventurerGainedXP'
+	| 'AdventurerLeveledUp'
 	| 'FacilityUpgraded'
 	| 'ResourcesChanged'
 	| 'CommandFailed';
@@ -83,7 +87,11 @@ export interface DomainEvent extends Message {
 export type DomainEventPayload =
 	| MissionStartedEvent
 	| MissionCompletedEvent
+	| MissionFailedEvent
 	| AdventurerRecruitedEvent
+	| AdventurerAssignedEvent
+	| AdventurerGainedXPEvent
+	| AdventurerLeveledUpEvent
 	| FacilityUpgradedEvent
 	| ResourcesChangedEvent
 	| CommandFailedEvent;
@@ -97,11 +105,19 @@ export interface MissionStartedEvent {
 
 export interface MissionCompletedEvent {
 	missionId: string;
-	reward: {
-		resources: ResourceMap;
-		fame: number;
-		experience: number;
+	adventurerIds: string[];
+	outcome: 'CriticalSuccess' | 'Success' | 'Failure' | 'CriticalFailure';
+	rewards: {
+		gold: number;
+		xp: number;
+		fame?: number;
 	};
+}
+
+export interface MissionFailedEvent {
+	missionId: string;
+	adventurerIds: string[];
+	reason: string;
 }
 
 export interface AdventurerRecruitedEvent {
@@ -111,9 +127,31 @@ export interface AdventurerRecruitedEvent {
 }
 
 export interface FacilityUpgradedEvent {
-	facility: string;
+	facilityId: string;
+	facilityType: string;
+	newTier: number;
+	bonusMultipliers: {
+		xp?: number;
+		resourceGen?: number;
+		missionSlots?: number;
+	};
+}
+
+export interface AdventurerAssignedEvent {
+	adventurerId: string;
+	missionId: string;
+}
+
+export interface AdventurerGainedXPEvent {
+	adventurerId: string;
+	amount: number;
+	newTotalXP: number;
+}
+
+export interface AdventurerLeveledUpEvent {
+	adventurerId: string;
 	newLevel: number;
-	effects: string[];
+	abilityMods: Record<string, number>;
 }
 
 export interface ResourcesChangedEvent {

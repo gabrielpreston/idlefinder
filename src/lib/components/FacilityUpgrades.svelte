@@ -2,7 +2,6 @@
 	import { getContext, onMount } from 'svelte';
 	import { facilities, resources } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import { FacilitySystem } from '$lib/domain/systems';
 	import type { CommandFailedEvent } from '$lib/bus/types';
 	import type { GameRuntime } from '$lib/runtime/startGame';
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
@@ -14,7 +13,6 @@
 	}
 
 	let error: string | null = null;
-	const facilitySystem = new FacilitySystem();
 
 	// Subscribe to command failures
 	onMount(() => {
@@ -33,25 +31,27 @@
 		await dispatchCommand(runtime, 'UpgradeFacility', { facility });
 	}
 
-	function canAfford(facility: 'tavern' | 'guildHall' | 'blacksmith'): boolean {
-		if (!$facilities || !$resources) return false;
-		const currentLevel = $facilities[facility].level;
-		const cost = facilitySystem.getUpgradeCost(facility, currentLevel);
-		return (
-			$resources.gold >= cost.gold &&
-			$resources.supplies >= cost.supplies &&
-			$resources.relics >= cost.relics
-		);
+	function findFacility(facilityType: string) {
+		if (!$facilities) return null;
+		return $facilities.find(f => f.attributes.facilityType === facilityType) || null;
 	}
 
-	function getUpgradeCost(facility: 'tavern' | 'guildHall' | 'blacksmith'): {
-		gold: number;
-		supplies: number;
-		relics: number;
-	} {
-		if (!$facilities) return { gold: 0, supplies: 0, relics: 0 };
-		const currentLevel = $facilities[facility].level;
-		return facilitySystem.getUpgradeCost(facility, currentLevel);
+	function canAfford(facilityType: string): boolean {
+		if (!$facilities || !$resources) return false;
+		const facility = findFacility(facilityType);
+		if (!facility) return false;
+		const currentTier = facility.attributes.tier;
+		// Simple cost calculation: tier * 100 gold
+		const cost = currentTier * 100;
+		return ($resources.get('gold') || 0) >= cost;
+	}
+
+	function getUpgradeCost(facilityType: string): number {
+		if (!$facilities) return 0;
+		const facility = findFacility(facilityType);
+		if (!facility) return 0;
+		const currentTier = facility.attributes.tier;
+		return currentTier * 100;
 	}
 </script>
 
@@ -62,34 +62,39 @@
 		<div class="error">{error}</div>
 	{/if}
 
-	{#if $facilities}
+	{#if $facilities && $facilities.length > 0}
 		<div class="facility-list">
-			{#each Object.entries($facilities) as [facility, facilityLevel]}
+			{#each $facilities as facility}
+				{@const facilityName = (facility.metadata.name as string) || facility.attributes.facilityType}
+				{@const facilityType = facility.attributes.facilityType}
 				<div class="facility-item">
 					<div class="facility-header">
-						<h3>{facility.charAt(0).toUpperCase() + facility.slice(1)}</h3>
-						<span class="level">Level {facilityLevel.level}</span>
+						<h3>{facilityName}</h3>
+						<span class="level">Tier {facility.attributes.tier}</span>
 					</div>
 					<div class="facility-effects">
-						{#each facilityLevel.effects as effect}
-							<div class="effect">{effect}</div>
-						{/each}
+						<div class="effect">Capacity: {facility.attributes.baseCapacity}</div>
+						{#if Object.keys(facility.attributes.bonusMultipliers).length > 0}
+							{#each Object.entries(facility.attributes.bonusMultipliers) as [key, value]}
+								<div class="effect">{key}: {value}</div>
+							{/each}
+						{/if}
 					</div>
-					{#if facilityLevel.level < 10}
-						{@const cost = getUpgradeCost(facility as 'tavern' | 'guildHall' | 'blacksmith')}
+					{#if facility.attributes.tier < 10}
+						{@const cost = getUpgradeCost(facilityType)}
 						<div class="upgrade-section">
 							<div class="cost">
-								Cost: {cost.gold} gold, {cost.supplies} supplies
+								Cost: {cost} gold
 							</div>
 							<button
-								onclick={() => upgradeFacility(facility)}
-								disabled={!canAfford(facility as 'tavern' | 'guildHall' | 'blacksmith')}
+								onclick={() => upgradeFacility(facilityType)}
+								disabled={!canAfford(facilityType)}
 							>
 								Upgrade
 							</button>
 						</div>
 					{:else}
-						<div class="max-level">Max Level</div>
+						<div class="max-level">Max Tier</div>
 					{/if}
 				</div>
 			{/each}

@@ -4,8 +4,8 @@
  */
 
 import { BusManager } from '../bus/BusManager';
-import type { PlayerState } from '../domain/entities/PlayerState';
-import { createTestPlayerState } from './testFactories';
+import type { GameState } from '../domain/entities/GameState';
+import { createTestGameState } from './testFactories';
 import { SimulatedTimeSource } from '../time/DomainTimeSource';
 import { Timestamp } from '../domain/valueObjects/Timestamp';
 
@@ -13,8 +13,8 @@ import { Timestamp } from '../domain/valueObjects/Timestamp';
  * Create test BusManager with mocked persistence
  * Persistence operations are mocked - no real localStorage
  */
-export function createTestBusManager(initialState?: PlayerState, timeSource?: import('../time/DomainTimeSource').DomainTimeSource): BusManager {
-	const state = initialState ?? createTestPlayerState();
+export function createTestBusManager(initialState?: GameState, timeSource?: import('../time/DomainTimeSource').DomainTimeSource): BusManager {
+	const state = initialState ?? createTestGameState();
 	const ts = timeSource ?? new SimulatedTimeSource(Timestamp.from(Date.now()));
 	const manager = new BusManager(state, ts);
 

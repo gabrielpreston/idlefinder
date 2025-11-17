@@ -5,11 +5,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
-import { registerHandlers } from '../../handlers';
-import { createTestPlayerState, createTestMission, createTestAdventurer, setupMockLocalStorage } from '../../test-utils';
+import { registerHandlersV2 } from '../../handlers/indexV2';
+import { createTestGameState, createTestMission, createTestAdventurer, createTestResourceBundle, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
+import { Duration } from '../../domain/valueObjects/Duration';
 
 describe('Offline Catch-Up Integration', () => {
 	let busManager: BusManager;
@@ -20,9 +21,9 @@ describe('Offline Catch-Up Integration', () => {
 		vi.useFakeTimers();
 		setupMockLocalStorage();
 
-		const initialState = createTestPlayerState();
+		const initialState = createTestGameState();
 		busManager = new BusManager(initialState, testTimeSource);
-		registerHandlers(busManager);
+		registerHandlersV2(busManager);
 
 		publishedEvents = [];
 		busManager.domainEventBus.subscribe('MissionCompleted', (payload: DomainEvent['payload']) => {
@@ -47,22 +48,24 @@ describe('Offline Catch-Up Integration', () => {
 
 	describe('tick replay', () => {
 		it('should complete missions during tick replay', async () => {
-			const adventurer = createTestAdventurer({ id: 'adv-1' });
+			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'OnMission' });
+			const startedAt = Timestamp.from(Date.now() - 10000); // Started 10 seconds ago
+			const endsAt = startedAt.add(Duration.ofSeconds(5)); // 5 second duration
 			const mission = createTestMission({
 				id: 'mission-1',
-				duration: 5000, // 5 seconds
-				startTime: new Date(Date.now() - 10000).toISOString(), // Started 10 seconds ago
-				assignedAdventurerIds: ['adv-1'],
-				status: 'inProgress'
+				baseDuration: Duration.ofSeconds(5),
+				state: 'InProgress',
+				startedAt,
+				endsAt
 			});
 
-			const initialState = createTestPlayerState({
-				adventurers: [adventurer],
-				missions: [mission]
-			});
+			const entities = new Map<string, import('../../domain/primitives/Requirement').Entity>();
+			entities.set(adventurer.id, adventurer);
+			entities.set(mission.id, mission);
+			const initialState = createTestGameState({ entities });
 
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlers(manager);
+			registerHandlersV2(manager);
 
 			// Mock persistence to return state with old lastPlayed
 			const lastPlayed = new Date(Date.now() - 10000);
@@ -81,33 +84,31 @@ describe('Offline Catch-Up Integration', () => {
 
 			// Mission should be completed (started 10s ago, duration 5s)
 			const finalState = manager.getState();
-			const completedMission = finalState.missions.find((m: { id: string }) => m.id === 'mission-1');
-			expect(completedMission?.status).toBe('completed');
+			const missions = Array.from(finalState.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			const completedMission = missions.find(m => m.id === 'mission-1');
+			expect(completedMission?.state).toBe('Completed');
 		});
 
 		it('should apply resource rewards correctly during catch-up', async () => {
-			const adventurer = createTestAdventurer({ id: 'adv-1' });
+			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'OnMission' });
+			const startedAt = Timestamp.from(Date.now() - 10000);
+			const endsAt = startedAt.add(Duration.ofSeconds(5));
 			const mission = createTestMission({
 				id: 'mission-1',
-				duration: 5000,
-				startTime: new Date(Date.now() - 10000).toISOString(),
-				assignedAdventurerIds: ['adv-1'],
-				status: 'inProgress',
-				reward: {
-					resources: { gold: 100, supplies: 20, relics: 0 },
-					fame: 2,
-					experience: 20
-				}
+				baseDuration: Duration.ofSeconds(5),
+				state: 'InProgress',
+				startedAt,
+				endsAt
 			});
 
-			const initialState = createTestPlayerState({
-				resources: { gold: 0, supplies: 0, relics: 0 },
-				adventurers: [adventurer],
-				missions: [mission]
-			});
+			const entities = new Map<string, import('../../domain/primitives/Requirement').Entity>();
+			entities.set(adventurer.id, adventurer);
+			entities.set(mission.id, mission);
+			const resources = createTestResourceBundle({ gold: 0, fame: 0 });
+			const initialState = createTestGameState({ entities, resources });
 
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlers(manager);
+			registerHandlersV2(manager);
 
 			const lastPlayed = new Date(Date.now() - 10000);
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(initialState);
@@ -115,34 +116,36 @@ describe('Offline Catch-Up Integration', () => {
 
 			await manager.initialize();
 
-			// Note: Mission completion rewards are applied by CompleteMissionHandler
-			// which is called by MissionSystem tick handler
+			// Note: Mission completion rewards are applied by ResolveMissionAction
+			// which is called by IdleLoop tick handler
 			// For this test, we verify the mission is marked completed
 			const finalState = manager.getState();
-			expect(finalState.missions[0].status).toBe('completed');
+			const missions = Array.from(finalState.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			expect(missions[0].state).toBe('Completed');
 		});
 
 		it('should update adventurer status during catch-up', async () => {
 			const adventurer = createTestAdventurer({
 				id: 'adv-1',
-				status: 'onMission',
-				assignedMissionId: 'mission-1'
+				state: 'OnMission'
 			});
+			const startedAt = Timestamp.from(Date.now() - 10000);
+			const endsAt = startedAt.add(Duration.ofSeconds(5));
 			const mission = createTestMission({
 				id: 'mission-1',
-				duration: 5000,
-				startTime: new Date(Date.now() - 10000).toISOString(),
-				assignedAdventurerIds: ['adv-1'],
-				status: 'inProgress'
+				baseDuration: Duration.ofSeconds(5),
+				state: 'InProgress',
+				startedAt,
+				endsAt
 			});
 
-			const initialState = createTestPlayerState({
-				adventurers: [adventurer],
-				missions: [mission]
-			});
+			const entities = new Map<string, import('../../domain/primitives/Requirement').Entity>();
+			entities.set(adventurer.id, adventurer);
+			entities.set(mission.id, mission);
+			const initialState = createTestGameState({ entities });
 
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlers(manager);
+			registerHandlersV2(manager);
 
 			const lastPlayed = new Date(Date.now() - 10000);
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(initialState);
@@ -152,12 +155,12 @@ describe('Offline Catch-Up Integration', () => {
 
 			// Mission should be completed
 			const finalState = manager.getState();
-			expect(finalState.missions[0].status).toBe('completed');
+			const missions = Array.from(finalState.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			expect(missions[0].state).toBe('Completed');
 
 			// Adventurer should be freed when mission completes
-			const updatedAdventurer = finalState.adventurers.find((a) => a.id === 'adv-1');
-			expect(updatedAdventurer?.status).toBe('idle');
-			expect(updatedAdventurer?.assignedMissionId).toBeNull();
+			const updatedAdventurer = Array.from(finalState.entities.values()).find(e => e.id === 'adv-1') as import('../../domain/entities/Adventurer').Adventurer;
+			expect(updatedAdventurer?.state).toBe('Idle');
 		});
 	});
 });

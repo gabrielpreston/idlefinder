@@ -8,7 +8,7 @@ import { DomainEventBus } from './DomainEventBus';
 import { TickBus } from './TickBus';
 import { PersistenceBus } from './PersistenceBus';
 import { LocalStorageAdapter } from '../persistence/LocalStorageAdapter';
-import type { PlayerState } from '../domain/entities/PlayerState';
+import type { GameState } from '../domain/entities/GameState';
 import type { DomainTimeSource } from '../time/DomainTimeSource';
 import { Timestamp } from '../domain/valueObjects/Timestamp';
 
@@ -19,27 +19,27 @@ import { Timestamp } from '../domain/valueObjects/Timestamp';
  * Note: Comment about singleton pattern removed - this is now instance-based
  */
 export class BusManager {
-	public readonly commandBus: CommandBus<PlayerState>;
+	public readonly commandBus: CommandBus<GameState>;
 	public readonly domainEventBus: DomainEventBus;
 	public readonly tickBus: TickBus;
 	public readonly persistenceBus: PersistenceBus;
 
-	private state: PlayerState;
-	private stateGetter: () => PlayerState;
-	private stateSetter: (state: PlayerState) => void;
+	private state: GameState;
+	private stateGetter: () => GameState;
+	private stateSetter: (state: GameState) => void;
 	private readonly timeSource: DomainTimeSource;
 
-	constructor(initialState: PlayerState, timeSource: DomainTimeSource) {
+	constructor(initialState: GameState, timeSource: DomainTimeSource) {
 		this.state = initialState;
 		this.timeSource = timeSource;
 		this.stateGetter = () => this.state;
-		this.stateSetter = (state: PlayerState) => {
+		this.stateSetter = (state: GameState) => {
 			this.state = state;
 		};
 
 		// Create buses
 		this.domainEventBus = new DomainEventBus();
-		this.commandBus = new CommandBus<PlayerState>(
+		this.commandBus = new CommandBus<GameState>(
 			this.domainEventBus,
 			this.stateGetter,
 			this.stateSetter
@@ -57,14 +57,14 @@ export class BusManager {
 	/**
 	 * Get current game state
 	 */
-	getState(): PlayerState {
+	getState(): GameState {
 		return this.state;
 	}
 
 	/**
 	 * Set state directly (for internal use by handlers)
 	 */
-	setState(state: PlayerState): void {
+	setState(state: GameState): void {
 		this.state = state;
 	}
 

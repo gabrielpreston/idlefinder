@@ -78,31 +78,36 @@
 
 	function logMissionState() {
 		const state = runtime.busManager.getState();
-		const now = Date.now();
+		const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
 		
 		console.log('=== Mission State Debug ===');
-		console.log('Total missions:', state.missions.length);
-		console.log('In Progress:', state.missions.filter(m => m.status === 'inProgress').length);
-		console.log('Completed:', state.missions.filter(m => m.status === 'completed').length);
+		console.log('Total missions:', missions.length);
+		console.log('In Progress:', missions.filter(m => m.state === 'InProgress').length);
+		console.log('Completed:', missions.filter(m => m.state === 'Completed').length);
 		console.log('\n--- All Missions ---');
 		
-		state.missions.forEach((m, index) => {
-			const startTime = new Date(m.startTime).getTime();
-			const elapsed = now - startTime;
-			const shouldBeComplete = elapsed >= m.duration;
-			const progress = Math.min(100, (elapsed / m.duration) * 100);
+		const now = Date.now();
+		missions.forEach((m, index) => {
+			const startedAt = m.timers.get('startedAt');
+			const endsAt = m.timers.get('endsAt');
+			const missionName = (m.metadata.name as string) || `Mission ${m.id}`;
+			const duration = m.attributes.baseDuration.toMilliseconds();
+			const elapsed = startedAt ? now - startedAt.value : 0;
+			const shouldBeComplete = endsAt ? now >= endsAt.value : false;
+			const progress = startedAt && endsAt ? Math.min(100, ((now - startedAt.value) / (endsAt.value - startedAt.value)) * 100) : 0;
 			
 			console.log(`\nMission ${index + 1}:`);
 			console.log(`  ID: ${m.id}`);
-			console.log(`  Name: ${m.name}`);
-			console.log(`  Status: ${m.status}`);
-			console.log(`  Start Time: ${m.startTime}`);
-			console.log(`  Duration: ${m.duration}ms (${Math.floor(m.duration / 1000)}s)`);
+			console.log(`  Name: ${missionName}`);
+			console.log(`  Status: ${m.state}`);
+			console.log(`  Started At: ${startedAt ? new Date(startedAt.value).toISOString() : 'N/A'}`);
+			console.log(`  Ends At: ${endsAt ? new Date(endsAt.value).toISOString() : 'N/A'}`);
+			console.log(`  Duration: ${duration}ms (${Math.floor(duration / 1000)}s)`);
 			console.log(`  Elapsed: ${elapsed}ms (${Math.floor(elapsed / 1000)}s)`);
 			console.log(`  Progress: ${progress.toFixed(1)}%`);
 			console.log(`  Should be complete: ${shouldBeComplete}`);
-			if (m.status === 'inProgress' && shouldBeComplete) {
-				console.log(`  ⚠️ ISSUE: Mission is inProgress but should be completed!`);
+			if (m.state === 'InProgress' && shouldBeComplete) {
+				console.log(`  ⚠️ ISSUE: Mission is InProgress but should be completed!`);
 			}
 		});
 		
@@ -134,8 +139,9 @@
 				
 				// Log state after tick
 				const state = runtime.busManager.getState();
-				const inProgress = state.missions.filter(m => m.status === 'inProgress').length;
-				const completed = state.missions.filter(m => m.status === 'completed').length;
+				const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
+				const inProgress = missions.filter(m => m.state === 'InProgress').length;
+				const completed = missions.filter(m => m.state === 'Completed').length;
 				console.log(`After tick - In Progress: ${inProgress}, Completed: ${completed}`);
 			} else {
 				console.warn('No tick handlers registered!');
@@ -151,11 +157,12 @@
 		
 		console.log('=== Completing Stuck Missions ===');
 		
-		const stuckMissions = state.missions.filter(m => {
-			if (m.status !== 'inProgress') return false;
-			const startTime = new Date(m.startTime).getTime();
-			const elapsed = now - startTime;
-			return elapsed >= m.duration;
+		const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
+		const stuckMissions = missions.filter(m => {
+			if (m.state !== 'InProgress') return false;
+			const endsAt = m.timers.get('endsAt');
+			if (!endsAt) return false;
+			return now >= endsAt.value;
 		});
 		
 		if (stuckMissions.length === 0) {
@@ -165,120 +172,33 @@
 		
 		console.log(`Found ${stuckMissions.length} stuck mission(s):`, stuckMissions.map(m => ({
 			id: m.id,
-			name: m.name,
-			elapsed: Math.floor((now - new Date(m.startTime).getTime()) / 1000),
-			duration: Math.floor(m.duration / 1000)
+			name: (m.metadata.name as string) || m.id,
+			endsAt: m.timers.get('endsAt')?.value || 0
 		})));
 		
-		// Complete each stuck mission
-		// Note: We need to complete them one at a time and check state after each,
-		// because missions with duplicate IDs will cause the handler to find the wrong one
+		// Complete each stuck mission using ResolveMissionAction
 		let completed = 0;
-		let attempts = 0;
-		const maxAttempts = stuckMissions.length * 2; // Allow retries for duplicate IDs
-		
-		while (attempts < maxAttempts) {
-			const currentState = runtime.busManager.getState();
-			const stillStuck = currentState.missions.filter(m => {
-				if (m.status !== 'inProgress') return false;
-				const startTime = new Date(m.startTime).getTime();
-				const elapsed = now - startTime;
-				return elapsed >= m.duration;
-			});
-			
-			if (stillStuck.length === 0) {
-				console.log('All stuck missions completed!');
-				break;
-			}
-			
-			// Try to complete the first stuck mission
-			const missionToComplete = stillStuck[0];
+		for (const mission of stuckMissions) {
 			try {
-				console.log(`Attempting to complete mission ${missionToComplete.id} (${missionToComplete.name})...`);
-				await runtime.busManager.commandBus.dispatch({
-					type: 'CompleteMission',
-					payload: { missionId: missionToComplete.id },
-					timestamp: new Date().toISOString()
-				});
+				// Use the idle loop to resolve missions
+				const { Timestamp } = await import('$lib/domain/valueObjects/Timestamp');
+				const idleLoop = new (await import('$lib/domain/systems/IdleLoop')).IdleLoop();
+				const result = idleLoop.processIdleProgression(state, Timestamp.from(now));
 				
-				// Check if it was actually completed
-				const afterState = runtime.busManager.getState();
-				const missionAfter = afterState.missions.find(m => m.id === missionToComplete.id);
-				if (missionAfter && missionAfter.status === 'completed') {
-					console.log(`✓ Completed ${missionToComplete.id}`);
-					completed++;
-				} else {
-					console.log(`⚠ Mission ${missionToComplete.id} still in progress (may have duplicate ID)`);
-					// If this mission has a duplicate ID, try to complete by finding all instances
-					const allWithSameId = afterState.missions.filter(m => m.id === missionToComplete.id && m.status === 'inProgress');
-					if (allWithSameId.length > 0) {
-						console.log(`Found ${allWithSameId.length} mission(s) with duplicate ID ${missionToComplete.id} still in progress`);
-						// Complete each duplicate mission instance individually by dispatching for each one
-						// We'll use the mission's index or a combination of ID + startTime to identify it uniquely
-						for (const duplicateMission of allWithSameId) {
-							// Try to complete this specific instance by using a workaround:
-							// Complete all missions with this ID, then the handler's map() will update all of them
-							// Actually, the handler uses map() which updates ALL missions with that ID, so we need a different approach
-							// Let's manually complete each one by directly calling the handler logic
-							try {
-								// Import CompleteMissionHandler logic (simplified version for dev tool)
-								const mission = duplicateMission;
-								const updatedMissions = afterState.missions.map(m => 
-									m.id === mission.id && m.status === 'inProgress' && m.startTime === mission.startTime
-										? { ...m, status: 'completed' as const }
-										: m
-								);
-								
-								// Free adventurers
-								let updatedState = { ...afterState, missions: updatedMissions };
-								for (const adventurerId of mission.assignedAdventurerIds) {
-									updatedState = {
-										...updatedState,
-										adventurers: updatedState.adventurers.map((adv) =>
-											adv.id === adventurerId
-												? { ...adv, status: 'idle' as const, assignedMissionId: null }
-												: adv
-										)
-									};
-								}
-								
-								// Apply rewards
-								updatedState = {
-									...updatedState,
-									resources: {
-										gold: updatedState.resources.gold + mission.reward.resources.gold,
-										supplies: updatedState.resources.supplies + mission.reward.resources.supplies,
-										relics: updatedState.resources.relics + mission.reward.resources.relics
-									},
-									fame: updatedState.fame + mission.reward.fame,
-									completedMissionIds: [...updatedState.completedMissionIds, mission.id]
-								};
-								
-								runtime.busManager.setState(updatedState);
-								console.log(`✓ Force-completed duplicate mission ${mission.id} (started ${mission.startTime})`);
-								completed++;
-							} catch (error) {
-								console.error(`✗ Failed to force-complete duplicate mission:`, error);
-							}
-						}
+				if (result.newState !== state) {
+					runtime.busManager.setState(result.newState);
+					// Publish events
+					for (const event of result.events) {
+						await runtime.busManager.domainEventBus.publish(event);
 					}
+					completed++;
 				}
 			} catch (error) {
-				console.error(`✗ Failed to complete ${missionToComplete.id}:`, error);
+				console.error(`✗ Failed to complete ${mission.id}:`, error);
 			}
-			
-			attempts++;
 		}
 		
-		const finalState = runtime.busManager.getState();
-		const stillStuckFinal = finalState.missions.filter(m => {
-			if (m.status !== 'inProgress') return false;
-			const startTime = new Date(m.startTime).getTime();
-			const elapsed = now - startTime;
-			return elapsed >= m.duration;
-		});
-		
-		console.log(`Completed ${completed} mission(s), ${stillStuckFinal.length} still stuck`);
+		console.log(`Completed ${completed} mission(s)`);
 		console.log('========================');
 	}
 </script>
@@ -312,17 +232,21 @@
 					<h4>Mission Status</h4>
 					<div class="debug-stats">
 						<div>Total: {$missions.length}</div>
-						<div>In Progress: {$missions.filter(m => m.status === 'inProgress').length}</div>
-						<div>Completed: {$missions.filter(m => m.status === 'completed').length}</div>
+						<div>In Progress: {$missions.filter(m => m.state === 'InProgress').length}</div>
+						<div>Completed: {$missions.filter(m => m.state === 'Completed').length}</div>
 					</div>
 					<div class="debug-missions">
 						{#each $missions as mission}
+							{@const startedAt = mission.timers.get('startedAt')}
+							{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id}`}
+							{@const duration = mission.attributes.baseDuration.toMilliseconds()}
+							{@const elapsed = startedAt ? Math.floor((Date.now() - startedAt.value) / 1000) : 0}
 							<div class="debug-mission">
-								<strong>{mission.name}</strong> ({mission.id})
+								<strong>{missionName}</strong> ({mission.id})
 								<br />
-								Status: <span class="status-{mission.status}">{mission.status}</span>
+								Status: <span class="status-{mission.state.toLowerCase()}">{mission.state}</span>
 								<br />
-								Elapsed: {Math.floor((Date.now() - new Date(mission.startTime).getTime()) / 1000)}s / {Math.floor(mission.duration / 1000)}s
+								Elapsed: {elapsed}s / {Math.floor(duration / 1000)}s
 							</div>
 						{/each}
 					</div>

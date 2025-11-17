@@ -53,7 +53,13 @@ export function formatNumber(
  * @returns Readable store with percentage (0-100)
  */
 export function toPercentage(source: Readable<number>): Readable<number> {
-	return derived(source, (value) => Math.round(value * 100));
+	return derived(source, (value) => {
+		// Handle invalid values
+		if (isNaN(value) || !isFinite(value)) {
+			return 0;
+		}
+		return Math.round(value * 100);
+	});
 }
 
 /**
@@ -67,6 +73,17 @@ export function formatTimeRemaining(
 	remainingMs: Readable<number>
 ): Readable<string> {
 	return derived(remainingMs, (ms) => {
+		// Handle invalid values
+		if (isNaN(ms) || !isFinite(ms)) {
+			return '0s';
+		}
+		
+		// Handle negative values
+		if (ms < 0) {
+			const totalSeconds = Math.floor(Math.abs(ms) / 1000);
+			return `-${totalSeconds}s`;
+		}
+		
 		const totalSeconds = Math.floor(ms / 1000);
 		
 		if (totalSeconds < 60) {

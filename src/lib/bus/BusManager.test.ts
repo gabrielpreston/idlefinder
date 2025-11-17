@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BusManager } from './BusManager';
-import { createTestPlayerState, setupMockLocalStorage } from '../test-utils';
+import { createTestGameState, setupMockLocalStorage } from '../test-utils';
 import { SimulatedTimeSource } from '../time/DomainTimeSource';
 import { Timestamp } from '../domain/valueObjects/Timestamp';
 
@@ -19,7 +19,7 @@ describe('BusManager', () => {
 
 	describe('constructor', () => {
 		it('should create BusManager instance', () => {
-			const initialState = createTestPlayerState();
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
 			expect(manager).toBeInstanceOf(BusManager);
@@ -28,7 +28,7 @@ describe('BusManager', () => {
 
 	describe('bus wiring', () => {
 		it('should have all buses accessible', () => {
-			const initialState = createTestPlayerState();
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
 			expect(manager.commandBus).toBeDefined();
@@ -38,7 +38,7 @@ describe('BusManager', () => {
 		});
 
 		it('should have buses wired correctly', () => {
-			const initialState = createTestPlayerState();
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
 			// CommandBus should use DomainEventBus
@@ -51,30 +51,45 @@ describe('BusManager', () => {
 	});
 
 	describe('state management', () => {
-		it('should initialize with provided state', () => {
-			const initialState = createTestPlayerState({ fame: 100 });
+		it('should initialize with provided state', async () => {
+			const { ResourceUnit } = await import('../domain/valueObjects/ResourceUnit');
+			const { ResourceBundle } = await import('../domain/valueObjects/ResourceBundle');
+			const baseResources = createTestGameState().resources;
+			const fameBundle = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
+			const resources = baseResources.add(fameBundle);
+			const initialState = createTestGameState({ resources });
 			const manager = new BusManager(initialState, testTimeSource);
 
 			const state = manager.getState();
 
-			expect(state.fame).toBe(100);
+			expect(state.resources.get('fame')).toBe(100);
 		});
 
-		it('should update state with setState', () => {
-			const initialState = createTestPlayerState();
+		it('should update state with setState', async () => {
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
-			const newState = createTestPlayerState({ fame: 50 });
+			const { ResourceUnit } = await import('../domain/valueObjects/ResourceUnit');
+			const { ResourceBundle } = await import('../domain/valueObjects/ResourceBundle');
+			const baseResources = createTestGameState().resources;
+			const fameBundle = ResourceBundle.fromArray([new ResourceUnit('fame', 50)]);
+			const resources = baseResources.add(fameBundle);
+			const newState = createTestGameState({ resources });
 			manager.setState(newState);
 
-			expect(manager.getState().fame).toBe(50);
+			expect(manager.getState().resources.get('fame')).toBe(50);
 		});
 	});
 
 	describe('offline catch-up', () => {
 		it('should load saved state on initialize', async () => {
-			const savedState = createTestPlayerState({ fame: 200 });
-			const initialState = createTestPlayerState();
+			const { ResourceUnit } = await import('../domain/valueObjects/ResourceUnit');
+			const { ResourceBundle } = await import('../domain/valueObjects/ResourceBundle');
+			const baseResources1 = createTestGameState().resources;
+			const fameBundle1 = ResourceBundle.fromArray([new ResourceUnit('fame', 200)]);
+			const resources1 = baseResources1.add(fameBundle1);
+			const savedState = createTestGameState({ resources: resources1 });
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
 			// Mock persistence bus to return saved state
@@ -83,12 +98,12 @@ describe('BusManager', () => {
 
 			await manager.initialize();
 
-			expect(manager.getState().fame).toBe(200);
+			expect(manager.getState().resources.get('fame')).toBe(200);
 		});
 
 		it('should handle offline catch-up with tick replay', async () => {
 			vi.useFakeTimers();
-			const initialState = createTestPlayerState();
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
 			const lastPlayed = new Date(Date.now() - 5000); // 5 seconds ago
@@ -108,7 +123,7 @@ describe('BusManager', () => {
 		});
 
 		it('should not replay ticks if no elapsed time', async () => {
-			const initialState = createTestPlayerState();
+			const initialState = createTestGameState();
 			const manager = new BusManager(initialState, testTimeSource);
 
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(null);

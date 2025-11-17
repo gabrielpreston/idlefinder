@@ -98,9 +98,10 @@ export function createUpgradeFacilityHandler(
 		const facilityUpgradedEvent: DomainEvent = {
 			type: 'FacilityUpgraded',
 			payload: {
-				facility: payload.facility,
-				newLevel: upgradedFacility.level,
-				effects: upgradedFacility.effects
+				facilityId: payload.facility,
+				facilityType: payload.facility,
+				newTier: upgradedFacility.level,
+				bonusMultipliers: {} // PlayerState doesn't track numeric multipliers, only effect descriptions
 			},
 			timestamp: new Date().toISOString()
 		};

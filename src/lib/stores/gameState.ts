@@ -1,27 +1,30 @@
 /**
  * Game State Store - reactive Svelte store for game state
- * Replaces organizationStore - provides reactive access to PlayerState
+ * Provides reactive access to GameState
  * 
  * Now uses GameRuntime from Svelte context instead of singleton
  */
 
 import { writable, derived, type Readable } from 'svelte/store';
-import type { PlayerState } from '../domain/entities/PlayerState';
+import type { GameState } from '../domain/entities/GameState';
 import type { GameRuntime } from '../runtime/startGame';
+import type { Adventurer } from '../domain/entities/Adventurer';
+import type { Mission } from '../domain/entities/Mission';
+import type { Facility } from '../domain/entities/Facility';
 
 /**
- * Game state store - reactive wrapper around runtime's playerState
+ * Game state store - reactive wrapper around runtime's gameState
  */
 function createGameStateStore() {
-	const { subscribe, set } = writable<PlayerState | null>(null);
+	const { subscribe, set } = writable<GameState | null>(null);
 	let runtime: GameRuntime | null = null;
 
 	return {
 		subscribe,
 		initialize: (rt: GameRuntime) => {
 			runtime = rt;
-			// Use runtime's playerState store
-			const unsubscribe = rt.playerState.subscribe((state) => {
+			// Use runtime's gameState store
+			const unsubscribe = rt.gameState.subscribe((state: GameState) => {
 				set(state);
 			});
 			// Store unsubscribe in runtime's destroy (will be called on cleanup)
@@ -44,23 +47,38 @@ export const gameState = createGameStateStore();
 /**
  * Derived stores for convenience
  */
-export const resources: Readable<PlayerState['resources'] | null> = derived(
+export const resources: Readable<GameState['resources'] | null> = derived(
 	gameState,
 	($state) => $state?.resources ?? null
 );
 
-export const adventurers: Readable<PlayerState['adventurers']> = derived(
+export const adventurers: Readable<Adventurer[]> = derived(
 	gameState,
-	($state) => $state?.adventurers ?? []
+	($state) => {
+		if (!$state) return [];
+		return Array.from($state.entities.values()).filter(
+			(e) => e.type === 'Adventurer'
+		) as Adventurer[];
+	}
 );
 
-export const missions: Readable<PlayerState['missions']> = derived(
+export const missions: Readable<Mission[]> = derived(
 	gameState,
-	($state) => $state?.missions ?? []
+	($state) => {
+		if (!$state) return [];
+		return Array.from($state.entities.values()).filter(
+			(e) => e.type === 'Mission'
+		) as Mission[];
+	}
 );
 
-export const facilities: Readable<PlayerState['facilities'] | null> = derived(
+export const facilities: Readable<Facility[]> = derived(
 	gameState,
-	($state) => $state?.facilities ?? null
+	($state) => {
+		if (!$state) return [];
+		return Array.from($state.entities.values()).filter(
+			(e) => e.type === 'Facility'
+		) as Facility[];
+	}
 );
 

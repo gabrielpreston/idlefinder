@@ -91,6 +91,18 @@ Before executing this command, ensure:
    - Use `codebase_search` to find dependency usage
      - Example: `codebase_search` with `query: "How is [dependency] used?"` and `target_directories: ["src"]`
 
+7. **For Building Block Reuse Claims**
+   - Use `codebase_search` to verify claimed building blocks exist
+     - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
+   - Use `grep` to find existing entity patterns
+     - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
+   - Use `read_file` to verify building blocks are actually reused
+     - Example: `read_file` with `target_file: "file-using-building-blocks.ts"`
+   - Use `read_file` to review systems primitives spec
+     - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
+   - Verify composition over duplication (code composes from primitives, doesn't duplicate)
+   - Check if solution follows systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
+
 ### Phase 3: Validate Evidence
 
 1. **Verify cited code exists**
