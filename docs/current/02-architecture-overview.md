@@ -76,17 +76,18 @@ development or forwarded to analytics services later.
 
 ## Interactions
 
-The following flow illustrates how components interact when a player starts a mission:
+The following flow illustrates how components interact in the automated mission system:
 
-1. The player clicks Start Mission in the UI, which dispatches a StartMission command to the command bus.
-2. A command handler in the domain layer validates the command (e.g., checks that the adventurer is available) and updates the in‑memory state. It emits a MissionStarted event on the domain
+1. The doctrine engine (automation system) selects a mission from the available pool based on player's mission doctrine (maximize fame/hour, farm gold, etc.) and automatically forms a party from available adventurers.
+2. The doctrine engine dispatches a StartMission command to the command bus with the selected mission and formed party.
+3. A command handler in the domain layer validates the command (e.g., checks that the adventurer is available and mission slot is free) and updates the in‑memory state. It emits a MissionStarted event on the domain event bus.
+4. The UI layer listens for MissionStarted and updates the mission list, animating the slot to show that it is in progress.
+5. The tick bus emits ticks every second; the idle loop listens and checks mission timers. When a mission's `endsAt` timer is reached, it automatically resolves the mission and emits a MissionCompleted event.
+6. The persistence bus subscribes to MissionStarted and MissionCompleted events and schedules a save. When triggered, it serializes the current state to local storage.
+7. As soon as the mission slot becomes available, the doctrine engine automatically selects the next mission and the cycle repeats continuously without player input.
+8. (Future) The network bus could publish mission events to other players or a server, enabling shared world state.
 
-event bus.
-
-3. The UI layer listens for MissionStarted and updates the mission list, animating the slot to show that it is in progress.
-4. The tick bus emits ticks every second; the mission subsystem listens and decrements the remaining time on active missions. When the timer reaches zero, it emits a MissionCompleted event.
-5. The persistence bus subscribes to MissionStarted and MissionCompleted events and schedules a save. When triggered, it serializes the current state to local storage.
-6. (Future) The network bus could publish mission events to other players or a server, enabling shared world state.
+**Note**: This flow is fully automated - the player never manually selects missions or assigns adventurers. They set doctrine policies, and the system executes them automatically. See `09-mission-system.md` for detailed mission automation specification.
 
 ## MVP Implementation
 

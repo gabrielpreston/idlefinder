@@ -3,6 +3,8 @@
  * Spec line 332: roleKey is derived from classKey
  */
 
+import { PATHFINDER_CLASSES, type PathfinderClassKey } from '../data/pathfinder';
+
 export type RoleKey =
 	| 'martial_frontliner'
 	| 'mobile_striker'
@@ -14,18 +16,18 @@ export type RoleKey =
 /**
  * Derive roleKey from classKey
  * Per spec: roleKey is derived from classKey
+ * Uses Pathfinder class data as source of truth
  */
 export function deriveRoleKey(classKey: string): RoleKey {
-	// Default mapping - can be expanded later
-	const roleMap: Record<string, RoleKey> = {
-		fighter: 'martial_frontliner',
-		paladin: 'martial_frontliner',
-		monk: 'mobile_striker',
-		rogue: 'skill_specialist',
-		cleric: 'support_caster',
-		wizard: 'utility_caster',
-		ranger: 'ranged_combatant'
-	};
-	return roleMap[classKey.toLowerCase()] || 'skill_specialist';
+	// Normalize classKey to lowercase for lookup
+	const normalizedKey = classKey.toLowerCase() as PathfinderClassKey;
+	
+	// Check if classKey matches a Pathfinder class
+	if (normalizedKey in PATHFINDER_CLASSES) {
+		return PATHFINDER_CLASSES[normalizedKey].roleKey;
+	}
+	
+	// Fallback to default for unknown classes
+	return 'skill_specialist';
 }
 

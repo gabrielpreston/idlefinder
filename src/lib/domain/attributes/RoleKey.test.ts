@@ -7,13 +7,13 @@ describe('RoleKey', () => {
 			expect(deriveRoleKey('fighter')).toBe('martial_frontliner');
 		});
 
-		it('should return martial_frontliner for paladin', () => {
-			expect(deriveRoleKey('paladin')).toBe('martial_frontliner');
-		});
+  it('should return martial_frontliner for barbarian', () => {
+    expect(deriveRoleKey('barbarian')).toBe('martial_frontliner');
+  });
 
-		it('should return mobile_striker for monk', () => {
-			expect(deriveRoleKey('monk')).toBe('mobile_striker');
-		});
+  it('should return support_caster for bard', () => {
+    expect(deriveRoleKey('bard')).toBe('support_caster');
+  });
 
 		it('should return skill_specialist for rogue', () => {
 			expect(deriveRoleKey('rogue')).toBe('skill_specialist');

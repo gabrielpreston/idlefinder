@@ -11,6 +11,10 @@ import { Identifier } from '../domain/valueObjects/Identifier';
 import { NumericStatMap } from '../domain/valueObjects/NumericStatMap';
 import type { AdventurerAttributes } from '../domain/attributes/AdventurerAttributes';
 import { deriveRoleKey } from '../domain/attributes/RoleKey';
+import {
+	getRandomPathfinderClassKey,
+	getRandomPathfinderAncestryKey
+} from '../domain/data/pathfinder';
 
 /**
  * Create RecruitAdventurer command handler using new entity system
@@ -43,7 +47,9 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 		const id = Identifier.from<'AdventurerId'>(adventurerId);
 
 		// Create default attributes for new adventurer (level 1, 0 XP)
-		const classKey = ''; // TODO: Assign class based on traits or random
+		// Assign random Pathfinder class and ancestry
+		const classKey = getRandomPathfinderClassKey();
+		const ancestryKey = getRandomPathfinderAncestryKey();
 		const attributes: AdventurerAttributes = {
 			level: 1,
 			xp: 0,
@@ -56,7 +62,7 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 				['cha', 0]
 			])),
 			classKey,
-			ancestryKey: '', // TODO: Assign ancestry based on traits or random
+			ancestryKey,
 			traitTags: payload.traits || [], // Use traits as traitTags
 			roleKey: deriveRoleKey(classKey), // Derive from classKey
 			baseHP: 10

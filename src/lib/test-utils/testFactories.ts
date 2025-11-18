@@ -65,7 +65,9 @@ export function createTestAdventurer(overrides?: {
 	state?: 'Idle' | 'OnMission' | 'Fatigued' | 'Recovering' | 'Dead';
 }): AdventurerEntity {
 	const id = Identifier.from<'AdventurerId'>(overrides?.id || crypto.randomUUID());
-	const classKey = '';
+	// Use default Pathfinder class and ancestry (fighter, human) for test fixtures
+	const classKey: string = 'fighter';
+	const ancestryKey: string = 'human';
 	const attributes: AdventurerAttributes = {
 		level: overrides?.level ?? 1,
 		xp: overrides?.xp ?? 0,
@@ -78,7 +80,7 @@ export function createTestAdventurer(overrides?: {
 			['cha', 0]
 		])),
 		classKey,
-		ancestryKey: '',
+		ancestryKey,
 		traitTags: [],
 		roleKey: deriveRoleKey(classKey),
 		baseHP: 10

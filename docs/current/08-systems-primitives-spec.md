@@ -339,10 +339,11 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 * `level: number`
 * `xp: number`
 * `abilityMods: { str, dex, con, int, wis, cha }`
-* `classKey: string`
-* `ancestryKey: string`
-* `traitTags: string[]`   // PF2E-ish mech traits: "arcane", "healing", "finesse"
+* `classKey: string` - Pathfinder class identifier (e.g., "fighter", "wizard", "rogue", "cleric", "barbarian", "alchemist", "bard", "ranger")
+* `ancestryKey: string` - Pathfinder ancestry identifier (e.g., "human", "elf", "dwarf", "gnome", "goblin", "halfling", "orc", "tiefling")
+* `traitTags: string[]` - Pathfinder mechanical traits: "arcane", "divine", "occult", "primal", "healing", "finesse", "agile", "ranged", "melee", "undead", "construct", "beast"
 * `roleKey: "martial_frontliner" | "mobile_striker" | "support_caster" | "skill_specialist" | ...` (derived from `classKey`)
+* `equipment?: { weaponId?: string, armorId?: string, offHandId?: string, accessoryId?: string }` (references to Item entities; managed by auto-equip system)
 
 **Tags (MVP):**
 
@@ -376,8 +377,16 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 
 * `GainXP(adventurerId, amount)`
 * `LevelUpAdventurer(adventurerId)`
-* `AssignAdventurerToMission(adventurerId, missionId)`
+* `AssignAdventurerToMission(adventurerId, missionId)` (called automatically by doctrine engine, not manually)
+* `AutoEquipAdventurer(adventurerId)` (called automatically when gear changes or on recruitment)
 * (Later: `MarkAdventurerDead`, `StartRecovery`)
+
+**Automation Integration:**
+
+* **Roster Policies**: Adventurer lifecycle is managed by roster automation system based on player-defined policies (target roster size, role distribution, quality thresholds). See `10-adventurers-roster.md` for details.
+* **Auto-Equip**: Equipment is automatically assigned based on player-defined auto-equip rules (global and role-based priorities). See `11-equipment-auto-equip.md` for details.
+* **Auto-Recruitment**: New adventurers are automatically recruited when roster falls below target size, following recruitment policies.
+* **Auto-Recovery**: Adventurers automatically recover from fatigue/injuries via infirmary system based on facility tiers.
 
 **Key Effects:**
 
@@ -408,6 +417,8 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 * `preferredRole?: roleKey`
 * `baseDuration: number`
 * `baseRewards: { gold; xp; fame?: number }`
+* `missionPriorityWeight?: number` (used by doctrine engine for mission selection; higher = more likely to be selected)
+* `slotRequirement: number` (number of mission slots required; typically 1, but may be higher for complex missions)
 * (later) `regionId?: string`, `factionId?: string` (hooks into world layer)
 
 **Tags (MVP):**
@@ -441,8 +452,15 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 
 **Actions:**
 
-* `StartMission(missionId, adventurerId)`
+* `StartMission(missionId, adventurerId)` (called automatically by doctrine engine when mission is selected and party is formed)
 * `ResolveMission(missionId)` (called by idle loop or tick)
+
+**Automation Integration:**
+
+* **Doctrine-Driven Selection**: Missions are automatically selected from available pool based on player's mission doctrine (maximize fame/hour, farm gold, balance XP/materials, avoid lethal missions). See `09-mission-system.md` for details.
+* **Automatic Team Formation**: When a mission is selected, the system automatically forms a party from available adventurers following role templates and power thresholds.
+* **Continuous Looping**: As soon as a mission slot is free, the doctrine engine automatically selects a new mission and forms a new party. The loop runs 24/7 without player input.
+* **Mission Queue/Slot Management**: The system tracks available mission slots (determined by Mission Command facility tier) and automatically fills them based on doctrine.
 
 **Effects (MVP):**
 
@@ -509,7 +527,13 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 
 **Actions:**
 
-* `UpgradeFacility(facilityId)`
+* `UpgradeFacility(facilityId)` (called automatically by upgrade queue system when resources and slot are available)
+
+**Automation Integration:**
+
+* **Upgrade Queue**: Facilities are upgraded automatically via a global upgrade queue. Player defines the upgrade order (e.g., Dorms → Mission Command → Training Grounds → Resource Depot), and the system automatically starts the next upgrade when resources and slot are available. See `13-facilities-upgrades.md` for details.
+* **Passive Effects**: Facilities provide always-on passive effects (multipliers, capacity bonuses) that are evaluated by other systems. No manual activation required.
+* **Queue Behavior**: The upgrade queue system tracks available upgrade slots (typically 1 free slot, more via monetization) and automatically processes the queue.
 
 **Effects (MVP; passive, evaluated by other systems):**
 

@@ -223,6 +223,43 @@ export function createHandler(): CommandHandler<CommandPayload, GameState> {
 * DTO shapes use the same unions.
 * No naked `string` fields for enumerated concepts.
 
+## 6.7 Automation Systems Architecture
+
+The game implements **idle-first automation** where major gameplay loops run without player input. Automation systems include:
+
+### Doctrine Engine
+
+* **Purpose**: Automatically selects missions based on player-defined doctrine
+* **Integration**: Reads mission doctrine from player policies, selects missions from available pool, forms parties automatically
+* **See**: `09-mission-system.md` for detailed specification
+
+### Auto-Equip System
+
+* **Purpose**: Automatically equips gear to adventurers based on player-defined rules
+* **Integration**: Reads auto-equip rules (global and role-based), assigns equipment from Armory, triggers on recruitment and gear changes
+* **See**: `11-equipment-auto-equip.md` for detailed specification
+
+### Auto-Recruit System
+
+* **Purpose**: Automatically recruits adventurers when roster falls below target
+* **Integration**: Reads roster policies (target size, role distribution), recruits from caravans/local pools, auto-equips new recruits
+* **See**: `10-adventurers-roster.md` for detailed specification
+
+### Upgrade Queue System
+
+* **Purpose**: Automatically processes facility upgrades from player-defined queue
+* **Integration**: Reads upgrade queue order, checks resources and fame thresholds, starts upgrades when slots available
+* **See**: `13-facilities-upgrades.md` for detailed specification
+
+### Automation Principles
+
+* **Policy-Driven**: All automation driven by player-defined policies (doctrine, rules, queues)
+* **Event-Driven**: Automation systems respond to domain events (mission completion, recruitment, etc.)
+* **Idle-Aware**: All automation respects offline time and processes catch-up automatically
+* **No Manual Triggers**: Automation runs continuously without requiring player interaction
+
+**Architecture Note**: Automation systems are domain systems that read policies and execute actions automatically. They follow the same Entity → Attributes → Tags → State/Timers → Requirements → Actions → Effects → Events pattern as manual systems, but are triggered by automation logic rather than player commands.
+
 
 ---
 
