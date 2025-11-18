@@ -12,6 +12,8 @@ import { applyEffects } from '../primitives/Effect';
 import type { RequirementContext } from '../primitives/Requirement';
 import type { DomainEvent } from '../primitives/Event';
 import { getTimer } from '../primitives/TimerHelpers';
+import { automateMissionSelection } from './MissionAutomationSystem';
+import { processCraftingQueue } from './CraftingSystem';
 
 /**
  * Idle Loop Result - new state and events from idle progression
@@ -85,6 +87,83 @@ export class IdleLoop {
 				}
 			}
 		}
+
+		// Process mission automation (before resolving missions)
+		// Per plan Phase 4.6: MissionAutomationSystem returns actions that IdleLoop processes
+		const automationResult = automateMissionSelection(
+			new GameState(previousState.playerId, previousState.lastPlayed, entities, resources)
+		);
+
+		// Execute automation actions (start new missions)
+		for (const action of automationResult.actions) {
+			try {
+				const context: RequirementContext = {
+					entities,
+					resources,
+					currentTime: now
+				};
+
+				const result = action.execute(context, {
+					missionId: action['missionId'],
+					adventurerId: action['adventurerId'],
+					startedAt: now
+				});
+				if (result.success) {
+					const effectResult = applyEffects(result.effects, entities, resources);
+					resources = effectResult.resources;
+
+					const actionEvents = action.generateEvents(
+						entities,
+						resources,
+						result.effects,
+						{
+							missionId: action['missionId'],
+							adventurerId: action['adventurerId'],
+							startedAt: now
+						}
+					);
+					events.push(...actionEvents);
+				}
+			} catch (error) {
+				console.error(`[IdleLoop] Error processing automation action:`, error);
+			}
+		}
+
+		// Process crafting queue (after missions)
+		// Per plan Phase 3.5: CraftingSystem returns actions that IdleLoop processes
+		const craftingResult = processCraftingQueue(
+			new GameState(previousState.playerId, previousState.lastPlayed, entities, resources),
+			now
+		);
+
+		// Execute crafting actions
+		for (const action of craftingResult.actions) {
+			try {
+				const context: RequirementContext = {
+					entities,
+					resources,
+					currentTime: now
+				};
+
+				const result = action.execute(context, {});
+				if (result.success) {
+					const effectResult = applyEffects(result.effects, entities, resources);
+					resources = effectResult.resources;
+
+					const actionEvents = action.generateEvents(
+						entities,
+						resources,
+						result.effects,
+						{}
+					);
+					events.push(...actionEvents);
+				}
+			} catch (error) {
+				console.error(`[IdleLoop] Error processing crafting action:`, error);
+			}
+		}
+
+		events.push(...craftingResult.events);
 
 		// Create new GameState with updated entities and resources
 		const newState = new GameState(

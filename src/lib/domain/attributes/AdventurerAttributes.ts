@@ -15,5 +15,11 @@ export interface AdventurerAttributes {
 	traitTags: string[]; // PF2E-ish mech traits: "arcane", "healing", "finesse" (spec line 331)
 	roleKey: RoleKey; // Derived from classKey (spec line 332)
 	baseHP: number;
+	equipment?: {
+		weaponId?: string;
+		armorId?: string;
+		offHandId?: string;
+		accessoryId?: string;
+	};
 }
 

@@ -273,6 +273,203 @@ export class AddEntityTagsEffect implements Effect {
 }
 
 /**
+ * Effect: Equip item to adventurer
+ * Sets item state to Equipped, updates adventurer.equipment
+ */
+export class EquipItemEffect implements Effect {
+	constructor(
+		private readonly itemId: string,
+		private readonly adventurerId: string,
+		private readonly slot: 'weapon' | 'armor' | 'offHand' | 'accessory'
+	) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		const item = entities.get(this.itemId);
+		const adventurer = entities.get(this.adventurerId);
+
+		if (!item || item.type !== 'Item') {
+			throw new Error(`Item ${this.itemId} not found`);
+		}
+		if (!adventurer || adventurer.type !== 'Adventurer') {
+			throw new Error(`Adventurer ${this.adventurerId} not found`);
+		}
+
+		const itemEntity = item as import('../entities/Item').Item;
+		const adventurerEntity = adventurer as import('../entities/Adventurer').Adventurer;
+
+		// Unequip any existing item in this slot
+		const existingItemId = adventurerEntity.attributes.equipment?.[`${this.slot}Id`];
+		if (existingItemId) {
+			const existingItem = entities.get(existingItemId);
+			if (existingItem && existingItem.type === 'Item') {
+				const existingItemEntity = existingItem as import('../entities/Item').Item;
+				if (existingItemEntity.state === 'Equipped') {
+					existingItemEntity.unequip();
+				}
+			}
+		}
+
+		// Equip the new item
+		const adventurerIdObj = Identifier.from<'AdventurerId'>(this.adventurerId);
+		itemEntity.equip(adventurerIdObj);
+
+		// Update adventurer equipment reference
+		if (!adventurerEntity.attributes.equipment) {
+			adventurerEntity.attributes.equipment = {};
+		}
+		adventurerEntity.attributes.equipment[`${this.slot}Id`] = this.itemId;
+
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
+ * Effect: Unequip item from adventurer
+ * Sets item state to InArmory, clears adventurer.equipment slot
+ */
+export class UnequipItemEffect implements Effect {
+	constructor(
+		private readonly itemId: string,
+		private readonly adventurerId: string,
+		private readonly slot: 'weapon' | 'armor' | 'offHand' | 'accessory'
+	) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		const item = entities.get(this.itemId);
+		const adventurer = entities.get(this.adventurerId);
+
+		if (!item || item.type !== 'Item') {
+			throw new Error(`Item ${this.itemId} not found`);
+		}
+		if (!adventurer || adventurer.type !== 'Adventurer') {
+			throw new Error(`Adventurer ${this.adventurerId} not found`);
+		}
+
+		const itemEntity = item as import('../entities/Item').Item;
+		const adventurerEntity = adventurer as import('../entities/Adventurer').Adventurer;
+
+		// Unequip the item
+		if (itemEntity.state === 'Equipped') {
+			itemEntity.unequip();
+		}
+
+		// Clear adventurer equipment reference
+		if (adventurerEntity.attributes.equipment) {
+			delete adventurerEntity.attributes.equipment[`${this.slot}Id`];
+		}
+
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
+ * Effect: Repair item durability
+ * Restores durability to maxDurability
+ */
+export class RepairItemEffect implements Effect {
+	constructor(private readonly itemId: string) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		const item = entities.get(this.itemId);
+
+		if (!item || item.type !== 'Item') {
+			throw new Error(`Item ${this.itemId} not found`);
+		}
+
+		const itemEntity = item as import('../entities/Item').Item;
+		itemEntity.repair();
+
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
+ * Effect: Salvage item
+ * Removes item, adds materials/rare essence to resources
+ */
+export class SalvageItemEffect implements Effect {
+	constructor(
+		private readonly itemId: string,
+		private readonly materialsAmount: number = 0,
+		private readonly rareEssenceAmount: number = 0
+	) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		const item = entities.get(this.itemId);
+
+		if (!item || item.type !== 'Item') {
+			throw new Error(`Item ${this.itemId} not found`);
+		}
+
+		const itemEntity = item as import('../entities/Item').Item;
+
+		// If item is equipped, unequip it first
+		if (itemEntity.state === 'Equipped') {
+			itemEntity.unequip();
+			// Also clear any adventurer equipment references
+			for (const entity of entities.values()) {
+				if (entity.type === 'Adventurer') {
+					const adventurer = entity as import('../entities/Adventurer').Adventurer;
+					if (adventurer.attributes.equipment) {
+						const eq = adventurer.attributes.equipment;
+						if (eq.weaponId === this.itemId) delete eq.weaponId;
+						if (eq.armorId === this.itemId) delete eq.armorId;
+						if (eq.offHandId === this.itemId) delete eq.offHandId;
+						if (eq.accessoryId === this.itemId) delete eq.accessoryId;
+					}
+				}
+			}
+		}
+
+		// Remove item from entities
+		entities.delete(this.itemId);
+
+		// Add materials/rare essence to resources
+		const resourceUnits: ResourceUnit[] = [];
+		if (this.materialsAmount > 0) {
+			resourceUnits.push(new ResourceUnit('materials', this.materialsAmount));
+		}
+		if (this.rareEssenceAmount > 0) {
+			resourceUnits.push(new ResourceUnit('rareEssence', this.rareEssenceAmount));
+		}
+
+		const newResources =
+			resourceUnits.length > 0
+				? resources.add(ResourceBundle.fromArray(resourceUnits))
+				: resources;
+
+		return {
+			entities,
+			resources: newResources
+		};
+	}
+}
+
+/**
+ * Effect: Create item and add to entities
+ */
+export class CreateItemEffect implements Effect {
+	constructor(private readonly item: import('../entities/Item').Item) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		entities.set(this.item.id, this.item);
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
  * Applies a sequence of effects in order
  */
 export function applyEffects(

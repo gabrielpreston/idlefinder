@@ -45,7 +45,16 @@ export type CommandType =
 	| 'StartMission'
 	| 'CompleteMission'
 	| 'RecruitAdventurer'
-	| 'UpgradeFacility';
+	| 'UpgradeFacility'
+	| 'EquipItem'
+	| 'UnequipItem'
+	| 'RepairItem'
+	| 'SalvageItem'
+	| 'UpdateAutoEquipRules'
+	| 'TriggerAutoEquip'
+	| 'UpdateMissionDoctrine'
+	| 'AddCraftingToQueue'
+	| 'CancelCraftingJob';
 
 export interface Command extends Message {
 	type: CommandType;
@@ -56,7 +65,16 @@ export type CommandPayload =
 	| StartMissionCommand
 	| CompleteMissionCommand
 	| RecruitAdventurerCommand
-	| UpgradeFacilityCommand;
+	| UpgradeFacilityCommand
+	| EquipItemCommand
+	| UnequipItemCommand
+	| RepairItemCommand
+	| SalvageItemCommand
+	| UpdateAutoEquipRulesCommand
+	| TriggerAutoEquipCommand
+	| UpdateMissionDoctrineCommand
+	| AddCraftingToQueueCommand
+	| CancelCraftingJobCommand;
 
 export interface StartMissionCommand {
 	missionId: string;
@@ -74,6 +92,54 @@ export interface RecruitAdventurerCommand {
 
 export interface UpgradeFacilityCommand {
 	facility: string; // 'tavern' | 'guildHall' | 'blacksmith'
+}
+
+export interface EquipItemCommand {
+	itemId: string;
+	adventurerId: string;
+	slot: 'weapon' | 'armor' | 'offHand' | 'accessory';
+}
+
+export interface UnequipItemCommand {
+	itemId: string;
+	adventurerId: string;
+	slot: 'weapon' | 'armor' | 'offHand' | 'accessory';
+}
+
+export interface RepairItemCommand {
+	itemId: string;
+}
+
+export interface SalvageItemCommand {
+	itemId: string;
+	materialsAmount?: number;
+	rareEssenceAmount?: number;
+}
+
+export interface UpdateAutoEquipRulesCommand {
+	focus?: 'balanced' | 'offense-first' | 'defense-first';
+	allowRareAutoEquip?: boolean;
+	rolePriorities?: Map<string, string[]>; // RoleKey -> StatPriority[]
+}
+
+export interface TriggerAutoEquipCommand {
+	adventurerId?: string; // If provided, only equip this adventurer; otherwise equip all
+}
+
+export interface UpdateMissionDoctrineCommand {
+	focus?: 'gold' | 'xp' | 'materials' | 'balanced';
+	riskTolerance?: 'low' | 'medium' | 'high';
+	preferredMissionTypes?: string[];
+	minLevel?: number;
+	maxLevel?: number;
+}
+
+export interface AddCraftingToQueueCommand {
+	recipeId: string;
+}
+
+export interface CancelCraftingJobCommand {
+	jobId: string;
 }
 
 // Domain Events are now defined in domain layer and re-exported above

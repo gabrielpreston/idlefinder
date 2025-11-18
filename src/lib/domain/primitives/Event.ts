@@ -19,7 +19,16 @@ export type DomainEventType =
 	| 'AdventurerLeveledUp'
 	| 'FacilityUpgraded'
 	| 'ResourcesChanged'
-	| 'CommandFailed';
+	| 'CommandFailed'
+	| 'ItemCreated'
+	| 'ItemEquipped'
+	| 'ItemUnequipped'
+	| 'ItemRepaired'
+	| 'ItemSalvaged'
+	| 'CraftingStarted'
+	| 'CraftingCompleted'
+	| 'MissionDoctrineUpdated'
+	| 'MissionAutoSelected';
 
 /**
  * Resource Map - used in events
@@ -43,7 +52,16 @@ export type DomainEventPayload =
 	| AdventurerLeveledUpEvent
 	| FacilityUpgradedEvent
 	| ResourcesChangedEvent
-	| CommandFailedEvent;
+	| CommandFailedEvent
+	| ItemCreatedEvent
+	| ItemEquippedEvent
+	| ItemUnequippedEvent
+	| ItemRepairedEvent
+	| ItemSalvagedEvent
+	| CraftingStartedEvent
+	| CraftingCompletedEvent
+	| MissionDoctrineUpdatedEvent
+	| MissionAutoSelectedEvent;
 
 export interface MissionStartedEvent {
 	missionId: string;
@@ -60,6 +78,7 @@ export interface MissionCompletedEvent {
 		gold: number;
 		xp: number;
 		fame?: number;
+		materials?: number;
 	};
 }
 
@@ -111,6 +130,57 @@ export interface ResourcesChangedEvent {
 export interface CommandFailedEvent {
 	commandType: string;
 	reason: string;
+}
+
+export interface ItemCreatedEvent {
+	itemId: string;
+	itemType: string;
+	rarity: string;
+}
+
+export interface ItemEquippedEvent {
+	itemId: string;
+	adventurerId: string;
+	slot: string;
+}
+
+export interface ItemUnequippedEvent {
+	itemId: string;
+	adventurerId: string;
+}
+
+export interface ItemRepairedEvent {
+	itemId: string;
+	durability: number;
+	maxDurability: number;
+}
+
+export interface ItemSalvagedEvent {
+	itemId: string;
+	materials: number;
+	rareEssence: number;
+}
+
+export interface CraftingStartedEvent {
+	jobId: string;
+	recipeId: string;
+}
+
+export interface CraftingCompletedEvent {
+	jobId: string;
+	recipeId: string;
+	itemId: string;
+}
+
+export interface MissionDoctrineUpdatedEvent {
+	focus: string;
+	riskTolerance: string;
+}
+
+export interface MissionAutoSelectedEvent {
+	missionId: string;
+	adventurerIds: string[];
+	doctrineFocus: string;
 }
 
 /**

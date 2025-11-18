@@ -82,3 +82,40 @@ export const facilities: Readable<Facility[]> = derived(
 	}
 );
 
+export const items: Readable<import('../domain/entities/Item').Item[]> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return [];
+		return Array.from($state.entities.values()).filter(
+			(e) => e.type === 'Item'
+		) as import('../domain/entities/Item').Item[];
+	}
+);
+
+export const craftingQueue: Readable<import('../domain/entities/CraftingQueue').CraftingQueue | undefined> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return undefined;
+		return Array.from($state.entities.values())
+			.find((e) => e.type === 'CraftingQueue') as import('../domain/entities/CraftingQueue').CraftingQueue | undefined;
+	}
+);
+
+export const missionDoctrine: Readable<import('../domain/entities/MissionDoctrine').MissionDoctrine | undefined> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return undefined;
+		return Array.from($state.entities.values())
+			.find((e) => e.type === 'MissionDoctrine') as import('../domain/entities/MissionDoctrine').MissionDoctrine | undefined;
+	}
+);
+
+export const autoEquipRules: Readable<import('../domain/entities/AutoEquipRules').AutoEquipRules | undefined> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return undefined;
+		return Array.from($state.entities.values())
+			.find((e) => e.type === 'AutoEquipRules') as import('../domain/entities/AutoEquipRules').AutoEquipRules | undefined;
+	}
+);
+

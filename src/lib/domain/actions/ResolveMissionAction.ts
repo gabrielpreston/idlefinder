@@ -91,20 +91,21 @@ function calculateSynergyBonus(adventurer: Adventurer, mission: Mission): number
 function calculateRewards(
 	mission: Mission,
 	outcome: OutcomeBand
-): { gold: number; xp: number; fame?: number } {
+): { gold: number; xp: number; fame?: number; materials?: number } {
 	const base = mission.attributes.baseRewards;
-	const multipliers: Record<OutcomeBand, { gold: number; xp: number; fame: number }> = {
-		CriticalSuccess: { gold: 1.5, xp: 1.5, fame: 1.5 },
-		Success: { gold: 1.0, xp: 1.0, fame: 1.0 },
-		Failure: { gold: 0.5, xp: 0.5, fame: 0.5 },
-		CriticalFailure: { gold: 0.0, xp: 0.0, fame: 0.0 }
+	const multipliers: Record<OutcomeBand, { gold: number; xp: number; fame: number; materials: number }> = {
+		CriticalSuccess: { gold: 1.5, xp: 1.5, fame: 1.5, materials: 1.5 },
+		Success: { gold: 1.0, xp: 1.0, fame: 1.0, materials: 1.0 },
+		Failure: { gold: 0.5, xp: 0.5, fame: 0.5, materials: 0.5 },
+		CriticalFailure: { gold: 0.0, xp: 0.0, fame: 0.0, materials: 0.0 }
 	};
 
 	const mult = multipliers[outcome];
 	return {
 		gold: Math.floor(base.gold * mult.gold),
 		xp: Math.floor(base.xp * mult.xp),
-		fame: base.fame ? Math.floor(base.fame * mult.fame) : undefined
+		fame: base.fame ? Math.floor(base.fame * mult.fame) : undefined,
+		materials: base.materials ? Math.floor(base.materials * mult.materials) : undefined
 	};
 }
 
@@ -136,7 +137,7 @@ function missionReadyRequirement(missionId: string): Requirement {
  */
 export class ResolveMissionAction extends Action {
 	private outcome: OutcomeBand | null = null;
-	private rewards: { gold: number; xp: number; fame?: number } | null = null;
+	private rewards: { gold: number; xp: number; fame?: number; materials?: number } | null = null;
 	private adventurerId: string | null = null;
 
 	constructor(private readonly missionId: string) {
@@ -200,6 +201,9 @@ export class ResolveMissionAction extends Action {
 		if (this.rewards.fame !== undefined && this.rewards.fame > 0) {
 			resourceUnits.push(new ResourceUnit('fame', this.rewards.fame));
 		}
+		if (this.rewards.materials !== undefined && this.rewards.materials > 0) {
+			resourceUnits.push(new ResourceUnit('materials', this.rewards.materials));
+		}
 		if (resourceUnits.length > 0) {
 			effects.push(new ModifyResourceEffect(resourceUnits, 'add'));
 		}
@@ -242,7 +246,8 @@ export class ResolveMissionAction extends Action {
 					rewards: {
 						gold: this.rewards.gold,
 						xp: this.rewards.xp,
-						fame: this.rewards.fame
+						fame: this.rewards.fame,
+						materials: this.rewards.materials
 					}
 				},
 				timestamp: resolveParams?.resolvedAt

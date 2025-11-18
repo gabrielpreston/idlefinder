@@ -17,6 +17,7 @@ export interface MissionAttributes {
 		gold: number;
 		xp: number;
 		fame?: number;
+		materials?: number;
 	};
 	maxPartySize: number; // Optional, start with 1
 }

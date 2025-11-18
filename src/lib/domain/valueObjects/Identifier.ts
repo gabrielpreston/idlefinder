@@ -49,4 +49,12 @@ export type FacilityTemplateId = Identifier<'FacilityTemplateId'>;
 export type ProgressTrackId = Identifier<'ProgressTrackId'>;
 export type PlayerId = Identifier<'PlayerId'>;
 export type AgentTemplateId = Identifier<'AgentTemplateId'>;
+export type AdventurerId = Identifier<'AdventurerId'>;
+export type MissionId = Identifier<'MissionId'>;
+export type FacilityId = Identifier<'FacilityId'>;
+export type ItemId = Identifier<'ItemId'>;
+export type CraftingJobId = Identifier<'CraftingJobId'>;
+export type CraftingQueueId = Identifier<'CraftingQueueId'>;
+export type AutoEquipRulesId = Identifier<'AutoEquipRulesId'>;
+export type MissionDoctrineId = Identifier<'MissionDoctrineId'>;
 

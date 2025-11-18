@@ -10,6 +10,9 @@ import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import { Facility } from './Facility';
 import { Identifier } from '../valueObjects/Identifier';
 import type { FacilityAttributes } from '../attributes/FacilityAttributes';
+import { MissionDoctrine } from './MissionDoctrine';
+import { AutoEquipRules } from './AutoEquipRules';
+import { CraftingQueue } from './CraftingQueue';
 
 /**
  * Create initial GameState with default facilities
@@ -84,6 +87,21 @@ export function createInitialGameState(
 		{ name: 'Training Grounds' }
 	);
 	entities.set(training.id, training);
+
+	// Create default Mission Doctrine
+	const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+	const doctrine = MissionDoctrine.createDefault(doctrineId);
+	entities.set(doctrine.id, doctrine);
+
+	// Create default Auto-Equip Rules
+	const autoEquipRulesId = Identifier.generate<'AutoEquipRulesId'>();
+	const autoEquipRules = AutoEquipRules.createDefault(autoEquipRulesId);
+	entities.set(autoEquipRules.id, autoEquipRules);
+
+	// Create default Crafting Queue
+	const craftingQueueId = Identifier.generate<'CraftingQueueId'>();
+	const craftingQueue = CraftingQueue.createDefault(craftingQueueId);
+	entities.set(craftingQueue.id, craftingQueue);
 
 	return new GameState(playerId, lastPlayed, entities, resources);
 }
