@@ -17,9 +17,12 @@ import { createTriggerAutoEquipHandler } from './TriggerAutoEquipHandler';
 import { createUpdateMissionDoctrineHandler } from './UpdateMissionDoctrineHandler';
 import { createAddCraftingToQueueHandler } from './AddCraftingToQueueHandler';
 import { createCancelCraftingJobHandler } from './CancelCraftingJobHandler';
+import { createAssignWorkerToSlotHandler } from './AssignWorkerToSlotHandler';
+import { createUnassignWorkerFromSlotHandler } from './UnassignWorkerFromSlotHandler';
 import type { TickHandler } from '../bus/TickBus';
 import { Timestamp } from '../domain/valueObjects/Timestamp';
 import type { DomainEvent } from '../bus/types';
+import { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 
 /**
  * Create tick handler using IdleLoop
@@ -31,12 +34,34 @@ function createIdleTickHandler(
 		const state = busManager.getState();
 		const now = Timestamp.from(timestamp);
 
+		// Store old resources to detect changes
+		const oldResources = state.resources;
+
 		// Process idle progression
 		const idleLoop = new IdleLoop();
 		const result = idleLoop.processIdleProgression(state, now);
 
 		// Update state
 		busManager.setState(result.newState);
+
+		// Check if resources changed and emit ResourcesChanged event
+		const newResources = result.newState.resources;
+		const delta = ResourceBundle.calculateResourceDelta(oldResources, newResources);
+		
+		// Only emit if there's a change in any resource
+		const hasChanges = delta.gold !== 0 || delta.fame !== 0 || delta.materials !== 0;
+		
+		if (hasChanges) {
+			const resourcesChangedEvent: DomainEvent = {
+				type: 'ResourcesChanged',
+				payload: {
+					delta,
+					current: newResources.toResourceMap()
+				},
+				timestamp: timestamp.toISOString()
+			};
+			await busManager.domainEventBus.publish(resourcesChangedEvent);
+		}
 
 		// Publish events
 		for (const event of result.events) {
@@ -70,6 +95,10 @@ export function registerHandlersV2(busManager: BusManager): void {
 	// Register crafting command handlers
 	busManager.commandBus.register('AddCraftingToQueue', createAddCraftingToQueueHandler());
 	busManager.commandBus.register('CancelCraftingJob', createCancelCraftingJobHandler());
+	
+	// Register slot assignment command handlers
+	busManager.commandBus.register('AssignWorkerToSlot', createAssignWorkerToSlotHandler());
+	busManager.commandBus.register('UnassignWorkerFromSlot', createUnassignWorkerFromSlotHandler());
 
 	// Subscribe idle loop to tick bus
 	const tickHandler = createIdleTickHandler(busManager);

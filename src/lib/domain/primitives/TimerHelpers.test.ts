@@ -25,7 +25,8 @@ describe('TimerHelpers', () => {
 			ancestryKey: 'human',
 			traitTags: [],
 			roleKey: deriveRoleKey('fighter'),
-			baseHP: 10
+			baseHP: 10,
+			assignedSlotId: null
 		};
 
 		return new Adventurer(id, attributes, [], 'Idle', timers, {});

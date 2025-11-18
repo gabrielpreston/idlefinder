@@ -57,4 +57,5 @@ export type CraftingJobId = Identifier<'CraftingJobId'>;
 export type CraftingQueueId = Identifier<'CraftingQueueId'>;
 export type AutoEquipRulesId = Identifier<'AutoEquipRulesId'>;
 export type MissionDoctrineId = Identifier<'MissionDoctrineId'>;
+export type SlotId = Identifier<'SlotId'>;
 

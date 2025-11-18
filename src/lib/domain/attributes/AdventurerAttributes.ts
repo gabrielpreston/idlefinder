@@ -21,5 +21,6 @@ export interface AdventurerAttributes {
 		offHandId?: string;
 		accessoryId?: string;
 	};
+	assignedSlotId: string | null;
 }
 

@@ -83,7 +83,8 @@ export function createTestAdventurer(overrides?: {
 		ancestryKey,
 		traitTags: [],
 		roleKey: deriveRoleKey(classKey),
-		baseHP: 10
+		baseHP: 10,
+		assignedSlotId: null
 	};
 	
 	return new AdventurerEntity(

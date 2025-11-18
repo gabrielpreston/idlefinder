@@ -54,7 +54,9 @@ export type CommandType =
 	| 'TriggerAutoEquip'
 	| 'UpdateMissionDoctrine'
 	| 'AddCraftingToQueue'
-	| 'CancelCraftingJob';
+	| 'CancelCraftingJob'
+	| 'AssignWorkerToSlot'
+	| 'UnassignWorkerFromSlot';
 
 export interface Command extends Message {
 	type: CommandType;
@@ -74,7 +76,9 @@ export type CommandPayload =
 	| TriggerAutoEquipCommand
 	| UpdateMissionDoctrineCommand
 	| AddCraftingToQueueCommand
-	| CancelCraftingJobCommand;
+	| CancelCraftingJobCommand
+	| AssignWorkerToSlotCommand
+	| UnassignWorkerFromSlotCommand;
 
 export interface StartMissionCommand {
 	missionId: string;
@@ -140,6 +144,16 @@ export interface AddCraftingToQueueCommand {
 
 export interface CancelCraftingJobCommand {
 	jobId: string;
+}
+
+export interface AssignWorkerToSlotCommand {
+	slotId: string;
+	assigneeType: 'player' | 'adventurer';
+	assigneeId?: string; // Required if assigneeType === 'adventurer'
+}
+
+export interface UnassignWorkerFromSlotCommand {
+	slotId: string;
 }
 
 // Domain Events are now defined in domain layer and re-exported above

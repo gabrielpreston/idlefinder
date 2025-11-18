@@ -1,23 +1,29 @@
 <script lang="ts">
 	import { resources } from '$lib/stores/gameState';
+	
+	// Extract values into reactive variables so Svelte can track changes
+	$: gold = $resources?.get('gold') ?? 0;
+	$: fame = $resources?.get('fame') ?? 0;
+	$: materials = $resources?.get('materials') ?? 0;
+	$: rareEssence = $resources?.get('rareEssence') ?? 0;
 </script>
 
 <div class="resource-bar">
 	<div class="resource-item">
 		<span class="resource-label">Gold:</span>
-		<span class="resource-value">{$resources?.get('gold') ?? 0}</span>
+		<span class="resource-value">{gold}</span>
 	</div>
 	<div class="resource-item">
 		<span class="resource-label">Fame:</span>
-		<span class="resource-value">{$resources?.get('fame') ?? 0}</span>
+		<span class="resource-value">{fame}</span>
 	</div>
 	<div class="resource-item">
 		<span class="resource-label">Materials:</span>
-		<span class="resource-value">{$resources?.get('materials') ?? 0}</span>
+		<span class="resource-value">{materials}</span>
 	</div>
 	<div class="resource-item">
 		<span class="resource-label">Rare Essence:</span>
-		<span class="resource-value">{$resources?.get('rareEssence') ?? 0}</span>
+		<span class="resource-value">{rareEssence}</span>
 	</div>
 </div>
 

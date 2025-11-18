@@ -8,6 +8,7 @@ import type { GameStateDTO, EntityDTO } from '../dto/GameStateDTO';
 import { Adventurer } from '../../domain/entities/Adventurer';
 import { Mission } from '../../domain/entities/Mission';
 import { Facility } from '../../domain/entities/Facility';
+import { ResourceSlot } from '../../domain/entities/ResourceSlot';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
 import { ResourceBundle } from '../../domain/valueObjects/ResourceBundle';
 import { Identifier } from '../../domain/valueObjects/Identifier';
@@ -16,9 +17,10 @@ import { Duration } from '../../domain/valueObjects/Duration';
 import type { AdventurerAttributes } from '../../domain/attributes/AdventurerAttributes';
 import type { MissionAttributes } from '../../domain/attributes/MissionAttributes';
 import type { FacilityAttributes } from '../../domain/attributes/FacilityAttributes';
+import type { ResourceSlotAttributes } from '../../domain/attributes/ResourceSlotAttributes';
 import { deriveRoleKey } from '../../domain/attributes/RoleKey';
 
-const CURRENT_VERSION = 2; // Version 2 for GameState (Version 1 was PlayerState)
+const CURRENT_VERSION = 3; // Version 3: Added ResourceSlot support
 
 /**
  * Convert domain GameState to DTO
@@ -112,6 +114,15 @@ function serializeAttributes(entity: import('../../domain/primitives/Requirement
 			baseCapacity: facility.attributes.baseCapacity,
 			bonusMultipliers: facility.attributes.bonusMultipliers
 		};
+	} else if (entity.type === 'ResourceSlot') {
+		const slot = entity as ResourceSlot;
+		return {
+			facilityId: slot.attributes.facilityId,
+			resourceType: slot.attributes.resourceType,
+			baseRatePerMinute: slot.attributes.baseRatePerMinute,
+			assigneeType: slot.attributes.assigneeType,
+			assigneeId: slot.attributes.assigneeId
+		};
 	}
 	return {};
 }
@@ -133,7 +144,8 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
 			ancestryKey: (dto.attributes.ancestryKey as string) || '',
 			traitTags: (dto.attributes.traitTags as string[]) || [],
 			roleKey: (dto.attributes.roleKey as import('../../domain/attributes/RoleKey').RoleKey) || deriveRoleKey(classKey),
-			baseHP: (dto.attributes.baseHP as number) || 10
+			baseHP: (dto.attributes.baseHP as number) || 10,
+			assignedSlotId: (dto.attributes.assignedSlotId as string | null) || null
 		};
 		const id = Identifier.from<'AdventurerId'>(dto.id);
 		const timers = deserializeTimers(dto.timers || {});
@@ -141,7 +153,7 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
 			id,
 			attributes,
 			dto.tags || [],
-			(dto.state as 'Idle' | 'OnMission' | 'Fatigued' | 'Recovering' | 'Dead') || 'Idle',
+			(dto.state as 'Idle' | 'OnMission' | 'AssignedToSlot' | 'Fatigued' | 'Recovering' | 'Dead') || 'Idle',
 			timers,
 			dto.metadata || {}
 		);
@@ -190,6 +202,24 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
 			attributes,
 			dto.tags || [],
 			(dto.state as 'Online' | 'UnderConstruction' | 'Disabled') || 'Online',
+			timers,
+			dto.metadata || {}
+		);
+	} else if (dto.type === 'ResourceSlot') {
+		const attributes: ResourceSlotAttributes = {
+			facilityId: (dto.attributes.facilityId as string) || '',
+			resourceType: (dto.attributes.resourceType as 'gold' | 'materials') || 'gold',
+			baseRatePerMinute: (dto.attributes.baseRatePerMinute as number) || 6,
+			assigneeType: (dto.attributes.assigneeType as 'player' | 'adventurer' | 'none') || 'none',
+			assigneeId: (dto.attributes.assigneeId as string | null) || null
+		};
+		const id = Identifier.from<'SlotId'>(dto.id);
+		const timers = deserializeTimers(dto.timers || {});
+		return new ResourceSlot(
+			id,
+			attributes,
+			dto.tags || [],
+			(dto.state as 'locked' | 'available' | 'occupied' | 'disabled') || 'available',
 			timers,
 			dto.metadata || {}
 		);

@@ -37,7 +37,8 @@ describe('Adventurer', () => {
 			ancestryKey: 'human',
 			traitTags: overrides?.traitTags || [],
 			roleKey: deriveRoleKey(classKey),
-			baseHP: 10
+			baseHP: 10,
+			assignedSlotId: null
 		};
 
 		const metadata = overrides?.loreTags
@@ -141,7 +142,8 @@ describe('Adventurer', () => {
 				ancestryKey: 'human',
 				traitTags: [],
 				roleKey: deriveRoleKey('fighter'),
-				baseHP: 10
+				baseHP: 10,
+				assignedSlotId: null
 			};
 			const adventurer = new Adventurer(id, attributes, [], 'Idle', timers, {});
 

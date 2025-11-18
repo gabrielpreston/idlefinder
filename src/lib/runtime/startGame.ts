@@ -59,13 +59,81 @@ export function startGame(
 		busManager.domainEventBus.subscribe('AdventurerRecruited', () => {
 			set(busManager.getState());
 		}),
-		busManager.domainEventBus.subscribe('FacilityUpgraded', () => {
+		busManager.domainEventBus.subscribe('FacilityUpgraded', async (payload) => {
+			// Handle slot creation on facility upgrade
+			const { handleFacilityUpgrade } = await import('../domain/systems/SlotSystem');
+			const event = payload as import('../domain/primitives/Event').FacilityUpgradedEvent;
+			const currentState = busManager.getState();
+			const now = ts.now();
+			
+			const slotsToCreate = handleFacilityUpgrade(event, currentState, now);
+			
+			if (slotsToCreate.length > 0) {
+				// Add new slots to GameState
+				const newEntities = new Map(currentState.entities);
+				for (const slot of slotsToCreate) {
+					newEntities.set(slot.id, slot);
+				}
+				
+				const newState = new (await import('../domain/entities/GameState')).GameState(
+					currentState.playerId,
+					currentState.lastPlayed,
+					newEntities,
+					currentState.resources
+				);
+				
+				busManager.setState(newState);
+			}
+			
 			set(busManager.getState());
 		}),
 		busManager.domainEventBus.subscribe('AdventurerGainedXP', () => {
 			set(busManager.getState());
 		}),
 		busManager.domainEventBus.subscribe('AdventurerLeveledUp', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('ResourceSlotAssigned', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('ResourceSlotUnassigned', () => {
+			set(busManager.getState());
+		}),
+		// Item events - update items store for EquipmentPanel
+		busManager.domainEventBus.subscribe('ItemCreated', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('ItemEquipped', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('ItemUnequipped', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('ItemRepaired', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('ItemSalvaged', () => {
+			set(busManager.getState());
+		}),
+		// Crafting events - update craftingQueue store for CraftingPanel
+		busManager.domainEventBus.subscribe('CraftingStarted', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('CraftingCompleted', () => {
+			set(busManager.getState());
+		}),
+		// Doctrine events - update missionDoctrine store for DoctrinePanel
+		busManager.domainEventBus.subscribe('MissionDoctrineUpdated', () => {
+			set(busManager.getState());
+		}),
+		// Mission events - update missions store
+		busManager.domainEventBus.subscribe('MissionFailed', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('AdventurerAssigned', () => {
+			set(busManager.getState());
+		}),
+		busManager.domainEventBus.subscribe('MissionAutoSelected', () => {
 			set(busManager.getState());
 		})
 	];

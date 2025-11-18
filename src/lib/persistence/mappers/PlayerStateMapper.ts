@@ -26,8 +26,8 @@ export function domainToDTO(state: PlayerState): PlayerStateDTO {
 		lastPlayed: state.lastPlayed,
 		resources: {
 			gold: state.resources.gold,
-			supplies: state.resources.supplies,
-			relics: state.resources.relics
+			fame: state.resources.fame,
+			materials: state.resources.materials
 		},
 		adventurers: state.adventurers.map(adventurerToDTO),
 		missions: state.missions.map(missionToDTO),
@@ -52,7 +52,7 @@ export function dtoToDomain(dto: PlayerStateDTO): PlayerState {
 	}
 
 	// Validate and provide defaults for required fields
-	const resources = dto.resources || { gold: 0, supplies: 0, relics: 0 };
+	const resources = dto.resources || { gold: 0, fame: 0, materials: 0 };
 	const adventurers = Array.isArray(dto.adventurers) ? dto.adventurers : [];
 	const missions = Array.isArray(dto.missions) ? dto.missions : [];
 	const facilities = dto.facilities || {
@@ -67,8 +67,8 @@ export function dtoToDomain(dto: PlayerStateDTO): PlayerState {
 		lastPlayed: dto.lastPlayed || new Date().toISOString(),
 		resources: {
 			gold: typeof resources.gold === 'number' ? resources.gold : 0,
-			supplies: typeof resources.supplies === 'number' ? resources.supplies : 0,
-			relics: typeof resources.relics === 'number' ? resources.relics : 0
+			fame: typeof resources.fame === 'number' ? resources.fame : 0,
+			materials: typeof resources.materials === 'number' ? resources.materials : 0
 		},
 		adventurers: adventurers.map(adventurerFromDTO),
 		missions: missions.map(missionFromDTO),
@@ -131,7 +131,7 @@ function missionToDTO(mission: Mission): MissionDTO {
 
 function missionFromDTO(dto: MissionDTO | Partial<MissionDTO>): Mission {
 	const defaultReward: RewardDTO = {
-		resources: { gold: 0, supplies: 0, relics: 0 },
+		resources: { gold: 0, fame: 0, materials: 0 },
 		fame: 0,
 		experience: 0
 	};
@@ -151,8 +151,8 @@ function rewardToDTO(reward: Reward): RewardDTO {
 	return {
 		resources: {
 			gold: reward.resources.gold,
-			supplies: reward.resources.supplies,
-			relics: reward.resources.relics
+			fame: reward.resources.fame,
+			materials: reward.resources.materials
 		},
 		fame: reward.fame,
 		experience: reward.experience
@@ -160,12 +160,12 @@ function rewardToDTO(reward: Reward): RewardDTO {
 }
 
 function rewardFromDTO(dto: RewardDTO | Partial<RewardDTO>): Reward {
-	const resources = dto.resources || { gold: 0, supplies: 0, relics: 0 };
+	const resources = dto.resources || { gold: 0, fame: 0, materials: 0 };
 	return {
 		resources: {
 			gold: typeof resources.gold === 'number' ? resources.gold : 0,
-			supplies: typeof resources.supplies === 'number' ? resources.supplies : 0,
-			relics: typeof resources.relics === 'number' ? resources.relics : 0
+			fame: typeof resources.fame === 'number' ? resources.fame : 0,
+			materials: typeof resources.materials === 'number' ? resources.materials : 0
 		},
 		fame: typeof dto.fame === 'number' ? dto.fame : 0,
 		experience: typeof dto.experience === 'number' ? dto.experience : 0

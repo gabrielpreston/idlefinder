@@ -11,6 +11,7 @@ import type { GameRuntime } from '../runtime/startGame';
 import type { Adventurer } from '../domain/entities/Adventurer';
 import type { Mission } from '../domain/entities/Mission';
 import type { Facility } from '../domain/entities/Facility';
+import type { ResourceSlot } from '../domain/entities/ResourceSlot';
 
 /**
  * Game state store - reactive wrapper around runtime's gameState
@@ -79,6 +80,16 @@ export const facilities: Readable<Facility[]> = derived(
 		return Array.from($state.entities.values()).filter(
 			(e) => e.type === 'Facility'
 		) as Facility[];
+	}
+);
+
+export const slots: Readable<ResourceSlot[]> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return [];
+		return Array.from($state.entities.values()).filter(
+			(e) => e.type === 'ResourceSlot'
+		) as ResourceSlot[];
 	}
 );
 

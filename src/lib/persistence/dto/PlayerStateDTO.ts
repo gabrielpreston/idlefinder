@@ -23,8 +23,8 @@ export interface PlayerStateDTO {
 
 export interface ResourceMapDTO {
 	gold: number;
-	supplies: number;
-	relics: number;
+	fame: number;
+	materials: number;
 }
 
 export interface AdventurerDTO {

@@ -89,5 +89,29 @@ export class Adventurer implements Entity {
 		// TODO: Recalculate abilityMods based on PF2E progression curves
 		// For now, abilityMods remain unchanged
 	}
+
+	/**
+	 * Assign adventurer to a slot
+	 * State transition: Idle -> AssignedToSlot
+	 */
+	assignToSlot(slotId: Identifier<'SlotId'>): void {
+		if (this.state !== 'Idle') {
+			throw new Error(`Cannot assign adventurer to slot: adventurer state is ${this.state}`);
+		}
+		this.state = 'AssignedToSlot';
+		this.attributes.assignedSlotId = slotId.value;
+	}
+
+	/**
+	 * Unassign from slot and return to idle
+	 * State transition: AssignedToSlot -> Idle
+	 */
+	unassignFromSlot(): void {
+		if (this.state !== 'AssignedToSlot') {
+			throw new Error(`Cannot unassign from slot: adventurer state is ${this.state}`);
+		}
+		this.state = 'Idle';
+		this.attributes.assignedSlotId = null;
+	}
 }
 

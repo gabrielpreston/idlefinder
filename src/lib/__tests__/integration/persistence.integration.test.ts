@@ -197,8 +197,8 @@ describe('Persistence Integration', () => {
 			const event1: DomainEvent = {
 				type: 'ResourcesChanged',
 				payload: {
-					delta: { gold: 10, supplies: 5, relics: 0 },
-					current: { gold: 110, supplies: 5, relics: 0 }
+					delta: { gold: 10, fame: 5, materials: 0 },
+					current: { gold: 110, fame: 5, materials: 0 }
 				},
 				timestamp: new Date().toISOString()
 			};
@@ -206,8 +206,8 @@ describe('Persistence Integration', () => {
 			const event2: DomainEvent = {
 				type: 'ResourcesChanged',
 				payload: {
-					delta: { gold: 20, supplies: 10, relics: 0 },
-					current: { gold: 130, supplies: 15, relics: 0 }
+					delta: { gold: 20, fame: 10, materials: 0 },
+					current: { gold: 130, fame: 15, materials: 0 }
 				},
 				timestamp: new Date().toISOString()
 			};

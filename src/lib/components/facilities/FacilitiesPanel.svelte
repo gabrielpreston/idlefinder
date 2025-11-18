@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { facilities } from '$lib/stores/gameState';
+	import SlotPanel from './SlotPanel.svelte';
 </script>
 
 <div class="facilities-panel">
@@ -13,6 +14,9 @@
 					<div>Tier: {facility.attributes.tier}</div>
 					<div>State: {facility.state}</div>
 				</div>
+				{#if facility.attributes.facilityType === 'Guildhall'}
+					<SlotPanel {facility} />
+				{/if}
 			</div>
 		{/each}
 	</div>

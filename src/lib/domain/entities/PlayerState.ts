@@ -69,8 +69,8 @@ export function createInitialPlayerState(playerId: string): PlayerState {
 		lastPlayed: new Date().toISOString(),
 		resources: {
 			gold: 100,
-			supplies: 0,
-			relics: 0
+			fame: 0,
+			materials: 0
 		},
 		adventurers: [],
 		missions: [],

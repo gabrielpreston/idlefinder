@@ -65,7 +65,8 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 			ancestryKey,
 			traitTags: payload.traits || [], // Use traits as traitTags
 			roleKey: deriveRoleKey(classKey), // Derive from classKey
-			baseHP: 10
+			baseHP: 10,
+			assignedSlotId: null
 		};
 
 		// Create new Adventurer entity

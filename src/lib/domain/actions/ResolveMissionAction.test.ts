@@ -30,7 +30,8 @@ describe('ResolveMissionAction', () => {
 			ancestryKey: 'human',
 			traitTags: overrides?.traitTags || [],
 			roleKey: (overrides?.roleKey as 'martial_frontliner' | 'mobile_striker' | 'support_caster' | 'skill_specialist' | 'ranged_combatant' | 'utility_caster') || deriveRoleKey('fighter'),
-			baseHP: 10
+			baseHP: 10,
+			assignedSlotId: null
 		};
 
 		return new Adventurer(

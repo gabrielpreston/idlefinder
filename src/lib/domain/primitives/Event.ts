@@ -28,15 +28,17 @@ export type DomainEventType =
 	| 'CraftingStarted'
 	| 'CraftingCompleted'
 	| 'MissionDoctrineUpdated'
-	| 'MissionAutoSelected';
+	| 'MissionAutoSelected'
+	| 'ResourceSlotAssigned'
+	| 'ResourceSlotUnassigned';
 
 /**
  * Resource Map - used in events
  */
 export interface ResourceMap {
 	gold: number;
-	supplies: number;
-	relics: number;
+	fame: number;
+	materials: number;
 }
 
 /**
@@ -61,7 +63,9 @@ export type DomainEventPayload =
 	| CraftingStartedEvent
 	| CraftingCompletedEvent
 	| MissionDoctrineUpdatedEvent
-	| MissionAutoSelectedEvent;
+	| MissionAutoSelectedEvent
+	| ResourceSlotAssignedEvent
+	| ResourceSlotUnassignedEvent;
 
 export interface MissionStartedEvent {
 	missionId: string;
@@ -181,6 +185,18 @@ export interface MissionAutoSelectedEvent {
 	missionId: string;
 	adventurerIds: string[];
 	doctrineFocus: string;
+}
+
+export interface ResourceSlotAssignedEvent {
+	slotId: string;
+	assigneeType: 'player' | 'adventurer';
+	assigneeId: string | null;
+}
+
+export interface ResourceSlotUnassignedEvent {
+	slotId: string;
+	assigneeType: 'player' | 'adventurer';
+	assigneeId: string | null;
 }
 
 /**

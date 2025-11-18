@@ -13,6 +13,8 @@ import type { FacilityAttributes } from '../attributes/FacilityAttributes';
 import { MissionDoctrine } from './MissionDoctrine';
 import { AutoEquipRules } from './AutoEquipRules';
 import { CraftingQueue } from './CraftingQueue';
+import { ResourceSlot } from './ResourceSlot';
+import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
 
 /**
  * Create initial GameState with default facilities
@@ -51,6 +53,25 @@ export function createInitialGameState(
 		{ name: 'Guildhall' }
 	);
 	entities.set(guildhall.id, guildhall);
+
+	// Create initial Gold Slot #1 (owned by Guildhall, player assigned)
+	const goldSlotId = Identifier.from<'SlotId'>('slot-gold-1');
+	const goldSlotAttributes: ResourceSlotAttributes = {
+		facilityId: guildhall.id,
+		resourceType: 'gold',
+		baseRatePerMinute: 6,
+		assigneeType: 'player',
+		assigneeId: null
+	};
+	const goldSlot = new ResourceSlot(
+		goldSlotId,
+		goldSlotAttributes,
+		['slot:resource', 'slot:gold', 'facility:guildhall'],
+		'occupied', // Player is assigned, so slot is occupied
+		{ lastTickAt: currentTime.value }, // Store as milliseconds in timers Record
+		{ displayName: 'Gold Generation Slot #1' }
+	);
+	entities.set(goldSlot.id, goldSlot);
 
 	// Dormitory (adventurer capacity)
 	const dormitoryId = Identifier.from<'FacilityId'>('facility-dormitory-1');

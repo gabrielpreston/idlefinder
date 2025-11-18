@@ -14,6 +14,7 @@ import type { DomainEvent } from '../primitives/Event';
 import { getTimer } from '../primitives/TimerHelpers';
 import { automateMissionSelection } from './MissionAutomationSystem';
 import { processCraftingQueue } from './CraftingSystem';
+import { processSlotGeneration } from './SlotGenerationSystem';
 
 /**
  * Idle Loop Result - new state and events from idle progression
@@ -164,6 +165,23 @@ export class IdleLoop {
 		}
 
 		events.push(...craftingResult.events);
+
+		// Process slot generation (after crafting)
+		const slotGenerationResult = processSlotGeneration(
+			new GameState(previousState.playerId, previousState.lastPlayed, entities, resources),
+			now
+		);
+
+		// Apply slot generation effects
+		if (slotGenerationResult.effects.length > 0) {
+			const slotEffectResult = applyEffects(slotGenerationResult.effects, entities, resources);
+			resources = slotEffectResult.resources;
+			
+			// Note: Fractional accumulator is already updated in slot metadata by SlotGenerationSystem
+			// (entities are mutable in the effect system, so the update persists)
+		}
+
+		events.push(...slotGenerationResult.events);
 
 		// Create new GameState with updated entities and resources
 		const newState = new GameState(

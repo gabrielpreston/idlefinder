@@ -167,6 +167,99 @@ describe('ResourceBundle', () => {
 		});
 	});
 
+	describe('toResourceMap', () => {
+		it('should convert bundle to ResourceMap format', () => {
+			const bundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 100),
+				new ResourceUnit('fame', 50),
+				new ResourceUnit('materials', 25)
+			]);
+			const resourceMap = bundle.toResourceMap();
+
+			expect(resourceMap.gold).toBe(100);
+			expect(resourceMap.fame).toBe(50);
+			expect(resourceMap.materials).toBe(25);
+		});
+
+		it('should default missing resources to 0', () => {
+			const bundle = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);
+			const resourceMap = bundle.toResourceMap();
+
+			expect(resourceMap.gold).toBe(100);
+			expect(resourceMap.fame).toBe(0);
+			expect(resourceMap.materials).toBe(0);
+		});
+
+		it('should handle empty bundle', () => {
+			const bundle = new ResourceBundle(new Map<string, number>());
+			const resourceMap = bundle.toResourceMap();
+
+			expect(resourceMap.gold).toBe(0);
+			expect(resourceMap.fame).toBe(0);
+			expect(resourceMap.materials).toBe(0);
+		});
+	});
+
+	describe('calculateResourceDelta', () => {
+		it('should calculate positive delta when resources increase', () => {
+			const oldBundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 100),
+				new ResourceUnit('fame', 50)
+			]);
+			const newBundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 150),
+				new ResourceUnit('fame', 75),
+				new ResourceUnit('materials', 10)
+			]);
+			const delta = ResourceBundle.calculateResourceDelta(oldBundle, newBundle);
+
+			expect(delta.gold).toBe(50);
+			expect(delta.fame).toBe(25);
+			expect(delta.materials).toBe(10);
+		});
+
+		it('should calculate negative delta when resources decrease', () => {
+			const oldBundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 100),
+				new ResourceUnit('fame', 50)
+			]);
+			const newBundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 75),
+				new ResourceUnit('fame', 30)
+			]);
+			const delta = ResourceBundle.calculateResourceDelta(oldBundle, newBundle);
+
+			expect(delta.gold).toBe(-25);
+			expect(delta.fame).toBe(-20);
+			expect(delta.materials).toBe(0);
+		});
+
+		it('should calculate zero delta when resources unchanged', () => {
+			const bundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 100),
+				new ResourceUnit('fame', 50)
+			]);
+			const delta = ResourceBundle.calculateResourceDelta(bundle, bundle);
+
+			expect(delta.gold).toBe(0);
+			expect(delta.fame).toBe(0);
+			expect(delta.materials).toBe(0);
+		});
+
+		it('should handle missing resources in old bundle', () => {
+			const oldBundle = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);
+			const newBundle = ResourceBundle.fromArray([
+				new ResourceUnit('gold', 100),
+				new ResourceUnit('fame', 50)
+			]);
+			const delta = ResourceBundle.calculateResourceDelta(oldBundle, newBundle);
+
+			expect(delta.gold).toBe(0);
+			expect(delta.fame).toBe(50);
+			expect(delta.materials).toBe(0);
+		});
+	});
+
 	describe('immutability', () => {
 		it('should not mutate original bundle when adding', () => {
 			const original = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);

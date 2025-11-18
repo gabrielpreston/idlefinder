@@ -1,4 +1,5 @@
 import { ResourceUnit } from './ResourceUnit';
+import type { ResourceMap } from '../primitives/Event';
 
 /**
  * Immutable value object representing a collection of resources.
@@ -116,6 +117,31 @@ export class ResourceBundle {
 			resources.set(unit.resourceType, currentAmount + unit.amount);
 		}
 		return new ResourceBundle(resources);
+	}
+
+	/**
+	 * Converts the bundle to a ResourceMap format for events.
+	 * Extracts gold, fame, and materials, defaulting to 0 if missing.
+	 */
+	toResourceMap(): ResourceMap {
+		return {
+			gold: this.get('gold'),
+			fame: this.get('fame'),
+			materials: this.get('materials')
+		};
+	}
+
+	/**
+	 * Calculates the delta (difference) between two resource bundles.
+	 * Returns a ResourceMap with the change in each resource type.
+	 * Values can be negative (resources decreased).
+	 */
+	static calculateResourceDelta(oldBundle: ResourceBundle, newBundle: ResourceBundle): ResourceMap {
+		return {
+			gold: newBundle.get('gold') - oldBundle.get('gold'),
+			fame: newBundle.get('fame') - oldBundle.get('fame'),
+			materials: newBundle.get('materials') - oldBundle.get('materials')
+		};
 	}
 }
 
