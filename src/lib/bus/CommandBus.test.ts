@@ -9,6 +9,8 @@ import { DomainEventBus } from './DomainEventBus';
 import type { DomainEvent } from './types';
 import { createTestGameState, createTestCommand } from '../test-utils';
 import type { GameState } from '../domain/entities/GameState';
+import { SimulatedTimeSource } from '../time/DomainTimeSource';
+import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 describe('CommandBus', () => {
 	let commandBus: CommandBus<GameState>;
@@ -16,6 +18,7 @@ describe('CommandBus', () => {
 	let state: GameState;
 	let stateGetter: () => GameState;
 	let stateSetter: Mock<(state: GameState) => void>;
+	let timeSource: SimulatedTimeSource;
 
 	beforeEach(() => {
 		state = createTestGameState();
@@ -24,8 +27,9 @@ describe('CommandBus', () => {
 			state = newState;
 		});
 		stateGetter = () => state;
+		timeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
 
-		commandBus = new CommandBus(domainEventBus, stateGetter, stateSetter);
+		commandBus = new CommandBus(domainEventBus, stateGetter, stateSetter, timeSource);
 	});
 
 	describe('handler registration', () => {
@@ -59,7 +63,13 @@ describe('CommandBus', () => {
 			await commandBus.dispatch(command);
 
 			expect(handler).toHaveBeenCalledTimes(1);
-			expect(handler).toHaveBeenCalledWith(command.payload, state);
+			expect(handler).toHaveBeenCalledWith(
+				command.payload,
+				state,
+				expect.objectContaining({
+					currentTime: expect.any(Object)
+				})
+			);
 		});
 
 		it('should update state after handler execution', async () => {

@@ -4,6 +4,7 @@
  */
 
 import type { NumericStatMap } from '../valueObjects/NumericStatMap';
+import type { RoleKey } from './RoleKey';
 
 export interface AdventurerAttributes {
 	level: number;
@@ -11,7 +12,8 @@ export interface AdventurerAttributes {
 	abilityMods: NumericStatMap; // PF2E-style: str, dex, con, int, wis, cha
 	classKey: string;
 	ancestryKey: string;
-	roleTag: string; // e.g., "frontliner", "support", "skirmisher"
+	traitTags: string[]; // PF2E-ish mech traits: "arcane", "healing", "finesse" (spec line 331)
+	roleKey: RoleKey; // Derived from classKey (spec line 332)
 	baseHP: number;
 }
 

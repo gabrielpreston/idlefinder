@@ -7,10 +7,24 @@
 
 import type { Command, CommandType, CommandPayload, DomainEvent } from './types';
 import { DomainEventBus } from './DomainEventBus';
+import type { Timestamp } from '../domain/valueObjects/Timestamp';
+import type { DomainTimeSource } from '../time/DomainTimeSource';
+
+/**
+ * Command handler context - provides time and other execution context
+ */
+export interface CommandHandlerContext {
+	/**
+	 * Current time for command execution
+	 * Provided by DomainTimeSource to ensure determinism
+	 */
+	currentTime: Timestamp;
+}
 
 export type CommandHandler<T extends CommandPayload = CommandPayload, S = unknown> = (
 	payload: T,
-	state: S
+	state: S,
+	context: CommandHandlerContext
 ) => Promise<{ newState: S; events: DomainEvent[] }>;
 
 /**
@@ -22,17 +36,20 @@ export class CommandBus<S = unknown> {
 	private domainEventBus: DomainEventBus;
 	private stateGetter: () => S;
 	private stateSetter: (state: S) => void;
+	private timeSource: DomainTimeSource;
 	private commandQueue: Array<{ command: Command; resolve: () => void; reject: (error: Error) => void }> = [];
 	private isProcessing = false;
 
 	constructor(
 		domainEventBus: DomainEventBus,
 		stateGetter: () => S,
-		stateSetter: (state: S) => void
+		stateSetter: (state: S) => void,
+		timeSource: DomainTimeSource
 	) {
 		this.domainEventBus = domainEventBus;
 		this.stateGetter = stateGetter;
 		this.stateSetter = stateSetter;
+		this.timeSource = timeSource;
 	}
 
 	/**
@@ -104,8 +121,16 @@ export class CommandBus<S = unknown> {
 			// Get current state
 			const currentState = this.stateGetter();
 
+			// Get current time from time source
+			const currentTime = this.timeSource.now();
+
+			// Create handler context
+			const context: CommandHandlerContext = {
+				currentTime
+			};
+
 			// Execute handler
-			const result = await handler(command.payload as CommandPayload, currentState);
+			const result = await handler(command.payload as CommandPayload, currentState, context);
 
 			// Update state
 			this.stateSetter(result.newState);

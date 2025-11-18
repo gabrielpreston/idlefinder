@@ -12,7 +12,7 @@
 
 ## 1.2 Explicit Runtime Factory (`startGame()`)
 
-* The game runtime (BusManager, PlayerState, gameState store, handlers) is created via a **factory function**.
+* The game runtime (BusManager, gameState store, handlers) is created via a **factory function**.
 * This runtime instance is passed to the UI via **Svelte context/props**.
 * **No global singletons** (no `getBusManager()`).
 
@@ -52,6 +52,9 @@
   No domain system or domain entity may import or depend on any bus.
 * The bus invokes domain systems, not the other way around.
 * Domain systems are **pure functional units** with no external side effects.
+* **Domain Events** (as defined in `08-systems-primitives-spec.md`) are domain primitives that describe what happened.
+* The `DomainEventBus` is infrastructure that publishes these domain event payloads.
+* Domain systems generate Events; the bus transports them.
 
 ---
 
@@ -67,21 +70,28 @@
   * `Timestamp.now()`
 * Only the runtime/infrastructure layer may obtain wall-clock time.
 
-## 4.2 Pluggable `TimeSource`
+## 4.2 Pluggable `DomainTimeSource`
 
 A clean interface:
 
 ```ts
-interface TimeSource {
+interface DomainTimeSource {
   now(): Timestamp;
 }
 ```
 
 Implementations include:
 
-* `RealTimeSource` (default)
-* `SimulatedTimeSource` (dev/testing)
-* `ServerTimeSource` (future)
+* `RealTimeSource` (default) - uses system clock
+* `SimulatedTimeSource` (dev/testing) - controllable time for deterministic tests
+* `ServerTimeSource` (future) - server-provided time for multiplayer
+
+**Usage Pattern:**
+* `BusManager` holds a `DomainTimeSource` instance
+* `CommandBus` receives time from `DomainTimeSource` and passes it to handlers via `CommandHandlerContext`
+* Command handlers receive `currentTime: Timestamp` in their context parameter
+* Handlers **never** call `Timestamp.now()` directly - they use `context.currentTime`
+* Persistence layer receives time from `DomainTimeSource` via `PersistenceBus`
 
 ## 4.3 Offline Progress = Full Deterministic Replay
 
@@ -95,6 +105,39 @@ Implementations include:
 
 * UI may use real-time (`Date.now() / performance.now()`) **for visual-only smoothing**.
 * UI interpolation is **never authoritative**.
+* UI uses separate `TimeSource` interface (`src/lib/stores/time/timeSource.ts`) that returns `Readable<number>` stores for reactive updates.
+
+## 4.5 Unified Time Handling Pattern
+
+**Command Handlers:**
+```typescript
+// ✅ CORRECT: Time passed via context
+export function createHandler(): CommandHandler<CommandPayload, GameState> {
+  return async (payload, state, context) => {
+    const now = context.currentTime; // From DomainTimeSource
+    // Use now for all time-dependent operations
+  };
+}
+
+// ❌ WRONG: Direct time access
+export function createHandler(): CommandHandler<CommandPayload, GameState> {
+  return async (payload, state) => {
+    const now = Timestamp.now(); // Violates spec 4.1
+  };
+}
+```
+
+**Timer Access:**
+* Timers stored as `Record<string, number | null>` (milliseconds) in entities
+* Use `TimerHelpers.getTimer()` and `TimerHelpers.setTimer()` for entity timer access
+* Convert to/from `Timestamp` only at boundaries (entity methods use `Timestamp`, storage uses milliseconds)
+
+**Time Source Flow:**
+1. `BusManager` holds `DomainTimeSource`
+2. `CommandBus` gets time from `DomainTimeSource.now()` → passes to handlers via `CommandHandlerContext`
+3. `PersistenceBus` gets time from `DomainTimeSource.now()` → passes to `LocalStorageAdapter.save()`
+4. `TickBus` uses `DomainTimeSource` for tick timestamps
+5. Domain systems receive time as parameters (never call `Timestamp.now()`)
 
 ---
 
@@ -130,42 +173,56 @@ Implementations include:
 
 # 6. Domain Modeling Standards
 
-## 6.1 `PlayerState` + `gameState` is the Sole In-Memory Model
+## 6.1 `GameState` is the Sole In-Memory Model
 
 * UI renders from `gameState` only.
-* Legacy `organizationStore` and its derived stores are removed.
+* `GameState` uses an **Entity map structure** where all game objects (Adventurers, Missions, Facilities) are Entities.
+* All entities implement the `Entity` interface with: `id`, `type`, `attributes`, `tags`, `state`, `timers`, `metadata`.
+* Core systems reason over entities by `type`, `attributes`, `tags`, and `state` - never by specific entity IDs.
+* Legacy `PlayerState` and `organizationStore` are deprecated and removed.
 * DTOs live below domain, not used as UI state.
 
-## 6.2 Canonical Barrel Exports for Domain Systems
+## 6.2 Entity Primitive Structure
+
+* All domain entities follow the Entity primitive structure defined in `08-systems-primitives-spec.md`.
+* Entities are typed "things" with:
+  * `id`: unique identifier
+  * `type`: enum/string (e.g. `Adventurer`, `Mission`, `Facility`)
+  * `attributes`: structured data describing capabilities/stats
+  * `tags`: mechanical tags for classification/synergy
+  * `state`: finite state machine label
+  * `timers`: time-related fields (milliseconds)
+  * `metadata`: optional non-mechanical info (includes `loreTags` for thematic tags)
+
+## 6.3 Canonical Barrel Exports for Domain Systems
 
 * `src/lib/domain/systems/index.ts` is the only import surface for domain systems.
 * All systems are exported from the barrel.
 * No direct file-level imports.
 
-## 6.3 Strict Unions Everywhere (Domain + DTO)
+## 6.4 Structured Gameplay Effects
+
+* Effects are **data describing mutations**, not imperative logic.
+* Effects are implemented as classes (e.g., `ModifyResourceEffect`, `SetEntityStateEffect`, `SetTimerEffect`).
+* Effects can be sequenced: an action may produce a list of effects.
+* All lasting change to game state flows through Effects.
+* The domain is semantic, not textual - UI converts structured effects to text.
+* Facility effects use structured `EffectDescriptor` objects with `effectKey` and `value`, not string descriptions.
+
+## 6.5 Mission System Structure
+
+* Missions follow the Entity primitive structure with formal states: `Available`, `InProgress`, `Completed`, `Expired`.
+* Mission attributes include: `primaryAbility`, `dc`, `missionType`, `baseDuration`, `baseRewards`.
+* Mission timers: `availableAt`, `startedAt`, `endsAt` (stored as milliseconds).
+* This is the first iteration of the formal system - structure may still evolve as gameplay settles.
+* Types and invariants remain intentionally loose for now, but follow the Entity primitive pattern.
+
+## 6.6 Strict Unions Everywhere (Domain + DTO)
 
 * All gameplay-critical categories, statuses, types, etc. use **strict string unions**.
 * DTO shapes use the same unions.
 * No naked `string` fields for enumerated concepts.
 
-## 6.4 Structured Gameplay Effects
-
-* All facility, mission, item, and other modifiers are expressed as **strongly typed objects**, e.g.:
-
-```ts
-type FacilityEffect =
-  | { kind: 'ADVENTURER_CAPACITY'; value: number }
-  | { kind: 'MISSION_SPEED'; multiplier: number };
-```
-
-* The domain is semantic, not textual.
-* UI converts structured effects to text.
-
-## 6.5 Mission/Task System Remains Flexible for Now
-
-* Do **not** overformalize the Mission → Task → TaskInstance → Outcome hierarchy yet.
-* The structure may evolve significantly.
-* Types and invariants remain intentionally loose until gameplay settles.
 
 ---
 
@@ -222,12 +279,12 @@ Two separate doc sections:
 | Simulation authority | Client for now, server later                      |
 | Bus architecture     | Only one bus (`src/lib/bus`)                      |
 | Domain purity        | Strict, no bus imports                            |
-| Time                 | Pluggable `TimeSource`, no `Date.now()` in domain |
+| Time                 | Pluggable `DomainTimeSource`, passed via `CommandHandlerContext`, no `Date.now()`/`Timestamp.now()` in domain |
 | Offline              | Deterministic replay                              |
 | Visuals              | UI may interpolate                                |
 | Persistence          | Local now, remote-ready architecture              |
 | Save slots           | One autosave                                      |
-| State model          | `PlayerState` + `gameState`, no organizationStore |
+| State model          | `GameState` (Entity map), no PlayerState |
 | Domain systems       | Barrel export required                            |
 | Typing               | Strict unions everywhere                          |
 | Effects              | Structured domain objects                         |

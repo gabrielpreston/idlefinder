@@ -9,6 +9,7 @@ import type { DomainEventType } from './types';
 import { DomainEventBus } from './DomainEventBus';
 import { LocalStorageAdapter } from '../persistence/LocalStorageAdapter';
 import type { GameState } from '../domain/entities/GameState';
+import type { DomainTimeSource } from '../time/DomainTimeSource';
 
 /**
  * Persistence Bus - handles save/load operations
@@ -17,16 +18,19 @@ import type { GameState } from '../domain/entities/GameState';
 export class PersistenceBus {
 	private adapter: LocalStorageAdapter;
 	private stateGetter: () => GameState;
+	private timeSource: DomainTimeSource;
 	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	private readonly saveIntervalMs = 10000; // 10 seconds
 
 	constructor(
 		adapter: LocalStorageAdapter,
 		stateGetter: () => GameState,
-		eventBus: DomainEventBus
+		eventBus: DomainEventBus,
+		timeSource: DomainTimeSource
 	) {
 		this.adapter = adapter;
 		this.stateGetter = stateGetter;
+		this.timeSource = timeSource;
 
 		// Critical events that need immediate save (user-initiated actions)
 		const immediateSaveEvents: DomainEventType[] = [
@@ -86,7 +90,8 @@ export class PersistenceBus {
 		}
 		
 		const state = this.stateGetter();
-		this.adapter.save(state);
+		const currentTime = this.timeSource.now();
+		this.adapter.save(state, currentTime);
 	}
 
 	/**

@@ -10,7 +10,8 @@ import type { Mission } from '../entities/Mission';
 import { ResolveMissionAction } from '../actions/ResolveMissionAction';
 import { applyEffects } from '../primitives/Effect';
 import type { RequirementContext } from '../primitives/Requirement';
-import type { DomainEvent } from '../../bus/types';
+import type { DomainEvent } from '../primitives/Event';
+import { getTimer } from '../primitives/TimerHelpers';
 
 /**
  * Idle Loop Result - new state and events from idle progression
@@ -45,7 +46,7 @@ export class IdleLoop {
 
 		for (const mission of missions) {
 			if (mission.state === 'InProgress') {
-				const endsAt = mission.timers.get('endsAt');
+				const endsAt = getTimer(mission, 'endsAt');
 				if (endsAt && now.value >= endsAt.value) {
 					// Mission is ready for resolution
 					try {

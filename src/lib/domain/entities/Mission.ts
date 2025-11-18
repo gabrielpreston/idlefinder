@@ -8,6 +8,7 @@ import type { Timestamp } from '../valueObjects/Timestamp';
 import type { MissionAttributes } from '../attributes/MissionAttributes';
 import type { MissionState } from '../states/MissionState';
 import type { Entity } from '../primitives/Requirement';
+import type { EntityMetadata } from '../primitives/EntityMetadata';
 
 export type MissionId = Identifier<'MissionId'>;
 
@@ -21,30 +22,33 @@ export class Mission implements Entity {
 	readonly attributes: MissionAttributes;
 	readonly tags: ReadonlyArray<string>;
 	state: MissionState;
-	timers: Map<string, Timestamp>; // Mutable for timer updates
-	readonly metadata: Record<string, unknown>;
+	timers: Record<string, number | null>; // Mutable for timer updates (milliseconds per spec)
+	readonly metadata: EntityMetadata;
 
 	constructor(
 		id: MissionId,
 		attributes: MissionAttributes,
 		tags: string[] = [],
 		state: MissionState = 'Available',
-		timers: Map<string, Timestamp> = new Map(),
-		metadata: Record<string, unknown> = {}
+		timers: Record<string, number | null> = {},
+		metadata: EntityMetadata = {}
 	) {
 		this._id = id;
 		this.id = id.value; // String ID for Entity interface
 		this.attributes = attributes;
 		this.tags = [...tags]; // Create copy for immutability
 		this.state = state;
-		this.timers = new Map(timers); // Create copy
-		this.metadata = { ...metadata }; // Create copy
+		this.timers = { ...timers }; // Create copy
+		// Ensure metadata.loreTags is copied for immutability if present
+		this.metadata = metadata.loreTags
+			? { ...metadata, loreTags: [...metadata.loreTags] }
+			: { ...metadata }; // Create copy
 	}
 
 	/**
 	 * Start mission
 	 * State transition: Available -> InProgress
-	 * Sets startedAt and endsAt timers
+	 * Sets startedAt and endsAt timers (stores as milliseconds)
 	 */
 	start(startedAt: Timestamp, endsAt: Timestamp): void {
 		if (this.state !== 'Available') {
@@ -54,20 +58,21 @@ export class Mission implements Entity {
 			throw new Error(`endsAt must be after startedAt`);
 		}
 		this.state = 'InProgress';
-		this.timers.set('startedAt', startedAt);
-		this.timers.set('endsAt', endsAt);
+		this.timers['startedAt'] = startedAt.value; // Store as milliseconds
+		this.timers['endsAt'] = endsAt.value; // Store as milliseconds
 	}
 
 	/**
 	 * Complete mission
 	 * State transition: InProgress -> Completed
+	 * Stores completedAt as milliseconds
 	 */
 	complete(completedAt: Timestamp): void {
 		if (this.state !== 'InProgress') {
 			throw new Error(`Cannot complete mission: mission state is ${this.state}`);
 		}
 		this.state = 'Completed';
-		this.timers.set('completedAt', completedAt);
+		this.timers['completedAt'] = completedAt.value; // Store as milliseconds
 	}
 
 	/**

@@ -16,6 +16,7 @@ import { Duration } from '../../domain/valueObjects/Duration';
 import type { AdventurerAttributes } from '../../domain/attributes/AdventurerAttributes';
 import type { MissionAttributes } from '../../domain/attributes/MissionAttributes';
 import type { FacilityAttributes } from '../../domain/attributes/FacilityAttributes';
+import { deriveRoleKey } from '../../domain/attributes/RoleKey';
 
 const CURRENT_VERSION = 2; // Version 2 for GameState (Version 1 was PlayerState)
 
@@ -87,14 +88,18 @@ function serializeAttributes(entity: import('../../domain/primitives/Requirement
 			abilityMods: adventurer.attributes.abilityMods.toMap(),
 			classKey: adventurer.attributes.classKey,
 			ancestryKey: adventurer.attributes.ancestryKey,
-			roleTag: adventurer.attributes.roleTag,
+			traitTags: adventurer.attributes.traitTags,
+			roleKey: adventurer.attributes.roleKey,
 			baseHP: adventurer.attributes.baseHP
 		};
 	} else if (entity.type === 'Mission') {
 		const mission = entity as Mission;
 		return {
-			difficultyTier: mission.attributes.difficultyTier,
+			missionType: mission.attributes.missionType,
 			primaryAbility: mission.attributes.primaryAbility,
+			dc: mission.attributes.dc,
+			difficultyTier: mission.attributes.difficultyTier,
+			preferredRole: mission.attributes.preferredRole,
 			baseDuration: mission.attributes.baseDuration.toMilliseconds(),
 			baseRewards: mission.attributes.baseRewards,
 			maxPartySize: mission.attributes.maxPartySize
@@ -117,31 +122,39 @@ function serializeAttributes(entity: import('../../domain/primitives/Requirement
 function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requirement').Entity | null {
 
 	if (dto.type === 'Adventurer') {
+		const classKey = (dto.attributes.classKey as string) || '';
 		const attributes: AdventurerAttributes = {
 			level: (dto.attributes.level as number) || 1,
 			xp: (dto.attributes.xp as number) || 0,
 			abilityMods: NumericStatMap.fromMap(
 				new Map(Object.entries((dto.attributes.abilityMods as Record<string, number>) || {}))
 			),
-			classKey: (dto.attributes.classKey as string) || '',
+			classKey,
 			ancestryKey: (dto.attributes.ancestryKey as string) || '',
-			roleTag: (dto.attributes.roleTag as string) || '',
+			traitTags: (dto.attributes.traitTags as string[]) || [],
+			roleKey: (dto.attributes.roleKey as import('../../domain/attributes/RoleKey').RoleKey) || deriveRoleKey(classKey),
 			baseHP: (dto.attributes.baseHP as number) || 10
 		};
 		const id = Identifier.from<'AdventurerId'>(dto.id);
-		const timers = deserializeTimers(dto.timers);
+		const timers = deserializeTimers(dto.timers || {});
 		return new Adventurer(
 			id,
 			attributes,
 			dto.tags || [],
-			(dto.state as 'Idle' | 'OnMission' | 'Recovering' | 'Dead') || 'Idle',
+			(dto.state as 'Idle' | 'OnMission' | 'Fatigued' | 'Recovering' | 'Dead') || 'Idle',
 			timers,
 			dto.metadata || {}
 		);
 	} else if (dto.type === 'Mission') {
+		const difficultyTier = (dto.attributes.difficultyTier as 'Easy' | 'Medium' | 'Hard' | 'Legendary') || 'Easy';
+		// Derive DC from difficultyTier if not provided (backward compatibility)
+		const dcMap: Record<string, number> = { Easy: 10, Medium: 15, Hard: 20, Legendary: 25 };
 		const attributes: MissionAttributes = {
-			difficultyTier: (dto.attributes.difficultyTier as 'Easy' | 'Medium' | 'Hard' | 'Legendary') || 'Easy',
+			missionType: (dto.attributes.missionType as 'combat' | 'exploration' | 'investigation' | 'diplomacy' | 'resource') || 'combat',
 			primaryAbility: (dto.attributes.primaryAbility as 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha') || 'str',
+			dc: (dto.attributes.dc as number) || dcMap[difficultyTier] || 15,
+			difficultyTier,
+			preferredRole: (dto.attributes.preferredRole as import('../../domain/attributes/RoleKey').RoleKey) || undefined,
 			baseDuration: Duration.ofSeconds((dto.attributes.baseDuration as number) || 60),
 			baseRewards: (dto.attributes.baseRewards as { gold: number; xp: number; fame?: number }) || {
 				gold: 0,
@@ -150,7 +163,7 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
 			maxPartySize: (dto.attributes.maxPartySize as number) || 1
 		};
 		const id = Identifier.from<'MissionId'>(dto.id);
-		const timers = deserializeTimers(dto.timers);
+		const timers = deserializeTimers(dto.timers || {});
 		return new Mission(
 			id,
 			attributes,
@@ -171,7 +184,7 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
 			}) || {}
 		};
 		const id = Identifier.from<'FacilityId'>(dto.id);
-		const timers = deserializeTimers(dto.timers);
+		const timers = deserializeTimers(dto.timers || {});
 		return new Facility(
 			id,
 			attributes,
@@ -206,13 +219,15 @@ function serializeState(entity: import('../../domain/primitives/Requirement').En
 
 /**
  * Serialize timers
+ * Per spec: timers are Record<string, number | null> (milliseconds)
  */
 function serializeTimers(entity: import('../../domain/primitives/Requirement').Entity): Record<string, number> {
 	const timers: Record<string, number> = {};
-	if ('timers' in entity && entity.timers instanceof Map) {
-		for (const [key, timestamp] of entity.timers.entries()) {
-			if (timestamp && 'value' in timestamp && typeof timestamp.value === 'number') {
-				timers[key] = timestamp.value;
+	if ('timers' in entity && typeof entity.timers === 'object' && entity.timers !== null) {
+		const timersRecord = entity.timers as Record<string, number | null>;
+		for (const [key, value] of Object.entries(timersRecord)) {
+			if (value !== null && value !== undefined && typeof value === 'number') {
+				timers[key] = value;
 			}
 		}
 	}
@@ -221,11 +236,12 @@ function serializeTimers(entity: import('../../domain/primitives/Requirement').E
 
 /**
  * Deserialize timers
+ * Per spec: timers are Record<string, number | null> (milliseconds)
  */
-function deserializeTimers(timersDTO: Record<string, number>): Map<string, Timestamp> {
-	const timers = new Map<string, Timestamp>();
+function deserializeTimers(timersDTO: Record<string, number>): Record<string, number | null> {
+	const timers: Record<string, number | null> = {};
 	for (const [key, value] of Object.entries(timersDTO)) {
-		timers.set(key, Timestamp.from(value));
+		timers[key] = value; // Already milliseconds, no conversion needed
 	}
 	return timers;
 }

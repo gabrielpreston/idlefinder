@@ -122,7 +122,7 @@ Emitted when a facility level increases.
 "payload": {
 "facility": string,
 "newLevel": number,
-"effects": string[]
+"effects": EffectDescriptor[] // Structured effect objects, not strings
 
 ResourcesChanged
 
@@ -171,6 +171,17 @@ interface specifications 1 .
 
 As the MVP stores all state client‑side, there is no sensitive data exchange. If a network component is added
 later, messages should be authenticated and validated server‑side before acceptance.
+
+## Effects Structure
+
+**Important**: Effects are structured data objects, not string descriptions. The domain is semantic, not textual.
+
+- Effects are implemented as classes (e.g., `ModifyResourceEffect`, `SetEntityStateEffect`, `SetTimerEffect`)
+- Effects describe mutations to game state (entity fields, resources, timers)
+- UI converts structured effects to human-readable text for display
+- Facility effects use structured `EffectDescriptor` objects with `effectKey` and `value`, not string descriptions
+
+This ensures type safety, semantic meaning, and makes it easier to log, audit, replay, and maintain consistency.
 
 ## Extensibility
 

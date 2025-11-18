@@ -42,7 +42,8 @@ export class BusManager {
 		this.commandBus = new CommandBus<GameState>(
 			this.domainEventBus,
 			this.stateGetter,
-			this.stateSetter
+			this.stateSetter,
+			this.timeSource
 		);
 		this.tickBus = new TickBus(timeSource);
 
@@ -50,7 +51,8 @@ export class BusManager {
 		this.persistenceBus = new PersistenceBus(
 			adapter,
 			this.stateGetter,
-			this.domainEventBus
+			this.domainEventBus,
+			this.timeSource
 		);
 	}
 

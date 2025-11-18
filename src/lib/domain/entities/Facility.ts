@@ -4,10 +4,10 @@
  */
 
 import type { Identifier } from '../valueObjects/Identifier';
-import type { Timestamp } from '../valueObjects/Timestamp';
 import type { FacilityAttributes } from '../attributes/FacilityAttributes';
 import type { FacilityState } from '../states/FacilityState';
 import type { Entity } from '../primitives/Requirement';
+import type { EntityMetadata } from '../primitives/EntityMetadata';
 
 export type FacilityId = Identifier<'FacilityId'>;
 
@@ -22,24 +22,27 @@ export class Facility implements Entity {
 	readonly attributes: FacilityAttributes;
 	readonly tags: ReadonlyArray<string>;
 	state: FacilityState;
-	timers: Map<string, Timestamp>; // Mutable for timer updates
-	readonly metadata: Record<string, unknown>;
+	timers: Record<string, number | null>; // Mutable for timer updates (milliseconds per spec)
+	readonly metadata: EntityMetadata;
 
 	constructor(
 		id: FacilityId,
 		attributes: FacilityAttributes,
 		tags: string[] = [],
 		state: FacilityState = 'Online',
-		timers: Map<string, Timestamp> = new Map(),
-		metadata: Record<string, unknown> = {}
+		timers: Record<string, number | null> = {},
+		metadata: EntityMetadata = {}
 	) {
 		this._id = id;
 		this.id = id.value; // String ID for Entity interface
 		this.attributes = attributes;
 		this.tags = [...tags]; // Create copy for immutability
 		this.state = state;
-		this.timers = new Map(timers); // Create copy
-		this.metadata = { ...metadata }; // Create copy
+		this.timers = { ...timers }; // Create copy
+		// Ensure metadata.loreTags is copied for immutability if present
+		this.metadata = metadata.loreTags
+			? { ...metadata, loreTags: [...metadata.loreTags] }
+			: { ...metadata }; // Create copy
 	}
 
 	/**

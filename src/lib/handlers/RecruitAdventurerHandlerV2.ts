@@ -3,13 +3,14 @@
  * Creates new Adventurer entity and adds to GameState
  */
 
-import type { CommandHandler } from '../bus/CommandBus';
+import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { RecruitAdventurerCommand, DomainEvent } from '../bus/types';
 import { GameState } from '../domain/entities/GameState';
 import { Adventurer } from '../domain/entities/Adventurer';
 import { Identifier } from '../domain/valueObjects/Identifier';
 import { NumericStatMap } from '../domain/valueObjects/NumericStatMap';
 import type { AdventurerAttributes } from '../domain/attributes/AdventurerAttributes';
+import { deriveRoleKey } from '../domain/attributes/RoleKey';
 
 /**
  * Create RecruitAdventurer command handler using new entity system
@@ -17,7 +18,8 @@ import type { AdventurerAttributes } from '../domain/attributes/AdventurerAttrib
 export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdventurerCommand, GameState> {
 	return async function(
 		payload: RecruitAdventurerCommand,
-		state: GameState
+		state: GameState,
+		_context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
 		// Validation: Check if name is provided
 		if (!payload.name || payload.name.trim().length === 0) {
@@ -41,6 +43,7 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 		const id = Identifier.from<'AdventurerId'>(adventurerId);
 
 		// Create default attributes for new adventurer (level 1, 0 XP)
+		const classKey = ''; // TODO: Assign class based on traits or random
 		const attributes: AdventurerAttributes = {
 			level: 1,
 			xp: 0,
@@ -52,9 +55,10 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 				['wis', 0],
 				['cha', 0]
 			])),
-			classKey: '', // TODO: Assign class based on traits or random
+			classKey,
 			ancestryKey: '', // TODO: Assign ancestry based on traits or random
-			roleTag: '', // TODO: Determine role based on traits
+			traitTags: payload.traits || [], // Use traits as traitTags
+			roleKey: deriveRoleKey(classKey), // Derive from classKey
 			baseHP: 10
 		};
 
@@ -64,7 +68,7 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 			attributes,
 			payload.traits || [],
 			'Idle', // Initial state
-			new Map(), // No timers initially
+			{}, // No timers initially (Record, not Map)
 			{ name: payload.name } // Store name in metadata
 		);
 

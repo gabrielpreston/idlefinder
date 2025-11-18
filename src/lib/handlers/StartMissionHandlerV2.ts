@@ -3,13 +3,12 @@
  * Per Systems Primitives Spec: Uses StartMissionAction
  */
 
-import type { CommandHandler } from '../bus/CommandBus';
+import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { StartMissionCommand, DomainEvent } from '../bus/types';
 import { GameState } from '../domain/entities/GameState';
 import { StartMissionAction } from '../domain/actions/StartMissionAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
-import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 /**
  * Create StartMission command handler using Actions
@@ -17,7 +16,8 @@ import { Timestamp } from '../domain/valueObjects/Timestamp';
 export function createStartMissionHandlerV2(): CommandHandler<StartMissionCommand, GameState> {
 	return async function(
 		payload: StartMissionCommand,
-		state: GameState
+		state: GameState,
+		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
 		// MVP: Single adventurer per mission
 		if (payload.adventurerIds.length !== 1) {
@@ -37,7 +37,7 @@ export function createStartMissionHandlerV2(): CommandHandler<StartMissionComman
 		}
 
 		const adventurerId = payload.adventurerIds[0];
-		const now = Timestamp.now();
+		const now = context.currentTime;
 
 		// Parse template ID from mission ID (format: templateId-timestamp-random)
 		// Template IDs can contain hyphens (e.g., "explore-forest"), so we need to extract
@@ -95,15 +95,18 @@ export function createStartMissionHandlerV2(): CommandHandler<StartMissionComman
 		const mission = new Mission(
 			missionId,
 			{
-				difficultyTier: 'Easy',
+				missionType: 'combat', // Default mission type
 				primaryAbility: 'str',
+				dc: 10, // Easy difficulty DC
+				difficultyTier: 'Easy',
+				preferredRole: undefined, // No role preference by default
 				baseDuration: Duration.ofSeconds(template.duration),
 				baseRewards: template.rewards,
 				maxPartySize: 1
 			},
 			[],
 			'Available',
-			new Map(),
+			{}, // timers (Record, not Map)
 			{ name: template.name, templateId, missionId: payload.missionId }
 		);
 		
@@ -117,7 +120,7 @@ export function createStartMissionHandlerV2(): CommandHandler<StartMissionComman
 		);
 
 		// Create requirement context
-		const context: RequirementContext = {
+		const requirementContext: RequirementContext = {
 			entities: workingState.entities,
 			resources: workingState.resources,
 			currentTime: now
@@ -125,7 +128,7 @@ export function createStartMissionHandlerV2(): CommandHandler<StartMissionComman
 
 		// Execute action
 		const action = new StartMissionAction(payload.missionId, adventurerId);
-		const result = action.execute(context, {
+		const result = action.execute(requirementContext, {
 			missionId: payload.missionId,
 			adventurerId,
 			startedAt: now

@@ -16,7 +16,7 @@ import {
 	ModifyResourceEffect,
 	type Effect
 } from '../primitives/Effect';
-import type { DomainEvent } from '../../bus/types';
+import type { DomainEvent } from '../primitives/Event';
 import type { Facility } from '../entities/Facility';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';

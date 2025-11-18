@@ -9,7 +9,7 @@ import { Action } from '../primitives/Action';
 import type { Requirement, RequirementContext } from '../primitives/Requirement';
 import { entityExistsRequirement } from '../primitives/Requirement';
 import { SetEntityAttributeEffect, type Effect } from '../primitives/Effect';
-import type { DomainEvent } from '../../bus/types';
+import type { DomainEvent } from '../primitives/Event';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';

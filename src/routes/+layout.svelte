@@ -7,13 +7,15 @@
 	import { gameState } from '$lib/stores/gameState';
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import { LocalStorageAdapter } from '$lib/persistence/LocalStorageAdapter';
+	import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
 	import '../app.css';
 
 	let { children } = $props();
 
 	// Create runtime with initial state (for SSR compatibility)
 	// Saved state will be loaded in onMount (client-side only)
-	const initialState = createInitialGameState('player-1');
+	// Using Timestamp.now() here is acceptable as this is infrastructure code, not domain
+	const initialState = createInitialGameState('player-1', Timestamp.now());
 	const runtime = startGame(initialState);
 
 	// Pass runtime via Svelte context (must be synchronous)

@@ -1,12 +1,15 @@
 /**
+ * @deprecated PlayerState is deprecated. Use GameState with Entity map structure instead.
+ * This file is kept for migration support only and will be removed in a future version.
+ * 
  * PlayerState Entity - matches design doc exactly
  * Reference: docs/design/03-data-and-persistence-design.md lines 14-89
  */
 
-import type { ResourceMap } from '../../bus/types';
+import type { ResourceMap } from '../primitives/Event';
 
 /**
- * PlayerState - single source of truth
+ * @deprecated Use GameState instead. PlayerState - single source of truth
  * Matches design doc exactly
  */
 export interface PlayerState {

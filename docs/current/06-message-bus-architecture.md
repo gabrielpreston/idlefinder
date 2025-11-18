@@ -58,18 +58,33 @@ Flow Example
 
 1. Dispatch – The UI dispatches a StartMission command with mission and adventurer IDs.
 2. Middleware – The command bus logs the command and validates it (e.g., check resources).
-3. Handler – The StartMissionHandler updates the game state (mark mission started, remove adventurer from idle pool). The handler records domain events like MissionStarted and
+3. Handler – The StartMissionHandler receives `currentTime` via `CommandHandlerContext` (from `DomainTimeSource`). The handler updates the game state (mark mission started, remove adventurer from idle pool). The handler records domain events like MissionStarted and
 
 ResourcesChanged which are emitted to the domain event bus.
 
 4. Persist / Respond – The persistence bus may enqueue a snapshot. The UI subscribes directly to domain events
    from the domain event bus to update visuals.
 
+**Time Handling Pattern:**
+- `BusManager` holds a `DomainTimeSource` instance
+- `CommandBus` receives time from `DomainTimeSource.now()` and passes it to handlers via `CommandHandlerContext`
+- Command handlers receive `currentTime: Timestamp` in their context parameter
+- Handlers **never** call `Timestamp.now()` directly - they use `context.currentTime`
+- This ensures determinism and supports offline replay
+
 Benefits
 
 - Testability – Commands and handlers can be unit‑tested by asserting emitted events.
 - Replay / Undo – Commands can be logged to support offline catch‑up or undo/redo.
 - Decoupling – The UI simply dispatches commands; domain logic is isolated.
+
+**Domain Purity Requirement:**
+- **Strict domain purity**: No domain system or domain entity may import or depend on any bus
+- The bus invokes domain systems, not the other way around
+- Domain systems are pure functional units with no external side effects
+- Domain Events (as defined in `08-systems-primitives-spec.md`) are domain primitives that describe what happened
+- The `DomainEventBus` is infrastructure that publishes these domain event payloads
+- Domain systems generate Events; the bus transports them
 
 Considerations
 
@@ -152,7 +167,7 @@ functions for connecting/disconnecting and customizing tick order.
 
 Design Notes
 
-- Centralized time source – Use one scheduler to emit ticks, decoupled from rendering or UI frame rates. This ensures consistent progression across devices and allows offline catch‑up by replaying
+- Centralized time source – Use one scheduler to emit ticks, decoupled from rendering or UI frame rates. The tick bus uses `DomainTimeSource` for timestamps. This ensures consistent progression across devices and allows offline catch‑up by replaying
 
 ticks from the last saved timestamp.
 
@@ -163,6 +178,8 @@ unnecessary work on low‑frequency systems.
 - Connection management – Systems should connect to the tick bus only when needed and disconnect when idle. For example, a component monitoring a triggered state should only subscribe
 
 during the active period.
+
+- Time handling – Domain systems never call `Date.now()` or `Timestamp.now()` directly. Time is always passed as parameters from `DomainTimeSource` via the tick bus or command context.
 
 Benefits
 

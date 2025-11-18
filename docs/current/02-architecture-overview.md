@@ -15,11 +15,15 @@ decouples modules, allowing for easier testing, extensibility and offline simula
 
 - Single Bus System – There is only one official bus system (`src/lib/bus/*`) containing specialized buses: CommandBus (user intent), DomainEventBus (game state changes), TickBus (time progression), and PersistenceBus (saving/loading). Each bus is small and focused to maintain separation of concerns. Future buses (network, analytics) would be added to this same system.
 
-- Explicit Runtime Factory – The game runtime (BusManager, PlayerState, gameState store, handlers) is created via a `startGame()` factory function. This runtime instance is passed to the UI via Svelte context/props. No global singletons are used.
+- Explicit Runtime Factory – The game runtime (BusManager, GameState store, handlers) is created via a `startGame()` factory function. This runtime instance is passed to the UI via Svelte context/props. No global singletons are used. The runtime includes a `DomainTimeSource` for deterministic time handling.
 
 - Single Runtime per Tab – Only one active game simulation runs in a given browser tab. Save slots may exist under the hood, but only one is ever loaded into memory at once.
 
 - Client‑First Simulation – For the MVP, all game logic runs on the client. Persistence is local, and there is no server dependency. The architecture leaves room for adding a server‑side idle loop later.
+
+- Entity Map State Model – Game state uses an Entity map structure where all game objects (Adventurers, Missions, Facilities) are Entities following the Entity primitive structure (id, type, attributes, tags, state, timers, metadata). Core systems reason over entities by type, attributes, tags, and state - never by specific entity IDs.
+
+- Strict Time Handling – Domain systems never call `Date.now()` or `Timestamp.now()` directly. Time is always passed into domain systems via `DomainTimeSource` and `CommandHandlerContext`. This ensures determinism and supports offline replay.
 
 Components
 
@@ -90,8 +94,8 @@ For the initial POC:
 
 - Implement the command bus, domain event bus, tick bus, and persistence bus in full. They form the backbone
   of gameplay and offline progression. All buses are part of the single bus system (`src/lib/bus/*`).
-- Implement the `startGame()` factory function that creates the game runtime (BusManager, PlayerState store,
-  handlers) and passes it to the UI via Svelte context.
+- Implement the `startGame()` factory function that creates the game runtime (BusManager, GameState store,
+  handlers, DomainTimeSource) and passes it to the UI via Svelte context.
 - Implement DTO layer for persistence (domain models are converted to DTOs before serialization).
 - Implement deterministic offline catch-up using tick-by-tick replay (no approximation shortcuts).
 - Network bus and analytics bus are not implemented for MVP; they would be added to the main bus system

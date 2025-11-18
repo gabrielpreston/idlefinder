@@ -76,8 +76,8 @@ describe('Mission Lifecycle Integration', () => {
 
 			// Advance time and trigger tick handler manually
 			const now = Date.now();
-			const endsAt = mission!.timers.get('endsAt');
-			const elapsed = endsAt ? endsAt.value - now + 1000 : 61000; // Mission duration + buffer
+			const endsAtMs = mission!.timers['endsAt'];
+			const elapsed = endsAtMs ? endsAtMs - now + 1000 : 61000; // Mission duration + buffer
 			vi.advanceTimersByTime(elapsed);
 
 			// Manually trigger tick handler (IdleLoop tick handler)
@@ -205,6 +205,76 @@ describe('Mission Lifecycle Integration', () => {
 			const finalState = busManager.getState();
 			const missions = Array.from(finalState.entities.values()).filter(e => e.type === 'Mission');
 			expect(missions).toHaveLength(1);
+		});
+	});
+
+	describe('new Systems Primitives features', () => {
+		it('should create adventurer with traitTags and roleKey', async () => {
+			await busManager.commandBus.dispatch(
+				createTestCommand('RecruitAdventurer', { name: 'Test Fighter', traits: ['combat', 'melee'] })
+			);
+
+			const state = busManager.getState();
+			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
+			const adventurer = adventurers[0];
+
+			expect(adventurer.attributes.traitTags).toBeDefined();
+			expect(Array.isArray(adventurer.attributes.traitTags)).toBe(true);
+			expect(adventurer.attributes.roleKey).toBeDefined();
+			expect(typeof adventurer.attributes.roleKey).toBe('string');
+		});
+
+		it('should create mission with missionType, dc, and preferredRole', async () => {
+			await busManager.commandBus.dispatch(
+				createTestCommand('RecruitAdventurer', { name: 'Test', traits: [] })
+			);
+
+			const stateAfterRecruit = busManager.getState();
+			const adventurers = Array.from(stateAfterRecruit.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurerId = adventurers[0].id;
+
+			await busManager.commandBus.dispatch(
+				createTestCommand('StartMission', {
+					missionId: 'mission-1',
+					adventurerIds: [adventurerId]
+				})
+			);
+
+			const state = busManager.getState();
+			const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			const mission = missions[0];
+
+			expect(mission.attributes.missionType).toBeDefined();
+			expect(['combat', 'exploration', 'investigation', 'diplomacy', 'resource']).toContain(mission.attributes.missionType);
+			expect(mission.attributes.dc).toBeDefined();
+			expect(typeof mission.attributes.dc).toBe('number');
+			expect(mission.attributes.dc).toBeGreaterThan(0);
+		});
+
+		it('should verify timer format is Record<string, number | null>', async () => {
+			await busManager.commandBus.dispatch(
+				createTestCommand('RecruitAdventurer', { name: 'Test', traits: [] })
+			);
+
+			const stateAfterRecruit = busManager.getState();
+			const adventurers = Array.from(stateAfterRecruit.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurerId = adventurers[0].id;
+
+			await busManager.commandBus.dispatch(
+				createTestCommand('StartMission', {
+					missionId: 'mission-1',
+					adventurerIds: [adventurerId]
+				})
+			);
+
+			const state = busManager.getState();
+			const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			const mission = missions[0];
+
+			// Verify timers is Record, not Map
+			expect(mission.timers).toBeInstanceOf(Object);
+			expect(mission.timers).not.toBeInstanceOf(Map);
+			expect(typeof mission.timers['endsAt']).toBe('number');
 		});
 	});
 });

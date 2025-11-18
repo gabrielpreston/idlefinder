@@ -13,9 +13,14 @@ import type { FacilityAttributes } from '../attributes/FacilityAttributes';
 
 /**
  * Create initial GameState with default facilities
+ * @param playerId Player identifier
+ * @param currentTime Current time (from DomainTimeSource) - required for determinism
  */
-export function createInitialGameState(playerId: string): GameState {
-	const lastPlayed = Timestamp.now();
+export function createInitialGameState(
+	playerId: string,
+	currentTime: Timestamp
+): GameState {
+	const lastPlayed = currentTime;
 	
 	// Create initial resources (100 gold)
 	const resources = ResourceBundle.fromArray([
@@ -39,7 +44,7 @@ export function createInitialGameState(playerId: string): GameState {
 		guildhallAttributes,
 		['mission-control'],
 		'Online',
-		new Map(),
+		{}, // timers (Record, not Map)
 		{ name: 'Guildhall' }
 	);
 	entities.set(guildhall.id, guildhall);
@@ -57,7 +62,7 @@ export function createInitialGameState(playerId: string): GameState {
 		dormitoryAttributes,
 		['storage'],
 		'Online',
-		new Map(),
+		{}, // timers (Record, not Map)
 		{ name: 'Dormitory' }
 	);
 	entities.set(dormitory.id, dormitory);
@@ -75,7 +80,7 @@ export function createInitialGameState(playerId: string): GameState {
 		trainingAttributes,
 		['training'],
 		'Online',
-		new Map(),
+		{}, // timers (Record, not Map)
 		{ name: 'Training Grounds' }
 	);
 	entities.set(training.id, training);

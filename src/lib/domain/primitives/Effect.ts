@@ -10,6 +10,7 @@ import { Identifier } from '../valueObjects/Identifier';
 import type { Timestamp } from '../valueObjects/Timestamp';
 import type { NumericStatMap } from '../valueObjects/NumericStatMap';
 import type { Entity } from './Requirement';
+import { getTimer } from './TimerHelpers';
 
 /**
  * Result of applying an effect
@@ -80,8 +81,8 @@ export class SetEntityStateEffect implements Effect {
 			if (this.newState === 'InProgress') {
 				// Mission.start() requires startedAt and endsAt timers
 				// These should be set by SetTimerEffect before this effect runs
-				const startedAt = mission.timers.get('startedAt');
-				const endsAt = mission.timers.get('endsAt');
+				const startedAt = getTimer(mission, 'startedAt');
+				const endsAt = getTimer(mission, 'endsAt');
 				if (startedAt && endsAt) {
 					mission.start(startedAt, endsAt);
 				} else {
@@ -89,7 +90,7 @@ export class SetEntityStateEffect implements Effect {
 					mission.state = this.newState as import('../states/MissionState').MissionState;
 				}
 			} else if (this.newState === 'Completed') {
-				const completedAt = mission.timers.get('endsAt') || mission.timers.get('startedAt');
+				const completedAt = getTimer(mission, 'endsAt') || getTimer(mission, 'startedAt');
 				if (completedAt) {
 					mission.complete(completedAt);
 				} else {
@@ -210,7 +211,7 @@ export class SetEntityAttributeEffect implements Effect {
 
 /**
  * Effect: Set timer value
- * Note: Entity must have a timers Map
+ * Note: Entity must have timers Record<string, number | null> (milliseconds per spec)
  */
 export class SetTimerEffect implements Effect {
 	constructor(
@@ -224,14 +225,14 @@ export class SetTimerEffect implements Effect {
 		if (!entity) {
 			throw new Error(`Entity ${this.entityId} not found`);
 		}
-		// Type assertion - entities will have timers Map
+		// Type assertion - entities will have timers Record
 		const entityWithTimers = entity as Entity & {
-			timers: Map<string, Timestamp>;
+			timers: Record<string, number | null>;
 		};
 		if (this.timerValue === null) {
-			entityWithTimers.timers.delete(this.timerKey);
+			entityWithTimers.timers[this.timerKey] = null;
 		} else {
-			entityWithTimers.timers.set(this.timerKey, this.timerValue);
+			entityWithTimers.timers[this.timerKey] = this.timerValue.value; // Store as milliseconds
 		}
 		return {
 			entities,

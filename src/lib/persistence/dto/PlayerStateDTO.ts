@@ -1,10 +1,13 @@
 /**
+ * @deprecated PlayerStateDTO is deprecated. Use GameStateDTO with Entity map structure instead.
+ * This file is kept for migration support only and will be removed in a future version.
+ * 
  * PlayerState DTO - Data Transfer Object for persistence
  * Separates domain models from serialization
  */
 
 /**
- * PlayerState DTO - serializable representation of PlayerState
+ * @deprecated Use GameStateDTO instead. PlayerState DTO - serializable representation of PlayerState
  */
 export interface PlayerStateDTO {
 	version: number;

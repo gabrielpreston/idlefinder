@@ -17,7 +17,7 @@ Adventurers, missions, facilities, caravans, crafting, planar content, etc. are 
 ## 1. Entities
 
 **Definition:**
-A typed “thing” in the simulation with identity and attached data.
+A typed "thing" in the simulation with identity and attached data.
 
 **Core properties:**
 
@@ -29,10 +29,30 @@ A typed “thing” in the simulation with identity and attached data.
 * `timers`: time-related fields (start/end/cooldowns)
 * `metadata`: optional non-mechanical info (names, flavor, logs)
 
+**Complete structure (conceptual TypeScript):**
+
+```ts
+Entity = {
+  id: string,
+  type: string,              // "Adventurer" | "Mission" | "Facility" | "Region" | ...
+  attributes: Record<string, any>,
+  tags: string[],            // mechanical tags
+  state: string,             // type-local FSM state
+  timers: Record<string, number | null>,
+  metadata: {
+    displayName?: string,
+    description?: string,
+    loreTags?: string[],     // world/theme tags (canonical location)
+    visualKey?: string,
+  }
+}
+```
+
 **Invariants:**
 
 * `type` determines which attributes, states, and actions are valid.
 * Core systems never special-case a specific *id*; they reason over `type`, `attributes`, `tags`, and `state`.
+* `tags` are for mechanical rules; `metadata.loreTags` are for worldbuilding/theming (no gameplay logic depends on them).
 
 ---
 
@@ -48,7 +68,7 @@ Examples (conceptual, not final TS):
   * `level`, `abilityMods`, `classKey`, `ancestryKey`, `baseHP`
 * Mission:
 
-  * `difficultyTier`, `primaryAbility`, `baseDuration`, `baseReward`
+  * `dc`, `primaryAbility`, `baseDuration`, `baseRewards`
 * Facility:
 
   * `tier`, `baseCapacity`, `bonusMultiplier`
@@ -68,20 +88,29 @@ All mechanics that “need to know X about Y” should read from attributes, not
 **Definition:**
 Lightweight labels for classification, filtering, and synergy.
 
-Examples:
+**Two types:**
 
-* Adventurer tags: `["wilderness", "divine", "scout"]`
-* Mission tags: `["forest", "undead", "escort"]`
-* Facility tags: `["training", "storage"]`
+* **`tags`**: Mechanical tags used in rules, synergies, and gameplay logic.
+* **`metadata.loreTags`**: Thematic/worldbuilding tags used for text, art, and theming (no gameplay logic depends on these). This is the canonical location for lore tags.
+
+**Examples:**
+
+* Adventurer mechanical tags: `["wilderness", "divine", "ranged"]`
+* Adventurer lore tags: `["human", "taldor", "noble"]`
+* Mission mechanical tags: `["combat", "undead", "escort"]`
+* Mission lore tags: `["forest", "ancient-ruins"]`
+* Facility mechanical tags: `["training", "storage"]`
+* Facility lore tags: `["gothic", "stonework"]`
 
 **Uses:**
 
 * Matching logic: `if sharedTag(adventurer, mission) → small bonus`
-* Content filters: “show missions with `urban` tag”
+* Content filters: "show missions with `urban` tag"
 * Future systems: factions, traits, regional effects, etc.
+* Worldbuilding: `loreTags` enable narrative hooks without coupling to mechanics
 
 **Design rule:**
-Tags are cheap to add and powerful to reuse. Prefer tags to new bespoke attributes when you’re expressing “category/affinity” rather than a numeric stat.
+Tags are cheap to add and powerful to reuse. Prefer tags to new bespoke attributes when you're expressing "category/affinity" rather than a numeric stat. Use `metadata.loreTags` for worldbuilding; they're safe to add early since no gameplay logic depends on them.
 
 ---
 
@@ -114,13 +143,20 @@ Examples:
 * `cooldownUntil` for an adventurer or facility
 * `constructionCompleteAt` for facilities
 
+**Storage Format:**
+* Timers are stored as `Record<string, number | null>` where values are **milliseconds since epoch**
+* `null` indicates timer is not set/cleared
+* Entity methods use `Timestamp` objects via `TimerHelpers.getTimer()` and `TimerHelpers.setTimer()`
+* Conversion between `Timestamp` and milliseconds happens at boundaries
+
 **Idle resolution:**
 
-* Offline/idle logic consumes **current time** + entity **timers** + **state**
+* Offline/idle logic consumes **current time** (from `DomainTimeSource`) + entity **timers** + **state**
   to determine how far things have progressed.
 
 **Design rule:**
 The idle loop is pure: given `(previousState, timers, now)` it computes a new `(state, timers)` via Effects.
+* `now` is always passed as a parameter (from `DomainTimeSource`), never obtained directly
 
 ---
 
@@ -131,7 +167,7 @@ Quantities that can be produced, consumed, or transformed.
 
 Types:
 
-* Global/guild resources: `gold`, `materials`, `fame`, etc. 
+* Global/guild resources: `gold`, `materials`, `fame`, etc.
 * Per-entity resources (most importantly): `adventurer.xp`
 
 **Properties:**
@@ -238,6 +274,9 @@ Examples:
 
 * Effects are **data describing mutations**, not imperative logic spread everywhere.
 * Effects can be sequenced: an action may produce a list of effects.
+* Effects are implemented as structured classes (e.g., `ModifyResourceEffect`, `SetEntityStateEffect`).
+* **The domain is semantic, not textual**: Effects are structured data objects, not string descriptions.
+* UI converts structured effects to human-readable text for display.
 
 **Design rule:**
 All lasting change to game state flows through Effects. This makes it easier to:
@@ -245,6 +284,7 @@ All lasting change to game state flows through Effects. This makes it easier to:
 * Log and audit
 * Replay/check consistency
 * Hook into Events
+* Maintain type safety and semantic meaning
 
 ---
 
@@ -265,6 +305,8 @@ Examples:
 **Properties:**
 
 * Events are read-only: they report what Effects already did.
+* Events are domain primitives (data structures), not infrastructure.
+* The `DomainEventBus` (infrastructure) publishes these event payloads to subscribers.
 * Payload includes:
 
   * Entity IDs involved
@@ -274,12 +316,13 @@ Examples:
 
 **Design rule:**
 
-* Core engine doesn’t *depend* on Events; it uses them as an integration surface:
+* Core engine doesn't *depend* on Events; it uses them as an integration surface:
 
   * UI updates
   * Narrative hooks
   * Analytics/telemetry
   * Post-processing (e.g., memorialization, later)
+* Domain systems generate Events; infrastructure (DomainEventBus) transports them.
 
 ---
 
@@ -298,22 +341,25 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 * `abilityMods: { str, dex, con, int, wis, cha }`
 * `classKey: string`
 * `ancestryKey: string`
-* `roleTag: string` (e.g., `frontliner`, `support`, `skirmisher`)
+* `traitTags: string[]`   // PF2E-ish mech traits: "arcane", "healing", "finesse"
+* `roleKey: "martial_frontliner" | "mobile_striker" | "support_caster" | "skill_specialist" | ...` (derived from `classKey`)
 
 **Tags (MVP):**
 
-* Examples: `["wilderness", "divine", "ranged"]`
+* Mechanical: Examples: `["wilderness", "divine", "ranged"]`
+* Lore (optional): Examples: `["human", "taldor"]`
 
 **State:**
 
 * `Idle`
 * `OnMission`
+* `Fatigued` (initial non-lethal penalty state)
 * (Optional later: `Recovering`, `Unavailable`, `Dead`)
 
 **Timers:**
 
+* `fatigueUntil?: number` (optional at first)
 * `availableAt?: time` (for cooldown/recovery if used)
-* (Not strictly required for first MVP, but slot is reserved.)
 
 **Resources (per adventurer):**
 
@@ -322,10 +368,8 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 **Key Requirements:**
 
 * Can be assigned to mission:
-
-  * `state == Idle`
+  * `state === "Idle"` (or allow Fatigued with penalties)
 * Can level up:
-
   * `xp >= xpThresholdFor(level)`
 
 **Key Actions:**
@@ -358,17 +402,18 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 
 **Attributes (MVP):**
 
-* `difficultyTier: "Easy" | "Medium" | "Hard" | "Legendary"`
-* `primaryAbility: "str" | "dex" | ...`
-* `baseDuration: number` (in seconds/minutes)
-* `baseRewards: { gold: number; xp: number; fame?: number }`
-* (Optional) `maxPartySize: number` (start with 1 if you want to keep pairing simple)
+* `primaryAbility: "str" | "dex" | "con" | "int" | "wis" | "cha"`
+* `dc: number`
+* `missionType: "combat" | "exploration" | "investigation" | ...`
+* `preferredRole?: roleKey`
+* `baseDuration: number`
+* `baseRewards: { gold; xp; fame?: number }`
+* (later) `regionId?: string`, `factionId?: string` (hooks into world layer)
 
 **Tags (MVP):**
 
-* `category`: via tag (`"combat"`, `"diplomacy"`, `"resource"`)
-* `terrain`: `"forest"`, `"urban"`, `"dungeon"`
-* `threatType`: `"undead"`, `"bandits"`, etc.
+* Mechanical: `category` via tag (`"combat"`, `"diplomacy"`, `"resource"`), `terrain`: `"forest"`, `"urban"`, `"dungeon"`, `threatType`: `"undead"`, `"bandits"`, etc.
+* Lore (optional): Examples: `["ancient-ruins", "bandit-hold"]`
 
 **State:**
 
@@ -410,11 +455,9 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 * On `ResolveMission`:
 
   * Run PF2E-style check:
-
-    * `roll = d20 + adventurer.abilityMods[primaryAbility] + synergyBonus`
+    * `roll = d20 + adventurer.abilityMods[primaryAbility] + synergyBonuses`
   * Map to outcome band:
-
-    * `CriticalSuccess / Success / Failure / CriticalFailure`
+    * `CriticalSuccess | Success | Failure | CriticalFailure`
   * Apply rewards/penalties:
 
     * `gold += x`, `xp += y`, `fame += z` (if applicable)
@@ -436,12 +479,16 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 
 * `facilityType: "Guildhall" | "Dormitory" | "MissionCommand" | "TrainingGrounds" | "ResourceDepot"`
 * `tier: number`
-* `baseCapacity: number`
-* `bonusMultipliers: { xp?: number; resourceGen?: number; missionSlots?: number }`
+* Numeric hooks:
+  * `missionSlotsBonus: number`
+  * `xpGainMultiplier: number`
+  * `fatigueRecoveryRate: number`
+  * `resourceStorageCapBonus: number`
 
 **Tags:**
 
-* Examples: `["storage"]`, `["training"]`, `["mission-control"]`
+* Mechanical: Examples: `["storage"]`, `["training"]`, `["mission-control"]`
+* Lore (optional): Examples: `["gothic", "stonework"]`
 
 **State:**
 
@@ -486,14 +533,471 @@ Now, the three domains you care about right now — Adventurers, Missions, Facil
 
 ---
 
-## 11. Extension Philosophy
+## 10.4 Simple Synergy System
+
+* Role synergy: if `adventurer.roleKey === mission.preferredRole` → `+1` to roll.
+* Trait synergy (later): if `adventurer.traitTags` ∩ `mission.tags` ≠ ∅ → additional bonus.
+
+All implemented as pre-resolution Effects/derived modifiers.
+
+---
+
+# 11. Layer B – Mechanical Depth Expansion
+
+## 11.1 Status Effects
+
+Attached to entities (mostly adventurers):
+
+```ts
+statusEffects: Array<{
+  key: string,
+  modifiers: {
+    abilityModsDelta?: {...},
+    rollBonus?: number,
+    xpMultiplier?: number,
+    dcModifier?: number,
+    resourceGainMultiplier?: Record<string, number>,
+  },
+  expiresAt?: number,
+  stacks?: number
+}>
+```
+
+Used for injuries, buffs, training bonuses, debuffs, etc.
+
+---
+
+## 11.2 Items / Equipment (Entity: `Item`)
+
+**Attributes:**
+
+* `slot: "weapon" | "armor" | "utility" | ...`
+* `modifiers: { armorBonus?; rollBonus?; traitTagsAdd?: string[]; ... }`
+
+Adventurer has:
+
+```ts
+equipment: {
+  weapon?: itemId;
+  armor?: itemId;
+  utility?: itemId;
+}
+```
+
+Modifiers combine with base attributes / status effects.
+
+---
+
+## 11.3 Multi-Adventurer Composition
+
+Logical `Party` structure (could be virtual, not persisted):
+
+```ts
+Party = {
+  memberIds: string[],
+  combinedMods: { ... },     // aggregate abilityMods
+  traitTags: string[],       // union
+  roleDistribution: Record<roleKey, number>
+}
+```
+
+Missions can target `party` instead of a single adventurer; resolution uses `combinedMods`.
+
+---
+
+## 11.4 Scaling DC & Rewards
+
+Configurable functions per mission tier/difficulty:
+
+* `dc = baseDC + dcScaleFactor * tier`
+* `rewards = baseRewards * rewardScaleFactor(tier)`
+
+Centralized config, referenced by mission generation and progression.
+
+---
+
+## 11.5 Action Cost System
+
+Common shape:
+
+```ts
+ActionCost = {
+  gold?: number,
+  materials?: Record<string, number>,
+  time?: number,
+  fatigue?: number
+}
+```
+
+Used by:
+
+* Upgrades
+* Training
+* Recruitment
+* Special actions
+
+Requirements check those; Effects apply changes.
+
+---
+
+## 11.6 Training & Specialization
+
+Facilities or actions that apply **persistent** changes:
+
+* Adjust base `abilityMods`
+* Add permanent `traitTags`
+* Add persistent `statusEffects` without `expiresAt`
+* Possibly adjust `roleKey`
+
+Mechanical archetype paths are built on this.
+
+---
+
+## 11.7 Job System / Task Queue
+
+Generic scheduled jobs:
+
+```ts
+Job = {
+  id: string,
+  type: string,                // "Training", "Recovery", "Construction", ...
+  targetEntityId: string,
+  startsAt: number,
+  completesAt: number,
+  effectsOnComplete: Effect[]
+}
+```
+
+Idle/offline resolution processes jobs whose `completesAt <= now`.
+
+---
+
+## 11.8 Failure Consequences
+
+Maps outcome bands to penalties:
+
+* Add fatigue
+* Apply negative statusEffect
+* Increment injury tier
+* Reduce item durability
+
+Tied into mission result Events.
+
+---
+
+## 11.9 Resource Multipliers
+
+Multipliers keyed by source/type:
+
+* `xpFromMissionsMultiplier`
+* `goldFromCombatMissionsMultiplier`
+* `trainingXpMultiplier`
+* Node production multipliers
+
+Supplied by facilities, status effects, items, world events, etc.
+
+---
+
+## 11.10 Passive Generation Nodes
+
+Idle sources:
+
+```ts
+Node = {
+  id: string,
+  resourceType: "gold" | "xp" | "materials" | ...,
+  baseRatePerHour: number,
+  modifiedByTags: string[]    // e.g. ["facility:ResourceDepot", "trait:efficient"]
+}
+```
+
+Idle loop: sum node outputs × applicable multipliers.
+
+---
+
+# 12. Layer C – Integrative / Orchestration Systems
+
+## 12.1 Mission Templates & Generators
+
+```ts
+MissionTemplate = {
+  key: string,
+  missionType: string,
+  primaryAbility: keyof abilityMods,
+  baseDuration: number,
+  baseDC: number,
+  baseRewards: { gold; xp; fame? },
+  tags: string[],
+  scalingRules: { dcFactor; rewardFactor; durationGrowth? }
+}
+```
+
+Generator + scaling model → concrete `Mission` entities.
+
+---
+
+## 12.2 Resource Sinks & Conversions
+
+```ts
+ConversionNode = {
+  id: string,
+  input: { gold?: number; materials?: Record<string, number> },
+  output: { resource?: { type: string; amount: number }; xpBoost?: number; timeReduction?: number },
+  duration?: number
+}
+```
+
+Actions built over these convert resources and create sinks.
+
+---
+
+## 12.3 Mechanical Archetype Paths
+
+```ts
+ArchetypePath = {
+  key: string,
+  requirements: Requirement[],
+  permanentModifiers: {
+    abilityModsDelta?: {...},
+    traitTagsAdd?: string[],
+    roleKeyChange?: roleKey,
+  }
+}
+```
+
+Chosen at level milestones or via facilities.
+
+---
+
+## 12.4 Multi-Mission Orchestration
+
+Structures that depend on multiple missions:
+
+* Chains: mission B requires mission A completed.
+* Sets: "complete N missions of type X".
+* Composite goals using Requirements + Events over `Mission` entities.
+
+---
+
+## 12.5 Risk Bands & Injury Tiers
+
+```ts
+Injury = {
+  tier: 1 | 2 | 3,
+  modifiers: { ... },
+  recoveryTime: number
+}
+```
+
+Attached as statusEffects; recovery handled via Job system.
+
+---
+
+## 12.6 Parallel Progression Tracks
+
+Formalize three axes:
+
+1. **Adventurer**: level, archetype, gear.
+2. **Mission**: available templates & tiers.
+3. **Guild**: facility tiers, job capacity, nodes.
+
+Each axis is a set of unlock Requirements + Effects (no new primitive).
+
+---
+
+## 12.7 Modular Buff/Debuff Engine
+
+Rules that consume Events and apply/remove statusEffects:
+
+* Event + context → list of Effects.
+
+Example triggers:
+
+* On mission start
+* On outcome band
+* On job completion
+* Based on tags/roles/regions/factions
+
+---
+
+## 12.8 Auto-Assignment Hooks
+
+Policies for automated mission assignment:
+
+```ts
+AutoAssignPolicy = {
+  prioritizeRoleMatch?: boolean,
+  avoidInjured?: boolean,
+  maximizeXPGain?: boolean,
+  minimizeRisk?: boolean,
+  fatigueThreshold?: number,
+}
+```
+
+Used to choose adventurers/parties via Requirements and derived metrics.
+
+---
+
+## 12.9 Unified Difficulty Curve Model
+
+Central module/config with:
+
+* XP per level curve
+* DC growth factors
+* Reward multipliers
+* Upgrade/gear costs
+* Node rates
+* Recovery times
+
+Referenced point-in-time by all scaling logic.
+
+---
+
+## 12.10 Simulation-Based Balancing (Internal)
+
+Offline tools that run the real Actions/Effects engine to:
+
+* Estimate XP/hour, gold/hour, injury risk.
+* Validate curves.
+
+No new runtime primitives.
+
+---
+
+# 13. Layer D – World-Structure Primitives (Future Worldbuilding-Ready)
+
+These are the **structural** worldbuilding aids, integrated into the same primitive model but currently mechanics-first and flavor-neutral.
+
+## 13.1 Region (Entity: `Region`)
+
+```ts
+Region = {
+  id: string,
+  attributes: {
+    tier: number,
+    tags: string[],                    // mechanical: "dangerous", "starter", ...
+    modifiers: {
+      dcModifier?: number,
+      rewardModifier?: number,
+      nodeRateModifiers?: Record<string, number>,
+    }
+  },
+  loreTags?: string[],                 // thematic: "forest", "coastal", ...
+  state: string,                       // e.g. "Unlocked" | "Locked" | "UnderThreat"
+  timers: {}
+}
+```
+
+Missions / facilities can reference `regionId`.
+
+---
+
+## 13.2 Faction (Entity: `Faction`)
+
+```ts
+Faction = {
+  id: string,
+  attributes: {
+    reputation: number,
+    rewardMultiplier: number,
+    preferredMissionTags: string[],
+  },
+  loreTags?: string[],                 // e.g. "merchant", "military"
+  state: string,                       // e.g. "Neutral" | "Allied" | "Hostile"
+  timers: {}
+}
+```
+
+Missions, world events, vendors, caravans, etc. can be linked to factions.
+
+---
+
+## 13.3 WorldEvent (Entity: `WorldEvent`)
+
+```ts
+WorldEvent = {
+  id: string,
+  attributes: {
+    eventType: string,                 // "resource_boost" | "outbreak" | ...
+    modifiers: {
+      globalMultipliers?: {...},
+      regionModifiers?: Record<regionId, {...}>,
+      factionModifiers?: Record<factionId, {...}>,
+    },
+    regionId?: string,
+    factionId?: string,
+  },
+  state: "Scheduled" | "Active" | "Expired",
+  timers: { startsAt: number; endsAt: number }
+}
+```
+
+Runs through the same job/timer/event system.
+
+---
+
+## 13.4 EncounterTemplate
+
+Used for future mission/encounter generation, logic-only:
+
+```ts
+EncounterTemplate = {
+  id: string,
+  tags: string[],                      // "combat", "trap", "hazard"
+  difficulty: number,
+  mechanicalProfile: {
+    primaryAbility: keyof abilityMods,
+    dcModifier: number,
+    statusOnFail?: string,             // e.g. "injury_tier_1"
+    rewardAdjustments?: {...}
+  }
+}
+```
+
+Can be tied to Regions, Factions, WorldEvents later via tags/loreTags.
+
+---
+
+## 13.5 WorldState
+
+Global aggregator (can be implicit or explicit structure):
+
+```ts
+WorldState = {
+  activeRegionIds: string[],
+  activeWorldEventIds: string[],
+  globalModifiers: {
+    resourceMultipliers?: {...},
+    dcModifiers?: {...},
+  }
+}
+```
+
+Systems read from this when resolving actions; WorldEvents + Regions + Factions write to it via Effects.
+
+---
+
+## 13.6 Lore/Theme Tags & Metadata
+
+Already integrated in Entity:
+
+* `metadata.loreTags` for thematic classification (canonical location).
+* `metadata.displayName`, `metadata.description`, `metadata.visualKey` for future worldbuilding, text, and art.
+
+Crucially: **no gameplay logic is required to depend on these**; they are safe to add early.
+
+---
+
+## 14. Extension Philosophy
 
 Everything post-MVP (caravans, crafting, planar missions, relationships, injuries, factions) should be expressible as:
 
-* New **Entity types** (e.g. `Caravan`, `Item`, `StatusEffect`, `Faction`)
+* New **Entity types** (e.g. `Caravan`, `Item`, `StatusEffect`, `Faction`, `Region`, `WorldEvent`, `Job`, `Node`, `Party` (virtual))
 * New **Attributes** & **Tags**
 * New **Requirements** (e.g., faction standing, item ownership)
 * New **Effects** (e.g., add item, apply injury status)
 * New **Events** (e.g., `CaravanArrived`, `StatusApplied`)
 
 No new fundamental primitive should be required.
+
+The four layers (A: PF2E-aligned core, B: Mechanical depth, C: Orchestration, D: World-structure) provide a complete scaffolding that can support both deep systems **and** future worldbuilding without requiring new primitives.

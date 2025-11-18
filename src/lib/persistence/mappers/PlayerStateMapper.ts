@@ -1,4 +1,7 @@
 /**
+ * @deprecated PlayerStateMapper is deprecated. Use GameStateMapper with Entity map structure instead.
+ * This file is kept for migration support only and will be removed in a future version.
+ * 
  * PlayerState Mapper - maps between domain models and DTOs
  */
 

@@ -7,7 +7,7 @@
 import type { GameState } from '../domain/entities/GameState';
 import type { GameStateDTO } from './dto/GameStateDTO';
 import { domainToDTO, dtoToDomain } from './mappers/GameStateMapper';
-import { Timestamp } from '../domain/valueObjects/Timestamp';
+import type { Timestamp } from '../domain/valueObjects/Timestamp';
 
 const STORAGE_KEY = 'idlefinder_state';
 
@@ -34,8 +34,11 @@ export class LocalStorageAdapter {
 	 * Save current state to localStorage
 	 * Converts domain model to DTO before serialization
 	 * No-op if localStorage is not available (e.g., SSR)
+	 * 
+	 * @param state Game state to save
+	 * @param currentTime Current time from DomainTimeSource (for determinism)
 	 */
-	save(state: GameState): void {
+	save(state: GameState, currentTime: Timestamp): void {
 		const storage = getLocalStorage();
 		if (!storage) {
 			return;
@@ -43,7 +46,7 @@ export class LocalStorageAdapter {
 
 		try {
 			// Update lastPlayed timestamp
-			const stateWithTimestamp = state.updateLastPlayed(Timestamp.now());
+			const stateWithTimestamp = state.updateLastPlayed(currentTime);
 			
 			// Convert to DTO and serialize
 			const dto = domainToDTO(stateWithTimestamp);

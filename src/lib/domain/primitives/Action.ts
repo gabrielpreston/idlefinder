@@ -9,7 +9,7 @@
 
 import type { Requirement, RequirementContext } from './Requirement';
 import type { Effect } from './Effect';
-import type { DomainEvent } from '../../bus/types';
+import type { DomainEvent } from './Event';
 import type { Entity } from './Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 

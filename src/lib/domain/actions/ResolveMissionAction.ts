@@ -18,13 +18,14 @@ import {
 	SetEntityAttributeEffect,
 	type Effect
 } from '../primitives/Effect';
-import type { DomainEvent } from '../../bus/types';
+import type { DomainEvent } from '../primitives/Event';
 import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Mission } from '../entities/Mission';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
+import { getTimer } from '../primitives/TimerHelpers';
 
 export interface ResolveMissionParams {
 	missionId: string;
@@ -50,31 +51,38 @@ function rollCheck(
 }
 
 /**
- * Map roll result to outcome band
- * Simple thresholds for MVP
+ * Map roll result to outcome band using numeric DC
+ * Per spec line 362: uses numeric dc instead of difficultyTier
+ * PF2E-style: Critical Success = DC + 10, Success = DC, Failure = DC - 10, Critical Failure = DC - 20
  */
-function mapToOutcomeBand(roll: number, difficultyTier: string): OutcomeBand {
-	const thresholds: Record<string, { critSuccess: number; success: number; failure: number }> = {
-		Easy: { critSuccess: 20, success: 10, failure: 5 },
-		Medium: { critSuccess: 25, success: 15, failure: 10 },
-		Hard: { critSuccess: 30, success: 20, failure: 15 },
-		Legendary: { critSuccess: 35, success: 25, failure: 20 }
-	};
+function mapToOutcomeBand(roll: number, dc: number): OutcomeBand {
+	const critSuccess = dc + 10;
+	const success = dc;
+	const failure = dc - 10;
 
-	const tier = thresholds[difficultyTier] || thresholds.Medium;
-
-	if (roll >= tier.critSuccess) return 'CriticalSuccess';
-	if (roll >= tier.success) return 'Success';
-	if (roll >= tier.failure) return 'Failure';
-	return 'CriticalFailure';
+	if (roll >= critSuccess) return 'CriticalSuccess';
+	if (roll >= success) return 'Success';
+	if (roll >= failure) return 'Failure';
+	return 'CriticalFailure'; // roll < failure (dc - 10)
 }
 
 /**
- * Calculate synergy bonus from shared tags
+ * Calculate synergy bonus from role match and shared tags
+ * Per spec lines 525-526: role match = +1, trait tags = additional bonus
  */
 function calculateSynergyBonus(adventurer: Adventurer, mission: Mission): number {
+	let bonus = 0;
+	
+	// Role synergy: if adventurer.roleKey === mission.preferredRole → +1 (spec line 525)
+	if (mission.attributes.preferredRole && adventurer.attributes.roleKey === mission.attributes.preferredRole) {
+		bonus += 1;
+	}
+	
+	// Trait synergy: if adventurer.traitTags ∩ mission.tags ≠ ∅ → additional bonus (spec line 526)
 	const sharedTags = adventurer.tags.filter((tag) => mission.tags.includes(tag));
-	return sharedTags.length * 1; // +1 per shared tag
+	bonus += sharedTags.length * 1; // +1 per shared tag
+	
+	return bonus;
 }
 
 /**
@@ -109,7 +117,7 @@ function missionReadyRequirement(missionId: string): Requirement {
 		if (!mission) {
 			return { satisfied: false, reason: `Mission ${missionId} not found` };
 		}
-		const endsAt = mission.timers.get('endsAt');
+		const endsAt = getTimer(mission, 'endsAt');
 		if (!endsAt) {
 			return { satisfied: false, reason: `Mission ${missionId} has no endsAt timer` };
 		}
@@ -169,7 +177,7 @@ export class ResolveMissionAction extends Action {
 		// Run PF2E check
 		const synergyBonus = calculateSynergyBonus(adventurer, mission);
 		const roll = rollCheck(adventurer, mission, synergyBonus);
-		this.outcome = mapToOutcomeBand(roll, mission.attributes.difficultyTier);
+		this.outcome = mapToOutcomeBand(roll, mission.attributes.dc); // Use numeric DC per spec
 
 		// Calculate rewards
 		this.rewards = calculateRewards(mission, this.outcome);

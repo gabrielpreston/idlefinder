@@ -17,13 +17,14 @@ import {
 	SetTimerEffect,
 	type Effect
 } from '../primitives/Effect';
-import type { DomainEvent } from '../../bus/types';
+import type { DomainEvent } from '../primitives/Event';
 import type { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
 import type { Mission } from '../entities/Mission';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
+import { getTimer } from '../primitives/TimerHelpers';
 
 export interface StartMissionParams {
 	missionId: string;
@@ -99,7 +100,7 @@ export class StartMissionAction extends Action {
 		}
 
 		const startedAt = startParams.startedAt;
-		const endsAt = mission.timers.get('endsAt');
+		const endsAt = getTimer(mission, 'endsAt');
 		const duration = endsAt && startedAt
 			? Duration.between(startedAt, endsAt).toMilliseconds()
 			: mission.attributes.baseDuration.toMilliseconds();

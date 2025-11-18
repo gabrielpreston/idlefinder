@@ -88,20 +88,20 @@
 		
 		const now = Date.now();
 		missions.forEach((m, index) => {
-			const startedAt = m.timers.get('startedAt');
-			const endsAt = m.timers.get('endsAt');
+			const startedAtMs = m.timers['startedAt'];
+			const endsAtMs = m.timers['endsAt'];
 			const missionName = (m.metadata.name as string) || `Mission ${m.id}`;
 			const duration = m.attributes.baseDuration.toMilliseconds();
-			const elapsed = startedAt ? now - startedAt.value : 0;
-			const shouldBeComplete = endsAt ? now >= endsAt.value : false;
-			const progress = startedAt && endsAt ? Math.min(100, ((now - startedAt.value) / (endsAt.value - startedAt.value)) * 100) : 0;
+			const elapsed = startedAtMs ? now - startedAtMs : 0;
+			const shouldBeComplete = endsAtMs ? now >= endsAtMs : false;
+			const progress = startedAtMs && endsAtMs ? Math.min(100, ((now - startedAtMs) / (endsAtMs - startedAtMs)) * 100) : 0;
 			
 			console.log(`\nMission ${index + 1}:`);
 			console.log(`  ID: ${m.id}`);
 			console.log(`  Name: ${missionName}`);
 			console.log(`  Status: ${m.state}`);
-			console.log(`  Started At: ${startedAt ? new Date(startedAt.value).toISOString() : 'N/A'}`);
-			console.log(`  Ends At: ${endsAt ? new Date(endsAt.value).toISOString() : 'N/A'}`);
+			console.log(`  Started At: ${startedAtMs ? new Date(startedAtMs).toISOString() : 'N/A'}`);
+			console.log(`  Ends At: ${endsAtMs ? new Date(endsAtMs).toISOString() : 'N/A'}`);
 			console.log(`  Duration: ${duration}ms (${Math.floor(duration / 1000)}s)`);
 			console.log(`  Elapsed: ${elapsed}ms (${Math.floor(elapsed / 1000)}s)`);
 			console.log(`  Progress: ${progress.toFixed(1)}%`);
@@ -160,9 +160,9 @@
 		const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
 		const stuckMissions = missions.filter(m => {
 			if (m.state !== 'InProgress') return false;
-			const endsAt = m.timers.get('endsAt');
-			if (!endsAt) return false;
-			return now >= endsAt.value;
+			const endsAtMs = m.timers['endsAt'];
+			if (!endsAtMs) return false;
+			return now >= endsAtMs;
 		});
 		
 		if (stuckMissions.length === 0) {
@@ -173,7 +173,7 @@
 		console.log(`Found ${stuckMissions.length} stuck mission(s):`, stuckMissions.map(m => ({
 			id: m.id,
 			name: (m.metadata.name as string) || m.id,
-			endsAt: m.timers.get('endsAt')?.value || 0
+			endsAt: m.timers['endsAt'] || 0
 		})));
 		
 		// Complete each stuck mission using ResolveMissionAction
@@ -237,10 +237,10 @@
 					</div>
 					<div class="debug-missions">
 						{#each $missions as mission}
-							{@const startedAt = mission.timers.get('startedAt')}
+							{@const startedAtMs = mission.timers['startedAt']}
 							{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id}`}
 							{@const duration = mission.attributes.baseDuration.toMilliseconds()}
-							{@const elapsed = startedAt ? Math.floor((Date.now() - startedAt.value) / 1000) : 0}
+							{@const elapsed = startedAtMs ? Math.floor((Date.now() - startedAtMs) / 1000) : 0}
 							<div class="debug-mission">
 								<strong>{missionName}</strong> ({mission.id})
 								<br />

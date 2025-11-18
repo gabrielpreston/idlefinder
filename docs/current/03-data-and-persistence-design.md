@@ -7,85 +7,79 @@ evolves, refine and extend the model to support new features.
 
 ## Data Model Overview
 
-The game maintains a single player state object containing all mutable information. This state is serialized
-to persistent storage and used to initialise the game on startup. At a high level, the state looks like this
-(pseudo‑schema):
+The game maintains a single game state object (`GameState`) containing all mutable information. This state is serialized
+to persistent storage and used to initialise the game on startup. The state uses an **Entity map structure** where all game objects (Adventurers, Missions, Facilities) are Entities following the Entity primitive structure.
 
-## PlayerState {
+### GameState Structure
+
+At a high level, the state looks like this (pseudo‑schema):
+
+## GameState {
 
 playerId: string,
-lastPlayed: timestamp, // Last time the state was saved (UTC)
-resources: ResourceMap, // Key/value store of resource amounts
-adventurers: Adventurer[], // List of recruited adventurers
-missions: Mission[], // Active missions and their progress
-facilities: FacilityMap, // Upgrades applied to the camp/town
-fame: number, // Guild fame level
-completedMissionIds: string[] // IDs of missions completed (for
-achievements)
+lastPlayed: Timestamp, // Last time the state was saved
+resources: ResourceBundle, // Global resources (gold, fame, etc.)
+entities: Map<string, Entity> // All entities by ID (Adventurer, Mission, Facility)
 
-Resource
+### Entity Primitive Structure
 
-Represents a stackable item or currency. The MVP uses a simple model:
+All game objects (Adventurers, Missions, Facilities) follow the Entity primitive structure defined in `08-systems-primitives-spec.md`:
 
-## ResourceMap {
+## Entity {
 
-gold: number,
-supplies: number,
-relics: number
-// Add additional resources as needed
+id: string, // Unique identifier
+type: string, // "Adventurer" | "Mission" | "Facility" | ...
+attributes: Record<string, any>, // Structured data describing capabilities/stats
+tags: string[], // Mechanical tags for classification/synergy
+state: string, // Finite state machine label (e.g., "Idle", "OnMission", "InProgress")
+timers: Record<string, number | null>, // Time-related fields (milliseconds since epoch, null if not set)
+metadata: {
+  displayName?: string,
+  description?: string,
+  loreTags?: string[], // Thematic/worldbuilding tags (no gameplay logic depends on these)
+  visualKey?: string
+}
 
-Adventurer
+**Key Properties:**
+- `type` determines which attributes, states, and actions are valid
+- Core systems reason over entities by `type`, `attributes`, `tags`, and `state` - never by specific entity IDs
+- `tags` are for mechanical rules; `metadata.loreTags` are for worldbuilding/theming
+- Timers are stored as `Record<string, number | null>` where values are **milliseconds since epoch**
+- `null` indicates a timer is not set/cleared
 
-An adventurer is a recruitable character assigned to missions:
+### ResourceBundle
 
-## Adventurer {
+Represents global resources (gold, fame, etc.):
 
-id: string,
-name: string,
-level: number,
-experience: number,
-traits: string[], // e.g., "Strong", "Cautious"
-status: 'idle' | 'onMission',
-assignedMissionId: string | null
+## ResourceBundle {
 
-Mission
+resources: Map<string, number> // Key/value store of resource amounts (gold, fame, materials, etc.)
 
-A mission tracks the assignment of adventurers to a task:
+### Entity Examples
 
-## Mission {
+**Adventurer Entity:**
+- `type: "Adventurer"`
+- `attributes`: `{ level, xp, abilityMods, classKey, ancestryKey, ... }`
+- `tags`: `["wilderness", "divine", "ranged"]` (mechanical)
+- `state`: `"Idle" | "OnMission" | "Fatigued" | ...`
+- `timers`: `{ fatigueUntil?: number, availableAt?: number }`
+- `metadata.loreTags`: `["human", "taldor"]` (thematic)
 
-id: string,
-name: string,
-duration: number, // Total duration in milliseconds
-startTime: timestamp, // When the mission started (UTC)
-assignedAdventurerIds: string[],
-reward: Reward,
-status: 'inProgress' | 'completed'
+**Mission Entity:**
+- `type: "Mission"`
+- `attributes`: `{ primaryAbility, dc, missionType, baseDuration, baseRewards, ... }`
+- `tags`: `["combat", "undead", "escort"]` (mechanical)
+- `state`: `"Available" | "InProgress" | "Completed" | "Expired"`
+- `timers`: `{ availableAt?, startedAt?, endsAt? }`
+- `metadata.loreTags`: `["forest", "ancient-ruins"]` (thematic)
 
-Reward
-
-Simple representation of mission rewards:
-
-## Reward {
-
-resources: ResourceMap,
-fame: number,
-experience: number
-
-Facility
-
-Facilities provide persistent bonuses and unlocked features:
-
-## FacilityMap {
-
-tavern: FacilityLevel,
-guildHall: FacilityLevel,
-blacksmith: FacilityLevel
-
-## FacilityLevel {
-
-level: number,
-effects: string[] // Human‑readable description of perks (for documentation)
+**Facility Entity:**
+- `type: "Facility"`
+- `attributes`: `{ facilityType, tier, baseCapacity, bonusMultipliers, ... }`
+- `tags`: `["training", "storage"]` (mechanical)
+- `state`: `"Online" | "UnderConstruction" | "Disabled"`
+- `timers`: `{ constructionCompleteAt? }`
+- `metadata.loreTags`: `["gothic", "stonework"]` (thematic)
 
 ## Persistence Strategy
 
@@ -95,7 +89,7 @@ For the MVP, persistence happens client‑side. The architecture is designed to 
 
 **Critical**: Domain models are **not serialized directly**. A strict DTO layer exists as the source of truth for persistence:
 
-- `domainToDTO()` - Converts domain models (PlayerState, Adventurer, Mission, etc.) to DTOs
+- `domainToDTO()` - Converts domain models (GameState, Entities) to DTOs
 - `dtoToDomain()` - Converts DTOs back to domain models (handles version migration)
 
 DTOs are stable across versions and remain backward-compatible. Domain models may evolve while DTOs maintain compatibility.
@@ -105,7 +99,7 @@ DTOs are stable across versions and remain backward-compatible. Domain models ma
 1. **Save Process**:
    - Domain state changes trigger domain events
    - PersistenceBus subscribes to domain events and schedules saves
-   - When saving, convert domain PlayerState to DTO using `domainToDTO()`
+   - When saving, convert domain GameState to DTO using `domainToDTO()`
    - Serialize DTO to JSON string
    - Store in browser localStorage under a stable key (e.g., `idlefinder_state`)
 
@@ -113,7 +107,7 @@ DTOs are stable across versions and remain backward-compatible. Domain models ma
    - Read saved JSON from localStorage
    - Parse JSON to DTO
    - Convert DTO to domain model using `dtoToDomain()` (handles version migration)
-   - If no state exists, initialise a new PlayerState with default values
+   - If no state exists, initialise a new GameState with default values
 
 3. **Offline Catch-Up**:
    - Store `lastPlayed` timestamp in DTO

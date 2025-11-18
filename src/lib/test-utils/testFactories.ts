@@ -19,6 +19,8 @@ import { NumericStatMap } from '../domain/valueObjects/NumericStatMap';
 import type { AdventurerAttributes } from '../domain/attributes/AdventurerAttributes';
 import type { MissionAttributes } from '../domain/attributes/MissionAttributes';
 import type { FacilityAttributes } from '../domain/attributes/FacilityAttributes';
+import { setTimer } from '../domain/primitives/TimerHelpers';
+import { deriveRoleKey } from '../domain/attributes/RoleKey';
 
 // ============================================================================
 // GameState Factories
@@ -33,7 +35,11 @@ export function createTestGameState(overrides?: {
 	entities?: Map<string, import('../domain/primitives/Requirement').Entity>;
 	resources?: ResourceBundle;
 }): GameState {
-	const base = createInitialGameState(overrides?.playerId || 'test-player');
+	// Use Timestamp.now() in test utilities (acceptable for test code)
+	const base = createInitialGameState(
+		overrides?.playerId || 'test-player',
+		Timestamp.now()
+	);
 	
 	if (overrides?.entities || overrides?.resources) {
 		return new GameStateImpl(
@@ -56,9 +62,10 @@ export function createTestAdventurer(overrides?: {
 	level?: number;
 	xp?: number;
 	tags?: string[];
-	state?: 'Idle' | 'OnMission' | 'Recovering' | 'Dead';
+	state?: 'Idle' | 'OnMission' | 'Fatigued' | 'Recovering' | 'Dead';
 }): AdventurerEntity {
 	const id = Identifier.from<'AdventurerId'>(overrides?.id || crypto.randomUUID());
+	const classKey = '';
 	const attributes: AdventurerAttributes = {
 		level: overrides?.level ?? 1,
 		xp: overrides?.xp ?? 0,
@@ -70,9 +77,10 @@ export function createTestAdventurer(overrides?: {
 			['wis', 0],
 			['cha', 0]
 		])),
-		classKey: '',
+		classKey,
 		ancestryKey: '',
-		roleTag: '',
+		traitTags: [],
+		roleKey: deriveRoleKey(classKey),
 		baseHP: 10
 	};
 	
@@ -81,7 +89,7 @@ export function createTestAdventurer(overrides?: {
 		attributes,
 		overrides?.tags || [],
 		overrides?.state || 'Idle',
-		new Map(),
+		{}, // timers (Record, not Map)
 		{ name: overrides?.name || 'Test Adventurer' }
 	);
 }
@@ -99,23 +107,21 @@ export function createTestMission(overrides?: {
 	endsAt?: Timestamp;
 }): MissionEntity {
 	const id = Identifier.from<'MissionId'>(overrides?.id || crypto.randomUUID());
+	const difficultyTier = overrides?.difficultyTier || 'Easy';
+	const dcMap: Record<string, number> = { Easy: 10, Medium: 15, Hard: 20, Legendary: 25 };
 	const attributes: MissionAttributes = {
-		difficultyTier: overrides?.difficultyTier || 'Easy',
+		missionType: 'combat',
 		primaryAbility: 'str',
+		dc: dcMap[difficultyTier] || 15,
+		difficultyTier,
+		preferredRole: undefined,
 		baseDuration: overrides?.baseDuration || Duration.ofSeconds(60),
 		baseRewards: { gold: 50, xp: 10 },
 		maxPartySize: 1
 	};
 	
-	const timers = new Map<string, Timestamp>();
-	if (overrides?.startedAt) {
-		timers.set('startedAt', overrides.startedAt);
-	}
-	if (overrides?.endsAt) {
-		timers.set('endsAt', overrides.endsAt);
-	}
-	
-	return new MissionEntity(
+	const timers: Record<string, number | null> = {};
+	const mission = new MissionEntity(
 		id,
 		attributes,
 		[],
@@ -123,6 +129,16 @@ export function createTestMission(overrides?: {
 		timers,
 		{ name: overrides?.name || 'Test Mission' }
 	);
+	
+	// Set timers using helper function
+	if (overrides?.startedAt) {
+		setTimer(mission, 'startedAt', overrides.startedAt);
+	}
+	if (overrides?.endsAt) {
+		setTimer(mission, 'endsAt', overrides.endsAt);
+	}
+	
+	return mission;
 }
 
 /**
@@ -147,7 +163,7 @@ export function createTestFacility(overrides?: {
 		attributes,
 		[],
 		'Online',
-		new Map(),
+		{}, // timers (Record, not Map)
 		{ name: overrides?.name || 'Test Facility' }
 	);
 }
@@ -206,26 +222,3 @@ export function createTestGold(amount: number): ResourceBundle {
 	return createTestResourceBundle({ gold: amount });
 }
 
-// ============================================================================
-// Legacy PlayerState Support (for migration period)
-// ============================================================================
-
-/**
- * @deprecated Use createTestGameState instead
- * Create test PlayerState with optional overrides
- * Kept for backward compatibility during migration
- */
-export function createTestPlayerState(overrides?: Partial<import('../domain/entities/PlayerState').PlayerState>): import('../domain/entities/PlayerState').PlayerState {
-	// eslint-disable-next-line @typescript-eslint/no-require-imports
-	const { createInitialPlayerState } = require('../domain/entities/PlayerState');
-	const base = createInitialPlayerState('test-player');
-	return {
-		...base,
-		...overrides
-	};
-}
-
-// Legacy types for backward compatibility
-export type Adventurer = import('../domain/entities/PlayerState').Adventurer;
-export type Mission = import('../domain/entities/PlayerState').Mission;
-export type Reward = import('../domain/entities/PlayerState').Reward;

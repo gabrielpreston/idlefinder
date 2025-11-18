@@ -3,13 +3,12 @@
  * Per Systems Primitives Spec: Uses UpgradeFacilityAction
  */
 
-import type { CommandHandler } from '../bus/CommandBus';
+import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { UpgradeFacilityCommand, DomainEvent } from '../bus/types';
 import { GameState } from '../domain/entities/GameState';
 import { UpgradeFacilityAction } from '../domain/actions/UpgradeFacilityAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
-import { Timestamp } from '../domain/valueObjects/Timestamp';
 
 /**
  * Create UpgradeFacility command handler using Actions
@@ -17,7 +16,8 @@ import { Timestamp } from '../domain/valueObjects/Timestamp';
 export function createUpgradeFacilityHandlerV2(): CommandHandler<UpgradeFacilityCommand, GameState> {
 	return async function(
 		payload: UpgradeFacilityCommand,
-		state: GameState
+		state: GameState,
+		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
 		// payload.facility can be either a facility ID or facilityType (for MVP compatibility)
 		// Try to find by ID first, then by type
@@ -53,15 +53,15 @@ export function createUpgradeFacilityHandlerV2(): CommandHandler<UpgradeFacility
 		}
 
 		// Create requirement context
-		const context: RequirementContext = {
+		const requirementContext: RequirementContext = {
 			entities: state.entities,
 			resources: state.resources,
-			currentTime: Timestamp.now()
+			currentTime: context.currentTime
 		};
 
 		// Execute action
 		const action = new UpgradeFacilityAction(facility.id);
-		const result = action.execute(context, {});
+		const result = action.execute(requirementContext, {});
 
 		if (!result.success) {
 			return {
