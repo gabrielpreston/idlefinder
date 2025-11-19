@@ -1,11 +1,27 @@
 <script lang="ts">
-	import { adventurers, missions, resources } from '$lib/stores/gameState';
+	import { adventurers, missions, resources, guildHallTier, isGuildHallRuinedState, oddJobsAvailable, oddJobsGoldRate } from '$lib/stores/gameState';
 </script>
 
 <div class="dashboard-panel">
 	<h2>Dashboard</h2>
 	
+	{#if $isGuildHallRuinedState}
+		<div class="starting-state-banner">
+			<p class="ruined-message">This place barely counts as a guild hall.</p>
+			{#if $oddJobsAvailable}
+				<div class="odd-jobs-info">
+					<p>You're working odd jobs to earn gold.</p>
+					<p class="gold-rate">Generating {$oddJobsGoldRate.toFixed(1)} gold per minute</p>
+				</div>
+			{/if}
+		</div>
+	{/if}
+	
 	<div class="stats-grid">
+		<div class="stat-card">
+			<div class="stat-label">Guild Hall Tier</div>
+			<div class="stat-value">{$guildHallTier}</div>
+		</div>
 		<div class="stat-card">
 			<div class="stat-label">Adventurers</div>
 			<div class="stat-value">{$adventurers.length}</div>
@@ -58,6 +74,31 @@
 		font-size: 1.5rem;
 		font-weight: 700;
 		color: var(--color-text-primary, #000);
+	}
+
+	.starting-state-banner {
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+		background: var(--color-bg-secondary, #f5f5f5);
+		border-radius: 8px;
+		border: 1px solid var(--color-border, #ddd);
+	}
+
+	.ruined-message {
+		font-style: italic;
+		color: var(--color-text-secondary, #666);
+		margin-bottom: 0.5rem;
+	}
+
+	.odd-jobs-info {
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid var(--color-border, #ddd);
+	}
+
+	.gold-rate {
+		font-weight: 600;
+		color: var(--color-primary, #0066cc);
 	}
 </style>
 

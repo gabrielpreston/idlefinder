@@ -156,7 +156,7 @@ export function createTestFacility(overrides?: {
 	const id = Identifier.from<'FacilityId'>(overrides?.id || crypto.randomUUID());
 	const attributes: FacilityAttributes = {
 		facilityType: overrides?.facilityType || 'Guildhall',
-		tier: overrides?.tier || 1,
+		tier: overrides?.tier ?? 1, // Use ?? instead of || to allow tier 0
 		baseCapacity: 1,
 		bonusMultipliers: {}
 	};

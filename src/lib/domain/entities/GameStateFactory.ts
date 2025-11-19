@@ -27,20 +27,20 @@ export function createInitialGameState(
 ): GameState {
 	const lastPlayed = currentTime;
 	
-	// Create initial resources (100 gold)
+	// Create initial resources (15 gold - starting from nothing)
 	const resources = ResourceBundle.fromArray([
-		new ResourceUnit('gold', 100),
+		new ResourceUnit('gold', 15),
 		new ResourceUnit('fame', 0)
 	]);
 
 	// Create initial facilities
 	const entities = new Map<string, import('../primitives/Requirement').Entity>();
 
-	// Guildhall (basic mission board)
+	// Guildhall (ruined, Tier 0 - starting from nothing)
 	const guildhallId = Identifier.from<'FacilityId'>('facility-guildhall-1');
 	const guildhallAttributes: FacilityAttributes = {
 		facilityType: 'Guildhall',
-		tier: 1,
+		tier: 0,
 		baseCapacity: 1,
 		bonusMultipliers: {}
 	};
@@ -72,42 +72,6 @@ export function createInitialGameState(
 		{ displayName: 'Gold Generation Slot #1' }
 	);
 	entities.set(goldSlot.id, goldSlot);
-
-	// Dormitory (adventurer capacity)
-	const dormitoryId = Identifier.from<'FacilityId'>('facility-dormitory-1');
-	const dormitoryAttributes: FacilityAttributes = {
-		facilityType: 'Dormitory',
-		tier: 1,
-		baseCapacity: 5, // Can hold 5 adventurers
-		bonusMultipliers: {}
-	};
-	const dormitory = new Facility(
-		dormitoryId,
-		dormitoryAttributes,
-		['storage'],
-		'Online',
-		{}, // timers (Record, not Map)
-		{ name: 'Dormitory' }
-	);
-	entities.set(dormitory.id, dormitory);
-
-	// Training Grounds (XP bonus)
-	const trainingId = Identifier.from<'FacilityId'>('facility-training-1');
-	const trainingAttributes: FacilityAttributes = {
-		facilityType: 'TrainingGrounds',
-		tier: 1,
-		baseCapacity: 1,
-		bonusMultipliers: { xp: 1.1 } // 10% XP bonus
-	};
-	const training = new Facility(
-		trainingId,
-		trainingAttributes,
-		['training'],
-		'Online',
-		{}, // timers (Record, not Map)
-		{ name: 'Training Grounds' }
-	);
-	entities.set(training.id, training);
 
 	// Create default Mission Doctrine
 	const doctrineId = Identifier.generate<'MissionDoctrineId'>();

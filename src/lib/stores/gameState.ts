@@ -3,6 +3,7 @@
  * Provides reactive access to GameState
  * 
  * Now uses GameRuntime from Svelte context instead of singleton
+ * Refactored to use EntityQueryBuilder for consistency
  */
 
 import { writable, derived, type Readable } from 'svelte/store';
@@ -12,6 +13,20 @@ import type { Adventurer } from '../domain/entities/Adventurer';
 import type { Mission } from '../domain/entities/Mission';
 import type { Facility } from '../domain/entities/Facility';
 import type { ResourceSlot } from '../domain/entities/ResourceSlot';
+import { EntityQueryBuilder } from '../domain/queries/EntityQueryBuilder';
+import { getMissionPoolAdventurers, getAssignedAdventurers } from '../domain/queries/MissionPoolQueries';
+import { getMissionSlotCapacity } from '../domain/queries/MissionSlotQueries';
+import { getRosterCapacity } from '../domain/queries/RosterQueries';
+import type { Capacity } from '../domain/queries/Capacity';
+import { getGuildHallTier, isGuildHallRuined } from '../domain/queries/FacilityQueries';
+import { getAdventurerCount, hasAnyAdventurers, isFirstAdventurer } from '../domain/queries/AdventurerQueries';
+import { getPlayerAssignedSlots, hasOddJobsAvailable, getOddJobsGoldRate } from '../domain/queries/FacilityEffectQueries';
+import { isAdventurersPanelUnlocked, isMissionsPanelUnlocked, isMissionsPanelFunctional, isFacilitiesPanelUnlocked } from '../domain/queries/UIGatingQueries';
+import { getGuildHallUpgradeCost, canUpgradeGuildHall } from '../domain/queries/CostQueries';
+import type { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
+import { getGateProgress, getGateStatus } from '../domain/gating/GateQueries';
+import { gateRegistry } from '../domain/gating/GateRegistry';
+import type { GateId } from '../domain/gating/GateDefinition';
 
 /**
  * Game state store - reactive wrapper around runtime's gameState
@@ -53,13 +68,12 @@ export const resources: Readable<GameState['resources'] | null> = derived(
 	($state) => $state?.resources ?? null
 );
 
+// Refactored to use EntityQueryBuilder
 export const adventurers: Readable<Adventurer[]> = derived(
 	gameState,
 	($state) => {
 		if (!$state) return [];
-		return Array.from($state.entities.values()).filter(
-			(e) => e.type === 'Adventurer'
-		) as Adventurer[];
+		return EntityQueryBuilder.byType<Adventurer>('Adventurer')($state);
 	}
 );
 
@@ -67,9 +81,7 @@ export const missions: Readable<Mission[]> = derived(
 	gameState,
 	($state) => {
 		if (!$state) return [];
-		return Array.from($state.entities.values()).filter(
-			(e) => e.type === 'Mission'
-		) as Mission[];
+		return EntityQueryBuilder.byType<Mission>('Mission')($state);
 	}
 );
 
@@ -77,9 +89,7 @@ export const facilities: Readable<Facility[]> = derived(
 	gameState,
 	($state) => {
 		if (!$state) return [];
-		return Array.from($state.entities.values()).filter(
-			(e) => e.type === 'Facility'
-		) as Facility[];
+		return EntityQueryBuilder.byType<Facility>('Facility')($state);
 	}
 );
 
@@ -87,9 +97,7 @@ export const slots: Readable<ResourceSlot[]> = derived(
 	gameState,
 	($state) => {
 		if (!$state) return [];
-		return Array.from($state.entities.values()).filter(
-			(e) => e.type === 'ResourceSlot'
-		) as ResourceSlot[];
+		return EntityQueryBuilder.byType<ResourceSlot>('ResourceSlot')($state);
 	}
 );
 
@@ -125,8 +133,156 @@ export const autoEquipRules: Readable<import('../domain/entities/AutoEquipRules'
 	gameState,
 	($state) => {
 		if (!$state) return undefined;
-		return Array.from($state.entities.values())
-			.find((e) => e.type === 'AutoEquipRules') as import('../domain/entities/AutoEquipRules').AutoEquipRules | undefined;
+		const rules = EntityQueryBuilder.byType<import('../domain/entities/AutoEquipRules').AutoEquipRules>('AutoEquipRules')($state);
+		return rules[0];
 	}
 );
+
+/**
+ * New query-based derived stores
+ */
+
+// Mission pool adventurers (Idle + not assigned to slots)
+export const missionPoolAdventurers: Readable<Adventurer[]> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return [];
+		return getMissionPoolAdventurers($state);
+	}
+);
+
+// Assigned adventurers (assigned to resource slots)
+export const assignedAdventurers: Readable<Adventurer[]> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return [];
+		return getAssignedAdventurers($state);
+	}
+);
+
+// Mission slot capacity
+export const missionCapacity: Readable<Capacity | null> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return null;
+		return getMissionSlotCapacity($state);
+	}
+);
+
+// Roster capacity
+export const rosterCapacity: Readable<Capacity | null> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return null;
+		return getRosterCapacity($state);
+	}
+);
+
+// Guild hall queries
+export const guildHallTier: Readable<number> = derived(
+	gameState,
+	($state) => $state ? getGuildHallTier($state) : 0
+);
+
+export const isGuildHallRuinedState: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isGuildHallRuined($state) : true
+);
+
+// Adventurer queries
+export const adventurerCount: Readable<number> = derived(
+	gameState,
+	($state) => $state ? getAdventurerCount($state) : 0
+);
+
+export const hasAdventurers: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? hasAnyAdventurers($state) : false
+);
+
+export const isFirstAdventurerState: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isFirstAdventurer($state) : false
+);
+
+// Odd Jobs queries
+export const playerSlots: Readable<ResourceSlot[]> = derived(
+	gameState,
+	($state) => $state ? getPlayerAssignedSlots($state) : []
+);
+
+export const oddJobsAvailable: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? hasOddJobsAvailable($state) : false
+);
+
+export const oddJobsGoldRate: Readable<number> = derived(
+	gameState,
+	($state) => $state ? getOddJobsGoldRate($state) : 0
+);
+
+// UI gating queries
+export const adventurersPanelUnlocked: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isAdventurersPanelUnlocked($state) : false
+);
+
+export const missionsPanelUnlocked: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isMissionsPanelUnlocked($state) : false
+);
+
+export const missionsPanelFunctional: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isMissionsPanelFunctional($state) : false
+);
+
+export const facilitiesPanelUnlocked: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isFacilitiesPanelUnlocked($state) : false
+);
+
+// Guild hall upgrade queries
+export const guildHallUpgradeCost: Readable<ResourceBundle | null> = derived(
+	gameState,
+	($state) => $state ? getGuildHallUpgradeCost($state) : null
+);
+
+export const canUpgradeGuildHallState: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? canUpgradeGuildHall($state) : false
+);
+
+// Gate progress tracking stores
+export const gateProgress: Readable<Record<GateId, number>> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return {};
+		const allGates = gateRegistry.getAll();
+		const progress: Record<GateId, number> = {};
+		for (const gate of allGates) {
+			progress[gate.id] = getGateProgress(gate.id, $state);
+		}
+		return progress;
+	}
+);
+
+export const nextUnlockThreshold: Readable<
+	Record<
+		GateId,
+		{ threshold: number; current: number; remaining: number; description: string } | null
+	>
+> = derived(gameState, ($state) => {
+	if (!$state) return {};
+	const allGates = gateRegistry.getAll();
+	const thresholds: Record<
+		GateId,
+		{ threshold: number; current: number; remaining: number; description: string } | null
+	> = {};
+	for (const gate of allGates) {
+		const status = getGateStatus(gate.id, $state);
+		thresholds[gate.id] = status?.nextThreshold ?? null;
+	}
+	return thresholds;
+});
 

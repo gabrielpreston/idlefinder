@@ -1,10 +1,48 @@
 <script lang="ts">
-	import { facilities } from '$lib/stores/gameState';
+	import { getContext, onMount } from 'svelte';
+	import { facilities, gameState, guildHallUpgradeCost, canUpgradeGuildHallState } from '$lib/stores/gameState';
+	import { getGuildHall } from '$lib/domain/queries/FacilityQueries';
+	import { dispatchCommand } from '$lib/bus/commandDispatcher';
+	import type { CommandFailedEvent } from '$lib/bus/types';
+	import type { GameRuntime } from '$lib/runtime/startGame';
+	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import SlotPanel from './SlotPanel.svelte';
+
+	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
+	if (!runtime) {
+		throw new Error('GameRuntime not found in context');
+	}
+
+	let error: string | null = null;
+
+	onMount(() => {
+		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
+			const failed = payload as CommandFailedEvent;
+			if (failed.commandType === 'UpgradeFacility') {
+				error = failed.reason;
+				setTimeout(() => { error = null; }, 5000);
+			}
+		});
+		return unsubscribe;
+	});
+
+	$: guildhall = $gameState ? getGuildHall($gameState) : null;
+
+	async function upgradeGuildHall() {
+		if (!guildhall) return;
+		error = null;
+		await dispatchCommand(runtime, 'UpgradeFacility', {
+			facility: guildhall.id
+		});
+	}
 </script>
 
 <div class="facilities-panel">
 	<h2>Facilities</h2>
+	
+	{#if error}
+		<div class="error-message">{error}</div>
+	{/if}
 	
 	<div class="facilities-grid">
 		{#each $facilities as facility}
@@ -16,6 +54,39 @@
 				</div>
 				{#if facility.attributes.facilityType === 'Guildhall'}
 					<SlotPanel {facility} />
+					{#if guildhall}
+						{#if $canUpgradeGuildHallState && $guildHallUpgradeCost}
+							<div class="upgrade-section">
+								<div class="upgrade-cost">
+									Upgrade Cost: {$guildHallUpgradeCost.get('gold')} gold
+								</div>
+								<button 
+									class="upgrade-button"
+									onclick={upgradeGuildHall}
+								>
+									{#if facility.attributes.tier === 0}
+										Repair Guild Hall (Tier 0 → 1)
+									{:else}
+										Upgrade to Tier {facility.attributes.tier + 1}
+									{/if}
+								</button>
+							</div>
+						{:else if facility.attributes.tier === 0 && $guildHallUpgradeCost}
+							<div class="upgrade-section">
+								<div class="upgrade-cost">
+									Upgrade Cost: {$guildHallUpgradeCost.get('gold')} gold
+								</div>
+								<button 
+									class="upgrade-button"
+									class:disabled={!$canUpgradeGuildHallState}
+									onclick={upgradeGuildHall}
+									disabled={!$canUpgradeGuildHallState}
+								>
+									Repair Guild Hall (Tier 0 → 1)
+								</button>
+							</div>
+						{/if}
+					{/if}
 				{/if}
 			</div>
 		{/each}
@@ -56,6 +127,47 @@
 		gap: 0.5rem;
 		font-size: 0.9rem;
 		color: var(--color-text-secondary, #666);
+	}
+
+	.error-message {
+		padding: 0.75rem;
+		margin-bottom: 1rem;
+		background: #fee;
+		border: 1px solid #fcc;
+		border-radius: 4px;
+		color: #c33;
+		font-size: 0.9rem;
+	}
+
+	.upgrade-section {
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--color-border, #ddd);
+	}
+
+	.upgrade-cost {
+		font-size: 0.9rem;
+		color: var(--color-text-secondary, #666);
+		margin-bottom: 0.5rem;
+	}
+
+	.upgrade-button {
+		padding: 0.5rem 1rem;
+		background: var(--color-primary, #0066cc);
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.9rem;
+	}
+
+	.upgrade-button:hover:not(.disabled) {
+		background: var(--color-primary-hover, #0052a3);
+	}
+
+	.upgrade-button.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 </style>
 

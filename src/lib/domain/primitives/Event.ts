@@ -30,7 +30,8 @@ export type DomainEventType =
 	| 'MissionDoctrineUpdated'
 	| 'MissionAutoSelected'
 	| 'ResourceSlotAssigned'
-	| 'ResourceSlotUnassigned';
+	| 'ResourceSlotUnassigned'
+	| 'GateUnlocked';
 
 /**
  * Resource Map - used in events
@@ -65,7 +66,8 @@ export type DomainEventPayload =
 	| MissionDoctrineUpdatedEvent
 	| MissionAutoSelectedEvent
 	| ResourceSlotAssignedEvent
-	| ResourceSlotUnassignedEvent;
+	| ResourceSlotUnassignedEvent
+	| GateUnlockedEvent;
 
 export interface MissionStartedEvent {
 	missionId: string;
@@ -197,6 +199,12 @@ export interface ResourceSlotUnassignedEvent {
 	slotId: string;
 	assigneeType: 'player' | 'adventurer';
 	assigneeId: string | null;
+}
+
+export interface GateUnlockedEvent {
+	gateId: string;
+	gateType: import('../gating/GateDefinition').GateType;
+	gateName: string;
 }
 
 /**

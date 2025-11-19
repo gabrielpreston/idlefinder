@@ -9,11 +9,20 @@
 	import CraftingPanel from '../crafting/CraftingPanel.svelte';
 	import FacilitiesPanel from '../facilities/FacilitiesPanel.svelte';
 	import DevTools from '../DevTools.svelte';
+	import { adventurersPanelUnlocked, facilitiesPanelUnlocked, gameState } from '$lib/stores/gameState';
+	import { getPanelUnlockReason, PANEL_IDS } from '$lib/domain/queries/UIGatingQueries';
 
 	const activeTab = writable('dashboard');
 
 	function handleTabChange(tab: string) {
 		activeTab.set(tab);
+	}
+
+	function getLockedMessage(tab: string): string | null {
+		if (!$gameState) return null;
+		// Map 'roster' tab ID to 'adventurers' panel ID for UIGatingQueries
+		const panelId = tab === 'roster' ? PANEL_IDS.ADVENTURERS : tab;
+		return getPanelUnlockReason(panelId, $gameState);
 	}
 </script>
 
@@ -26,13 +35,27 @@
 		{:else if $activeTab === 'doctrine'}
 			<DoctrinePanel />
 		{:else if $activeTab === 'roster'}
-			<RosterPanel />
+			{#if $adventurersPanelUnlocked}
+				<RosterPanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Roster</h2>
+					<p class="locked-message">{getLockedMessage('roster') || 'This panel is locked'}</p>
+				</div>
+			{/if}
+		{:else if $activeTab === 'facilities'}
+			{#if $facilitiesPanelUnlocked}
+				<FacilitiesPanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Facilities</h2>
+					<p class="locked-message">{getLockedMessage('facilities') || 'This panel is locked'}</p>
+				</div>
+			{/if}
 		{:else if $activeTab === 'equipment'}
 			<EquipmentPanel />
 		{:else if $activeTab === 'crafting'}
 			<CraftingPanel />
-		{:else if $activeTab === 'facilities'}
-			<FacilitiesPanel />
 		{/if}
 	</div>
 	<DevTools />
@@ -51,6 +74,17 @@
 		overflow-y: auto;
 		padding: 1rem;
 		background: var(--color-bg-primary, #fff);
+	}
+
+	.locked-panel {
+		padding: 2rem;
+		text-align: center;
+	}
+
+	.locked-message {
+		color: var(--color-text-secondary, #666);
+		font-style: italic;
+		margin-top: 1rem;
 	}
 </style>
 

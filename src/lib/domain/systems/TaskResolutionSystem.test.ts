@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { TaskResolutionSystem } from './TaskResolutionSystem';
 import { TaskInstance } from '../entities/TaskInstance';
 import { AgentInstance } from '../entities/AgentInstance';
@@ -128,6 +128,200 @@ describe('TaskResolutionSystem', () => {
 				expect(result1[0].outcomeCategory).toBe(result2[0].outcomeCategory);
 				expect(result1[0].rewards.get('gold')).toBe(result2[0].rewards.get('gold'));
 			}
+		});
+	});
+
+	describe('edge cases', () => {
+		it('should handle missing archetype gracefully', () => {
+			const task = createTask();
+			const agent = createAgent(50);
+			task.assignedAgentIds.push(agent.id);
+
+			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
+			const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+			const results = system.resolveTasks(
+				[task],
+				new Map([[agent.id.value, agent]]),
+				new Map(), // Empty archetypes map
+				[],
+				now
+			);
+
+			expect(results.length).toBe(0);
+			expect(consoleSpy).toHaveBeenCalled();
+			// Verify the warning message contains expected text
+			const callArgs = consoleSpy.mock.calls[0];
+			expect(callArgs[0]).toContain('[TaskResolutionSystem] Missing archetype');
+			expect(callArgs.length).toBeGreaterThan(0);
+
+			consoleSpy.mockRestore();
+		});
+
+		it('should handle empty agents array in generateRewards', () => {
+			const task = createTask();
+			const archetype = createArchetype(task.taskArchetypeId);
+			// No agents assigned - create new task with empty array
+			const taskWithNoAgents = new TaskInstance(
+				task.id,
+				task.organizationId,
+				task.taskArchetypeId,
+				task.startedAt,
+				task.expectedCompletionAt,
+				task.status,
+				task.originOfferId,
+				[] // Empty agents array
+			);
+
+			const now = taskWithNoAgents.expectedCompletionAt.add(Duration.ofSeconds(1));
+			const results = system.resolveTasks(
+				[taskWithNoAgents],
+				new Map(), // Empty agents map
+				new Map([[archetype.id.value, archetype]]),
+				[],
+				now
+			);
+
+			expect(results.length).toBe(1);
+			// Should still generate rewards with level 1 multiplier (default)
+			expect(results[0].rewards.get('gold')).toBeGreaterThan(0);
+		});
+
+		it('should compute agent changes with injury logic for failures', () => {
+			const task = createTask();
+			const archetype = createArchetype(task.taskArchetypeId);
+			// Create agent with low stats to guarantee failure
+			const agent = createAgent(1); // Very low strength
+			task.assignedAgentIds.push(agent.id);
+
+			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
+			const results = system.resolveTasks(
+				[task],
+				new Map([[agent.id.value, agent]]),
+				new Map([[archetype.id.value, archetype]]),
+				[],
+				now
+			);
+
+			expect(results.length).toBe(1);
+			expect(results[0].outcomeCategory).toBe('FAILURE');
+			expect(results[0].agentChanges.length).toBe(1);
+			expect(results[0].agentChanges[0].agentId).toBe(agent.id);
+			expect(results[0].agentChanges[0].xpGain).toBe(10); // Failure XP
+			// Injury is deterministic based on agent ID hash
+			expect(typeof results[0].agentChanges[0].injury).toBe('boolean');
+		});
+
+		it('should handle facility effects with statBonus', () => {
+			const task = createTask();
+			const archetype = createArchetype(task.taskArchetypeId);
+			const agent = createAgent(50);
+			task.assignedAgentIds.push(agent.id);
+
+			// Create facility with statBonus effect
+			const facility: import('../entities/FacilityInstance').FacilityInstance = {
+				id: Identifier.generate(),
+				organizationId: Identifier.generate(),
+				facilityTemplateId: Identifier.generate(),
+				level: 1,
+				getActiveEffects: () => [
+					{ effectKey: 'statBonus', value: 10 }
+				]
+			} as any;
+
+			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
+			const results = system.resolveTasks(
+				[task],
+				new Map([[agent.id.value, agent]]),
+				new Map([[archetype.id.value, archetype]]),
+				[facility],
+				now
+			);
+
+			expect(results.length).toBe(1);
+			// Score should be higher due to facility bonus
+			expect(results[0].outcomeCategory).toBeDefined();
+		});
+
+		it('should ignore facility effects without statBonus', () => {
+			const task = createTask();
+			const archetype = createArchetype(task.taskArchetypeId);
+			const agent = createAgent(50);
+			task.assignedAgentIds.push(agent.id);
+
+			// Create facility with non-statBonus effect
+			const facility: import('../entities/FacilityInstance').FacilityInstance = {
+				id: Identifier.generate(),
+				organizationId: Identifier.generate(),
+				facilityTemplateId: Identifier.generate(),
+				level: 1,
+				getActiveEffects: () => [
+					{ effectKey: 'otherEffect', value: 10 }
+				]
+			} as any;
+
+			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
+			const results = system.resolveTasks(
+				[task],
+				new Map([[agent.id.value, agent]]),
+				new Map([[archetype.id.value, archetype]]),
+				[facility],
+				now
+			);
+
+			expect(results.length).toBe(1);
+			// Should work normally without statBonus effect
+			expect(results[0].outcomeCategory).toBeDefined();
+		});
+
+		it('should handle different outcome categories correctly', () => {
+			const task = createTask();
+			const archetype = createArchetype(task.taskArchetypeId);
+
+			// Test GREAT_SUCCESS (score >= 100)
+			const strongAgent = createAgent(100);
+			const taskWithStrongAgent = new TaskInstance(
+				task.id,
+				task.organizationId,
+				task.taskArchetypeId,
+				task.startedAt,
+				task.expectedCompletionAt,
+				task.status,
+				task.originOfferId,
+				[strongAgent.id]
+			);
+			const now = taskWithStrongAgent.expectedCompletionAt.add(Duration.ofSeconds(1));
+			const results1 = system.resolveTasks(
+				[taskWithStrongAgent],
+				new Map([[strongAgent.id.value, strongAgent]]),
+				new Map([[archetype.id.value, archetype]]),
+				[],
+				now
+			);
+			expect(results1[0].outcomeCategory).toBe('GREAT_SUCCESS');
+			expect(results1[0].agentChanges[0].xpGain).toBe(50);
+
+			// Test SUCCESS (score >= 50)
+			const mediumAgent = createAgent(50);
+			const taskWithMediumAgent = new TaskInstance(
+				task.id,
+				task.organizationId,
+				task.taskArchetypeId,
+				task.startedAt,
+				task.expectedCompletionAt,
+				task.status,
+				task.originOfferId,
+				[mediumAgent.id]
+			);
+			const results2 = system.resolveTasks(
+				[taskWithMediumAgent],
+				new Map([[mediumAgent.id.value, mediumAgent]]),
+				new Map([[archetype.id.value, archetype]]),
+				[],
+				now
+			);
+			expect(results2[0].outcomeCategory).toBe('SUCCESS');
+			expect(results2[0].agentChanges[0].xpGain).toBe(30);
 		});
 	});
 });

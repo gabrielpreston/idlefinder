@@ -20,7 +20,7 @@ export default defineConfig({
 		coverage: {
 			enabled: true,
 			provider: 'v8',
-			reporter: ['text-summary'],
+			reporter: ['text-summary', 'html'],
 			exclude: [
 				'node_modules/',
 				'src/**/*.test.ts',
@@ -31,12 +31,12 @@ export default defineConfig({
 				'**/dist/**',
 				'**/.svelte-kit/**'
 			],
-			// Report coverage but don't fail on thresholds (for now)
+			// 80% coverage threshold for all categories
 			thresholds: {
-				lines: 0,
-				functions: 0,
-				branches: 0,
-				statements: 0
+				lines: 80,
+				functions: 80,
+				branches: 80,
+				statements: 80
 			}
 		}
 	}

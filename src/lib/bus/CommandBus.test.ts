@@ -178,6 +178,140 @@ describe('CommandBus', () => {
 				reason: 'Handler error'
 			});
 		});
+
+		it('should emit CommandFailed when handler throws non-Error', async () => {
+			const handler = vi.fn().mockRejectedValue('String error');
+
+			commandBus.register('StartMission', handler);
+
+			const command = createTestCommand('StartMission', {
+				missionId: 'mission-1',
+				adventurerIds: []
+			});
+
+			const failedEvents: DomainEvent[] = [];
+			domainEventBus.subscribe('CommandFailed', (payload) => {
+				failedEvents.push({
+					type: 'CommandFailed',
+					payload: payload as DomainEvent['payload'],
+					timestamp: new Date().toISOString()
+				});
+			});
+
+			await commandBus.dispatch(command);
+
+			expect(failedEvents).toHaveLength(1);
+			expect(failedEvents[0].payload).toMatchObject({
+				commandType: 'StartMission',
+				reason: 'String error'
+			});
+		});
+	});
+
+	describe('processQueue error handling', () => {
+		it('should publish CommandFailed event when handler throws error', async () => {
+			const handler = vi.fn().mockRejectedValue(new Error('Handler error'));
+
+			commandBus.register('StartMission', handler);
+
+			const command = createTestCommand('StartMission', {
+				missionId: 'mission-1',
+				adventurerIds: []
+			});
+
+			const failedEvents: DomainEvent[] = [];
+			domainEventBus.subscribe('CommandFailed', (payload) => {
+				failedEvents.push({
+					type: 'CommandFailed',
+					payload: payload as DomainEvent['payload'],
+					timestamp: new Date().toISOString()
+				});
+			});
+
+			// CommandBus catches errors and publishes CommandFailed, doesn't reject promise
+			await commandBus.dispatch(command);
+
+			expect(failedEvents).toHaveLength(1);
+			expect(failedEvents[0].payload).toMatchObject({
+				commandType: 'StartMission',
+				reason: 'Handler error'
+			});
+		});
+
+		it('should publish CommandFailed event when handler throws non-Error', async () => {
+			const handler = vi.fn().mockRejectedValue('String error');
+
+			commandBus.register('StartMission', handler);
+
+			const command = createTestCommand('StartMission', {
+				missionId: 'mission-1',
+				adventurerIds: []
+			});
+
+			const failedEvents: DomainEvent[] = [];
+			domainEventBus.subscribe('CommandFailed', (payload) => {
+				failedEvents.push({
+					type: 'CommandFailed',
+					payload: payload as DomainEvent['payload'],
+					timestamp: new Date().toISOString()
+				});
+			});
+
+			// CommandBus catches errors and publishes CommandFailed, doesn't reject promise
+			await commandBus.dispatch(command);
+
+			expect(failedEvents).toHaveLength(1);
+			expect(failedEvents[0].payload).toMatchObject({
+				commandType: 'StartMission',
+				reason: 'String error'
+			});
+		});
+	});
+
+	describe('command queue processing', () => {
+		it('should queue commands when already processing', async () => {
+			// Create a handler that takes time to complete
+			let resolveHandler: () => void;
+			const handlerPromise = new Promise<void>((resolve) => {
+				resolveHandler = resolve;
+			});
+
+			const handler = vi.fn().mockImplementation(async () => {
+				await handlerPromise;
+				return {
+					newState: state,
+					events: []
+				};
+			});
+
+			commandBus.register('StartMission', handler);
+
+			// Dispatch first command (starts processing)
+			const command1 = createTestCommand('StartMission', {
+				missionId: 'mission-1',
+				adventurerIds: []
+			});
+			const dispatch1Promise = commandBus.dispatch(command1);
+
+			// Dispatch second command while first is still processing
+			// This tests the branch where isProcessing is true
+			const command2 = createTestCommand('StartMission', {
+				missionId: 'mission-2',
+				adventurerIds: []
+			});
+			const dispatch2Promise = commandBus.dispatch(command2);
+
+			// Verify both commands are queued
+			expect(handler).toHaveBeenCalledTimes(1); // Only first command started
+
+			// Resolve first handler
+			resolveHandler!();
+			await dispatch1Promise;
+
+			// Now second command should be processed
+			await dispatch2Promise;
+			expect(handler).toHaveBeenCalledTimes(2);
+		});
 	});
 });
 

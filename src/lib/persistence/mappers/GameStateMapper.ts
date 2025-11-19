@@ -72,7 +72,7 @@ export function dtoToDomain(dto: GameStateDTO): GameState {
 
 	const resources = deserializeResources(dto.resources || { resources: {} });
 	const lastPlayed = dto.lastPlayed
-		? Timestamp.from(new Date(dto.lastPlayed))
+		? Timestamp.from(Number(dto.lastPlayed)) // Parse string number directly
 		: Timestamp.now();
 
 	return new GameState(dto.playerId || 'player-1', lastPlayed, entities, resources);
