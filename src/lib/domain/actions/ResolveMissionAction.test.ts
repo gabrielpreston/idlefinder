@@ -12,7 +12,7 @@ import type { MissionAttributes } from '../attributes/MissionAttributes';
 import { setTimer } from '../primitives/TimerHelpers';
 import type { RequirementContext } from '../primitives/Requirement';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
-import { ModifyResourceEffect } from '../primitives/Effect';
+import { ModifyResourceEffect, type Effect } from '../primitives/Effect';
 
 describe('ResolveMissionAction', () => {
 	const createAdventurer = (overrides?: {
@@ -447,13 +447,16 @@ describe('ResolveMissionAction', () => {
 				['adv-1', adventurer]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 			const customResolvedAt = Timestamp.now();
 
 			const action = new ResolveMissionAction('mission-1');
 			// Set outcome and rewards first
+			 
 			(action as any).outcome = 'Success';
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const events = action.generateEvents(entities, resources, effects, {
@@ -474,12 +477,15 @@ describe('ResolveMissionAction', () => {
 				['adv-1', adventurer]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
 			// Set outcome and rewards first
+			 
 			(action as any).outcome = 'Success';
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const events = action.generateEvents(entities, resources, effects, {
@@ -501,13 +507,16 @@ describe('ResolveMissionAction', () => {
 				['adv-1', adventurer]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 			const customResolvedAt = Timestamp.now();
 
 			const action = new ResolveMissionAction('mission-1');
 			// Set outcome and rewards first
+			 
 			(action as any).outcome = 'Success';
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const events = action.generateEvents(entities, resources, effects, {
@@ -528,12 +537,15 @@ describe('ResolveMissionAction', () => {
 				['adv-1', adventurer]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
 			// Set outcome and rewards first
+			 
 			(action as any).outcome = 'Success';
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const events = action.generateEvents(entities, resources, effects, {
@@ -553,11 +565,13 @@ describe('ResolveMissionAction', () => {
 				['mission-1', mission]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
 			// Don't set outcome
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -571,11 +585,13 @@ describe('ResolveMissionAction', () => {
 				['mission-1', mission]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
+			 
 			(action as any).outcome = 'Success';
 			// Don't set rewards
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -589,10 +605,12 @@ describe('ResolveMissionAction', () => {
 				['mission-1', mission]
 			]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
+			 
 			(action as any).outcome = 'Success';
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
 			// Don't set adventurerId
 
@@ -618,8 +636,11 @@ describe('ResolveMissionAction', () => {
 
 			const action = new ResolveMissionAction('mission-1');
 			// Set outcome and rewards with fame
+			 
 			(action as any).outcome = 'Success';
+			 
 			(action as any).rewards = { gold: 100, xp: 20, fame: 10, materials: 0 };
+			 
 			(action as any).adventurerId = 'adv-1';
 
 			const effects = action.computeEffects(context, {});

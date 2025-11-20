@@ -14,7 +14,8 @@ import {
 	RepairItemEffect,
 	SalvageItemEffect,
 	CreateItemEffect,
-	applyEffects
+	applyEffects,
+	type Effect
 } from './Effect';
 import { createTestAdventurer, createTestMission, createTestFacility } from '../../test-utils/testFactories';
 import { Item } from '../entities/Item';
@@ -787,7 +788,7 @@ describe('applyEffects', () => {
 
 	it('should handle empty effects array', () => {
 		const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 100)]);
-		const effects: any[] = [];
+		const effects: Effect[] = [];
 		const entities = new Map<string, Entity>();
 
 		const result = applyEffects(effects, entities, resources);

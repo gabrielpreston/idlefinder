@@ -5,17 +5,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupIntegrationTest, createTestCommand, createTestGameState } from '../test-utils';
 import type { BusManager } from '../bus/BusManager';
-import type { DomainEvent } from '../bus/types';
 import { CraftingJob } from '../domain/entities/CraftingJob';
 import { Identifier } from '../domain/valueObjects/Identifier';
 import type { Entity } from '../domain/primitives/Requirement';
 
 describe('CancelCraftingJobHandler Integration', () => {
 	let busManager: BusManager;
-	let _publishedEvents: DomainEvent[];
 
 	beforeEach(() => {
-		({ busManager, publishedEvents: _publishedEvents } = setupIntegrationTest({
+		({ busManager } = setupIntegrationTest({
 			eventTypes: []
 		}));
 	});

@@ -11,6 +11,7 @@ import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
+import type { Effect } from '../primitives/Effect';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -127,7 +128,7 @@ describe('SalvageItemAction', () => {
 				new ResourceUnit('materials', 50),
 				new ResourceUnit('rareEssence', 10)
 			]);
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new SalvageItemAction('item-1');
 			const events = action.generateEvents(entities, resources, effects, {});

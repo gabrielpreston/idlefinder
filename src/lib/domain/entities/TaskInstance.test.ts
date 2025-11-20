@@ -6,13 +6,6 @@ import { describe, it, expect } from 'vitest';
 import { TaskInstance } from './TaskInstance';
 import { Identifier } from '../valueObjects/Identifier';
 import { Timestamp } from '../valueObjects/Timestamp';
-import type {
-	TaskInstanceId,
-	OrganizationId,
-	TaskArchetypeId,
-	TaskOfferId,
-	AgentId
-} from '../valueObjects/Identifier';
 
 function createTestTask(overrides?: {
 	startedAt?: Timestamp;

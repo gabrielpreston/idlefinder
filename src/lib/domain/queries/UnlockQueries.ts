@@ -101,24 +101,42 @@ export function getUnlockedMissionTiers(state: GameState): number[] {
 /**
  * Get maximum facility tier allowed based on current fame
  * 
- * @param facilityType Optional facility type (currently all facilities use same thresholds)
+ * @param facilityType Facility type (e.g., 'Guildhall', 'Dormitory')
  * @param state GameState
  * @returns Maximum tier allowed
  */
 export function getMaxFacilityTier(
-	_facilityType: string | undefined,
+	facilityType: string,
 	state: GameState
 ): number {
+	// Normalize facility type: Convert PascalCase to lowercase
+	const normalizedFacilityType = facilityType.toLowerCase();
+	
 	const facilityTierGates = getGatesByType('facility_tier', state);
 	let maxTier = 1; // Tier 1 is always available
 
+	// Filter gates by metadata tags matching facility type
 	for (const { gate, status } of facilityTierGates) {
-		if (status.unlocked) {
-			// Extract tier number from gate ID (e.g., 'facility_tier_2' -> 2)
-			const tierMatch = gate.id.match(/facility_tier_(\d+)/);
+		if (status.unlocked && gate.metadata?.tags?.includes(normalizedFacilityType)) {
+			// Extract tier number from facility-specific gate IDs (e.g., 'guildhall_tier_2' -> 2)
+			const tierMatch = gate.id.match(new RegExp(`${normalizedFacilityType}_tier_(\\d+)`));
 			if (tierMatch) {
 				const tier = parseInt(tierMatch[1], 10);
 				maxTier = Math.max(maxTier, tier);
+			}
+		}
+	}
+
+	// Fallback to generic gates if no facility-specific gates found (temporary during transition)
+	if (maxTier === 1) {
+		for (const { gate, status } of facilityTierGates) {
+			if (status.unlocked) {
+				// Extract tier number from generic gate IDs (e.g., 'facility_tier_2' -> 2)
+				const tierMatch = gate.id.match(/facility_tier_(\d+)/);
+				if (tierMatch) {
+					const tier = parseInt(tierMatch[1], 10);
+					maxTier = Math.max(maxTier, tier);
+				}
 			}
 		}
 	}
@@ -143,18 +161,135 @@ export function isMissionTierUnlocked(
 /**
  * Check if a facility can be upgraded to a specific tier
  * 
+ * @param facilityType Facility type (e.g., 'Guildhall', 'Dormitory')
  * @param targetTier Tier to upgrade to
  * @param state GameState
  * @returns True if tier is allowed by fame
  */
 export function canUpgradeFacilityToTier(
+	facilityType: string,
 	targetTier: number,
 	state: GameState
 ): boolean {
 	// Tier 1 is always available (no gate needed)
 	if (targetTier <= 1) return true;
 
-	// Check if the facility tier gate for targetTier is unlocked
+	// Normalize facility type: Convert PascalCase to lowercase
+	const normalizedFacilityType = facilityType.toLowerCase();
+	
+	// Check facility-specific gate first (e.g., 'guildhall_tier_2')
+	const facilitySpecificGateId = `${normalizedFacilityType}_tier_${targetTier}`;
+	if (isGateUnlocked(facilitySpecificGateId, state)) {
+		return true;
+	}
+
+	// Fallback to generic gate if facility-specific not found (temporary during transition)
 	return isGateUnlocked(`facility_tier_${targetTier}`, state);
+}
+
+/**
+ * Map recipe ID (kebab-case) to gate ID (snake_case)
+ * 
+ * @param recipeId Recipe ID (e.g., 'common-weapon')
+ * @returns Gate ID (e.g., 'crafting_recipe_common_weapon')
+ */
+function getCraftingRecipeGateId(recipeId: string): string {
+	// Map 'common-weapon' -> 'crafting_recipe_common_weapon'
+	return `crafting_recipe_${recipeId.replace(/-/g, '_')}`;
+}
+
+/**
+ * Check if a caravan type is unlocked
+ * 
+ * @param caravanType Caravan type (e.g., 'basic', 'trade', 'recruit')
+ * @param state GameState
+ * @returns True if caravan type is unlocked
+ */
+export function isCaravanTypeUnlocked(
+	caravanType: string,
+	state: GameState
+): boolean {
+	const gateId = `caravan_type_${caravanType.toLowerCase()}`;
+	return isGateUnlocked(gateId, state);
+}
+
+/**
+ * Get all unlocked caravan types
+ * 
+ * @param state GameState
+ * @returns Array of unlocked caravan type names
+ */
+export function getUnlockedCaravanTypes(state: GameState): string[] {
+	const caravanGates = getGatesByType('caravan_type', state);
+	const unlocked: string[] = [];
+
+	for (const { gate, status } of caravanGates) {
+		if (status.unlocked) {
+			// Extract caravan type from gate ID (e.g., 'caravan_type_basic' -> 'basic')
+			const typeMatch = gate.id.match(/caravan_type_(.+)/);
+			if (typeMatch) {
+				unlocked.push(typeMatch[1]);
+			}
+		}
+	}
+
+	return unlocked;
+}
+
+/**
+ * Check if a crafting recipe is unlocked
+ * 
+ * @param recipeId Recipe ID (e.g., 'common-weapon', 'uncommon-armor')
+ * @param state GameState
+ * @returns True if recipe is unlocked
+ */
+export function isCraftingRecipeUnlocked(
+	recipeId: string,
+	state: GameState
+): boolean {
+	const gateId = getCraftingRecipeGateId(recipeId);
+	return isGateUnlocked(gateId, state);
+}
+
+/**
+ * Get all unlocked crafting recipe IDs
+ * 
+ * @param state GameState
+ * @returns Array of unlocked recipe IDs (kebab-case, not gate IDs)
+ */
+export function getUnlockedCraftingRecipes(state: GameState): string[] {
+	const recipeGates = getGatesByType('crafting_recipe', state);
+	const unlocked: string[] = [];
+
+	for (const { gate, status } of recipeGates) {
+		if (status.unlocked) {
+			// Extract recipe ID from gate ID (e.g., 'crafting_recipe_common_weapon' -> 'common-weapon')
+			const recipeMatch = gate.id.match(/crafting_recipe_(.+)/);
+			if (recipeMatch) {
+				// Convert snake_case back to kebab-case
+				const recipeId = recipeMatch[1].replace(/_/g, '-');
+				unlocked.push(recipeId);
+			}
+		}
+	}
+
+	return unlocked;
+}
+
+/**
+ * Check if a facility can be built
+ * 
+ * @param facilityType Facility type (e.g., 'Dormitory', 'MissionCommand')
+ * @param state GameState
+ * @returns True if facility construction is unlocked
+ */
+export function canBuildFacility(
+	facilityType: string,
+	state: GameState
+): boolean {
+	// Normalize facility type: Convert PascalCase to lowercase
+	const normalizedFacilityType = facilityType.toLowerCase();
+	const gateId = `facility_build_${normalizedFacilityType}`;
+	return isGateUnlocked(gateId, state);
 }
 

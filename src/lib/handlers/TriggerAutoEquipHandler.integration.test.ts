@@ -5,14 +5,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupIntegrationTest, createTestCommand } from '../test-utils';
 import type { BusManager } from '../bus/BusManager';
-import type { DomainEvent } from '../bus/types';
 
 describe('TriggerAutoEquipHandler Integration', () => {
 	let busManager: BusManager;
-	let _publishedEvents: DomainEvent[];
 
 	beforeEach(() => {
-		({ busManager, publishedEvents: _publishedEvents } = setupIntegrationTest({
+		({ busManager } = setupIntegrationTest({
 			eventTypes: ['ItemEquipped', 'ItemUnequipped']
 		}));
 	});

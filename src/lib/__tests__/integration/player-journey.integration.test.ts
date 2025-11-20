@@ -104,7 +104,7 @@ describe('Player Journey Integration', () => {
 			vi.advanceTimersByTime(elapsed);
 
 			// Manually trigger tick handler to process mission completion
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(Date.now()));
@@ -207,7 +207,7 @@ describe('Player Journey Integration', () => {
 			vi.advanceTimersByTime(elapsed);
 
 			// Manually trigger tick handler
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (manager as any).tickBus.handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(Date.now()));
@@ -339,7 +339,7 @@ describe('Player Journey Integration', () => {
 			const elapsed = endsAtMs ? endsAtMs - Date.now() + 1000 : 61000;
 			vi.advanceTimersByTime(elapsed);
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(Date.now()));

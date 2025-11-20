@@ -29,8 +29,43 @@
 			const savedState = adapter.load();
 			
 			if (savedState) {
-				// Update runtime state with saved state
-				runtime.busManager.setState(savedState);
+				// Ensure required entities exist (e.g., Guildhall for gating)
+				const { getGuildHall } = await import('$lib/domain/queries/FacilityQueries');
+				const guildhall = getGuildHall(savedState);
+				
+				if (!guildhall) {
+					// Merge initial state's Guildhall into saved state
+					const initialState = createInitialGameState('player-1', Timestamp.now());
+					const initialGuildhall = getGuildHall(initialState);
+					
+					if (initialGuildhall) {
+						// Add Guildhall to saved state
+						const entities = new Map(savedState.entities);
+						entities.set(initialGuildhall.id, initialGuildhall);
+						
+						// Also ensure the initial gold slot exists if it doesn't
+						const initialStateSlots = initialState.getEntitiesByType('ResourceSlot');
+						for (const slot of initialStateSlots) {
+							if (!entities.has(slot.id)) {
+								entities.set(slot.id, slot);
+							}
+						}
+						
+						const migratedState = new (await import('$lib/domain/entities/GameState')).GameState(
+							savedState.playerId,
+							savedState.lastPlayed,
+							entities,
+							savedState.resources
+						);
+						
+						runtime.busManager.setState(migratedState);
+					} else {
+						runtime.busManager.setState(savedState);
+					}
+				} else {
+					// Update runtime state with saved state
+					runtime.busManager.setState(savedState);
+				}
 			}
 		}
 

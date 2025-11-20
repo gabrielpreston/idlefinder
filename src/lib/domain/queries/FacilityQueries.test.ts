@@ -12,7 +12,6 @@ import {
 } from './FacilityQueries';
 import { createTestGameState, createTestFacility } from '../../test-utils/testFactories';
 import type { Entity } from '../primitives/Requirement';
-import type { Facility } from '../entities/Facility';
 
 describe('FacilityQueries', () => {
 	describe('getGuildHallTier', () => {

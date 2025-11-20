@@ -7,6 +7,7 @@ import type { Identifier } from '../valueObjects/Identifier';
 import type { AdventurerAttributes } from '../attributes/AdventurerAttributes';
 import type { AdventurerState } from '../states/AdventurerState';
 import type { Entity } from '../primitives/Requirement';
+import { validateEntity, validateNonNegative } from '../primitives/EntityValidation';
 import type { EntityMetadata } from '../primitives/EntityMetadata';
 
 export type AdventurerId = Identifier<'AdventurerId'>;
@@ -32,6 +33,10 @@ export class Adventurer implements Entity {
 		timers: Record<string, number | null> = {},
 		metadata: EntityMetadata = {}
 	) {
+		// Validate entity
+		validateEntity(id.value, 'Adventurer');
+		validateNonNegative(attributes.xp, 'XP');
+
 		this._id = id;
 		this.id = id.value; // String ID for Entity interface
 		this.attributes = attributes;

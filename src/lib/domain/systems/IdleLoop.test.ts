@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { IdleLoop } from './IdleLoop';
 import { createTestGameState, createTestMission, createTestAdventurer } from '../../test-utils/testFactories';
 import { Timestamp } from '../valueObjects/Timestamp';
-import { Duration } from '../valueObjects/Duration';
 import { setTimer } from '../primitives/TimerHelpers';
 import type { Entity } from '../primitives/Requirement';
 
@@ -32,7 +31,6 @@ describe('IdleLoop', () => {
 		it('should resolve missions that are ready', () => {
 			const mission = createTestMission({ id: 'mission-1', state: 'InProgress' });
 			const pastTime = Timestamp.from(Date.now() - 1000);
-			const futureTime = Timestamp.from(Date.now() + 1000);
 			setTimer(mission, 'startedAt', pastTime);
 			setTimer(mission, 'endsAt', pastTime); // Mission ended in the past
 			const entities = new Map<string, Entity>([[mission.id, mission]]);

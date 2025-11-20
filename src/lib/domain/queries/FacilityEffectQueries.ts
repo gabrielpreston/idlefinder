@@ -6,10 +6,12 @@
  */
 
 import type { GameState } from '../entities/GameState';
-import type { Facility } from '../entities/Facility';
 import type { ResourceSlot } from '../entities/ResourceSlot';
+import type { Facility } from '../entities/Facility';
 import type { Query } from './Query';
 import { EntityQueryBuilder } from './EntityQueryBuilder';
+import { getWorkerMultiplier, getFacilityMultiplier } from '../systems/SlotGenerationSystem';
+import { getEntityAs, isFacility } from '../primitives/EntityTypeGuards';
 
 /**
  * Aggregate facility effect across all facilities of a given type
@@ -106,13 +108,66 @@ export function hasOddJobsAvailable(state: GameState): boolean {
 /**
  * Get total gold generation rate from player-assigned slots (Odd Jobs)
  * 
+ * Applies the same multipliers used in SlotGenerationSystem:
+ * - Worker multiplier (1.0 for player, 1.5 for adventurer)
+ * - Facility multiplier (based on facility tier)
+ * 
  * @param state GameState
- * @returns Total gold per minute from all player-assigned gold slots
+ * @returns Total effective gold per minute from all player-assigned gold slots
  */
 export function getOddJobsGoldRate(state: GameState): number {
 	const playerSlots = getPlayerAssignedSlots(state);
 	return playerSlots
 		.filter(slot => slot.attributes.resourceType === 'gold')
-		.reduce((total, slot) => total + slot.attributes.baseRatePerMinute, 0);
+		.reduce((total, slot) => {
+			// Get facility for multiplier calculation
+			const facility = getEntityAs(state.entities, slot.attributes.facilityId, isFacility);
+			if (!facility) {
+				// Skip this slot if facility not found (warning logged at infrastructure layer)
+				return total;
+			}
+
+			// Calculate effective rate using same multipliers as SlotGenerationSystem
+			const workerMultiplier = getWorkerMultiplier(slot.attributes.assigneeType as 'player' | 'adventurer');
+			const facilityMultiplier = getFacilityMultiplier(facility);
+			const effectiveRatePerMinute = slot.attributes.baseRatePerMinute * workerMultiplier * facilityMultiplier;
+			
+		return total + effectiveRatePerMinute;
+	}, 0);
+}
+
+/**
+ * Get effective generation rate for a slot with a specific assignee type
+ * 
+ * Applies the same multipliers used in SlotGenerationSystem:
+ * - Worker multiplier (1.0 for player, 1.5 for adventurer)
+ * - Facility multiplier (based on facility tier)
+ * 
+ * @param slot ResourceSlot to calculate rate for
+ * @param assigneeType Type of assignee ('player' or 'adventurer')
+ * @param state GameState
+ * @returns Effective generation rate per minute (0 if slot is unassigned or facility not found)
+ */
+export function getSlotEffectiveRate(
+	slot: ResourceSlot,
+	assigneeType: 'player' | 'adventurer',
+	state: GameState
+): number {
+	// If slot is unassigned, return 0
+	if (slot.attributes.assigneeType === 'none') {
+		return 0;
+	}
+
+	// Get facility for multiplier calculation
+	const facility = getEntityAs(state.entities, slot.attributes.facilityId, isFacility);
+	if (!facility) {
+		// Return 0 if facility not found (warning logged at infrastructure layer)
+		return 0;
+	}
+
+	// Calculate effective rate using same multipliers as SlotGenerationSystem
+	const workerMultiplier = getWorkerMultiplier(assigneeType);
+	const facilityMultiplier = getFacilityMultiplier(facility);
+	return slot.attributes.baseRatePerMinute * workerMultiplier * facilityMultiplier;
 }
 

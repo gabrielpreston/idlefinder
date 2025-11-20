@@ -6,7 +6,6 @@ import { describe, it, expect } from 'vitest';
 import { composeQueries, combineQueries } from './QueryComposition';
 import type { Query } from './Query';
 import { createTestGameState } from '../../test-utils/testFactories';
-import type { GameState } from '../entities/GameState';
 
 describe('QueryComposition', () => {
 	describe('composeQueries', () => {
@@ -23,7 +22,7 @@ describe('QueryComposition', () => {
 		});
 
 		it('should handle query that returns array', () => {
-			const query1: Query<number[]> = (state) => [1, 2, 3];
+			const query1: Query<number[]> = () => [1, 2, 3];
 			const query2 = (arr: number[]) => arr.length;
 
 			const composed = composeQueries(query1, query2);
@@ -39,16 +38,16 @@ describe('QueryComposition', () => {
 			const query2 = (obj: { count: number }) => obj.count * 10;
 
 			const composed = composeQueries(query1, query2);
-			const state = createTestGameState();
+			const testState = createTestGameState();
 
-			const result = composed(state);
+			const result = composed(testState);
 
-			expect(result).toBe(state.entities.size * 10);
+			expect(result).toBe(testState.entities.size * 10);
 		});
 
 		it('should execute queries in correct order', () => {
 			let executionOrder: string[] = [];
-			const query1: Query<number> = (state) => {
+			const query1: Query<number> = () => {
 				executionOrder.push('query1');
 				return 5;
 			};
@@ -58,9 +57,9 @@ describe('QueryComposition', () => {
 			};
 
 			const composed = composeQueries(query1, query2);
-			const state = createTestGameState();
+			const testState = createTestGameState();
 
-			composed(state);
+			composed(testState);
 
 			expect(executionOrder).toEqual(['query1', 'query2']);
 		});
@@ -69,7 +68,7 @@ describe('QueryComposition', () => {
 	describe('combineQueries', () => {
 		it('should combine two queries correctly', () => {
 			const query1: Query<number> = (state) => state.entities.size;
-			const query2: Query<number> = (state) => 10;
+			const query2: Query<number> = () => 10;
 			const combine = (a: number, b: number) => a + b;
 
 			const combined = combineQueries(query1, query2, combine);
@@ -86,30 +85,30 @@ describe('QueryComposition', () => {
 			const combine = (count: number, str: string) => `${str}:${count}`;
 
 			const combined = combineQueries(query1, query2, combine);
-			const state = createTestGameState();
+			const testState = createTestGameState();
 
-			const result = combined(state);
+			const result = combined(testState);
 
-			expect(result).toBe(`test:${state.entities.size}`);
+			expect(result).toBe(`test:${testState.entities.size}`);
 		});
 
 		it('should execute both queries on same state', () => {
 			let query1Called = false;
 			let query2Called = false;
-			const query1: Query<number> = (state) => {
+			const query1: Query<number> = () => {
 				query1Called = true;
-				return state.entities.size;
+				return 5;
 			};
-			const query2: Query<number> = (state) => {
+			const query2: Query<number> = () => {
 				query2Called = true;
 				return 5;
 			};
 			const combine = (a: number, b: number) => a + b;
 
 			const combined = combineQueries(query1, query2, combine);
-			const state = createTestGameState();
+			const testState = createTestGameState();
 
-			combined(state);
+			combined(testState);
 
 			expect(query1Called).toBe(true);
 			expect(query2Called).toBe(true);
@@ -121,9 +120,9 @@ describe('QueryComposition', () => {
 			const combine = (a: number, b: number) => ({ sum: a + b, product: a * b });
 
 			const combined = combineQueries(query1, query2, combine);
-			const state = createTestGameState();
+			const testState = createTestGameState();
 
-			const result = combined(state);
+			const result = combined(testState);
 
 			expect(result).toEqual({ sum: 7, product: 12 });
 		});

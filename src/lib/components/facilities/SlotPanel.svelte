@@ -6,7 +6,7 @@
 	import type { GameRuntime } from '$lib/runtime/startGame';
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import type { ResourceSlot } from '$lib/domain/entities/ResourceSlot';
-	import { getFacilityMultiplier, getWorkerMultiplier } from '$lib/domain/systems/SlotGenerationSystem';
+	import { getSlotEffectiveRate } from '$lib/domain/queries/FacilityEffectQueries';
 	import type { Facility } from '$lib/domain/entities/Facility';
 
 	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
@@ -69,17 +69,8 @@
 	function getEffectiveRate(slot: ResourceSlot): number {
 		if (!$gameState) return 0;
 		
-		// If slot is unassigned, return 0
-		if (slot.attributes.assigneeType === 'none') {
-			return 0;
-		}
-		
-		const facility = $gameState.entities.get(slot.attributes.facilityId) as Facility | undefined;
-		if (!facility || facility.type !== 'Facility') return 0;
-		
-		const workerMultiplier = getWorkerMultiplier(slot.attributes.assigneeType as 'player' | 'adventurer');
-		const facilityMultiplier = getFacilityMultiplier(facility);
-		return slot.attributes.baseRatePerMinute * workerMultiplier * facilityMultiplier;
+		// Use centralized query function
+		return getSlotEffectiveRate(slot, slot.attributes.assigneeType as 'player' | 'adventurer', $gameState);
 	}
 
 	function getAssigneeName(slot: ResourceSlot): string {

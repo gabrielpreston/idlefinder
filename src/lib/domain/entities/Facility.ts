@@ -7,6 +7,7 @@ import type { Identifier } from '../valueObjects/Identifier';
 import type { FacilityAttributes } from '../attributes/FacilityAttributes';
 import type { FacilityState } from '../states/FacilityState';
 import type { Entity } from '../primitives/Requirement';
+import { validateEntity, validateNonNegative } from '../primitives/EntityValidation';
 import type { EntityMetadata } from '../primitives/EntityMetadata';
 
 export type FacilityId = Identifier<'FacilityId'>;
@@ -33,6 +34,10 @@ export class Facility implements Entity {
 		timers: Record<string, number | null> = {},
 		metadata: EntityMetadata = {}
 	) {
+		// Validate entity
+		validateEntity(id.value, 'Facility');
+		validateNonNegative(attributes.tier, 'Tier');
+
 		this._id = id;
 		this.id = id.value; // String ID for Entity interface
 		this.attributes = attributes;

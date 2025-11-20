@@ -23,7 +23,7 @@ describe('visualTick', () => {
 		}) as unknown as typeof cancelAnimationFrame;
 		
 		// Helper to manually trigger RAF callbacks
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		(global as any).__triggerRAF = () => {
 			const callbacks = [...pendingCallbacks];
 			pendingCallbacks.length = 0;

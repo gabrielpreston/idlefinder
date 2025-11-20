@@ -10,6 +10,8 @@
 import type { GameState } from '../entities/GameState';
 import { hasAnyAdventurers } from './AdventurerQueries';
 import { isGateUnlocked, getGateUnlockReason } from '../gating/GateQueries';
+// Ensure gates are registered when this module loads
+import '../gating';
 
 /**
  * Panel ID constants
@@ -63,13 +65,49 @@ export function isMissionsPanelFunctional(state: GameState): boolean {
 /**
  * Check if Facilities panel is unlocked
  * 
- * Unlocked when Training Grounds facility exists
+ * Unlocked when guildhall reaches Tier 0
  * 
  * @param state GameState
  * @returns True if panel is unlocked
  */
 export function isFacilitiesPanelUnlocked(state: GameState): boolean {
 	return isGateUnlocked('ui_panel_facilities', state);
+}
+
+/**
+ * Check if Equipment panel is unlocked
+ * 
+ * Unlocked when guildhall reaches Tier 2
+ * 
+ * @param state GameState
+ * @returns True if panel is unlocked
+ */
+export function isEquipmentPanelUnlocked(state: GameState): boolean {
+	return isGateUnlocked('ui_panel_equipment', state);
+}
+
+/**
+ * Check if Crafting panel is unlocked
+ * 
+ * Unlocked when guildhall reaches Tier 3
+ * 
+ * @param state GameState
+ * @returns True if panel is unlocked
+ */
+export function isCraftingPanelUnlocked(state: GameState): boolean {
+	return isGateUnlocked('ui_panel_crafting', state);
+}
+
+/**
+ * Check if Doctrine panel is unlocked
+ * 
+ * Unlocked when guildhall reaches Tier 4
+ * 
+ * @param state GameState
+ * @returns True if panel is unlocked
+ */
+export function isDoctrinePanelUnlocked(state: GameState): boolean {
+	return isGateUnlocked('ui_panel_doctrine', state);
 }
 
 /**
@@ -88,6 +126,9 @@ export function getPanelUnlockReason(
 		[PANEL_IDS.ADVENTURERS]: 'ui_panel_adventurers',
 		[PANEL_IDS.MISSIONS]: 'ui_panel_missions',
 		[PANEL_IDS.FACILITIES]: 'ui_panel_facilities',
+		[PANEL_IDS.EQUIPMENT]: 'ui_panel_equipment',
+		[PANEL_IDS.CRAFTING]: 'ui_panel_crafting',
+		[PANEL_IDS.DOCTRINE]: 'ui_panel_doctrine',
 	};
 
 	const gateId = panelToGateMap[panelId];
@@ -102,12 +143,7 @@ export function getPanelUnlockReason(
 	}
 
 	// Always available panels
-	if (
-		panelId === PANEL_IDS.DASHBOARD ||
-		panelId === PANEL_IDS.EQUIPMENT ||
-		panelId === PANEL_IDS.CRAFTING ||
-		panelId === PANEL_IDS.DOCTRINE
-	) {
+	if (panelId === PANEL_IDS.DASHBOARD) {
 		return null;
 	}
 

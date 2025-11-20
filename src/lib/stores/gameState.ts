@@ -18,10 +18,12 @@ import { getMissionPoolAdventurers, getAssignedAdventurers } from '../domain/que
 import { getMissionSlotCapacity } from '../domain/queries/MissionSlotQueries';
 import { getRosterCapacity } from '../domain/queries/RosterQueries';
 import type { Capacity } from '../domain/queries/Capacity';
-import { getGuildHallTier, isGuildHallRuined } from '../domain/queries/FacilityQueries';
+import { getGuildHallTier, isGuildHallRuined, getGuildHall } from '../domain/queries/FacilityQueries';
 import { getAdventurerCount, hasAnyAdventurers, isFirstAdventurer } from '../domain/queries/AdventurerQueries';
 import { getPlayerAssignedSlots, hasOddJobsAvailable, getOddJobsGoldRate } from '../domain/queries/FacilityEffectQueries';
-import { isAdventurersPanelUnlocked, isMissionsPanelUnlocked, isMissionsPanelFunctional, isFacilitiesPanelUnlocked } from '../domain/queries/UIGatingQueries';
+import { isAdventurersPanelUnlocked, isMissionsPanelUnlocked, isMissionsPanelFunctional, isFacilitiesPanelUnlocked, isEquipmentPanelUnlocked, isCraftingPanelUnlocked, isDoctrinePanelUnlocked } from '../domain/queries/UIGatingQueries';
+// Ensure gates are registered when store module loads
+import '../domain/gating';
 import { getGuildHallUpgradeCost, canUpgradeGuildHall } from '../domain/queries/CostQueries';
 import type { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 import { getGateProgress, getGateStatus } from '../domain/gating/GateQueries';
@@ -189,6 +191,11 @@ export const isGuildHallRuinedState: Readable<boolean> = derived(
 	($state) => $state ? isGuildHallRuined($state) : true
 );
 
+export const guildHall: Readable<Facility | undefined> = derived(
+	gameState,
+	($state) => $state ? getGuildHall($state) : undefined
+);
+
 // Adventurer queries
 export const adventurerCount: Readable<number> = derived(
 	gameState,
@@ -240,6 +247,21 @@ export const missionsPanelFunctional: Readable<boolean> = derived(
 export const facilitiesPanelUnlocked: Readable<boolean> = derived(
 	gameState,
 	($state) => $state ? isFacilitiesPanelUnlocked($state) : false
+);
+
+export const equipmentPanelUnlocked: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isEquipmentPanelUnlocked($state) : false
+);
+
+export const craftingPanelUnlocked: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isCraftingPanelUnlocked($state) : false
+);
+
+export const doctrinePanelUnlocked: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? isDoctrinePanelUnlocked($state) : false
 );
 
 // Guild hall upgrade queries

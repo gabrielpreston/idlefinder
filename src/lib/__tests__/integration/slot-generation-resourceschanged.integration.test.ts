@@ -70,7 +70,7 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 			vi.advanceTimersByTime(elapsedMs);
 
 			// Manually trigger tick handler
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			expect(tickHandler).toBeDefined();
 			
@@ -125,7 +125,7 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 			const elapsedMs = 60000;
 			vi.advanceTimersByTime(elapsedMs);
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			await tickHandler(elapsedMs, new Date(Date.now()));
 
@@ -143,7 +143,7 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 			const elapsedMs = 60000; // 1 minute
 			vi.advanceTimersByTime(elapsedMs);
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			await tickHandler(elapsedMs, new Date(Date.now()));
 

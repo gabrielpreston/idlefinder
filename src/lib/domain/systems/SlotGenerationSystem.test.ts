@@ -78,9 +78,12 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
+		expect(result.success).toBe(true);
+		if (!result.data) throw new Error('Expected data');
+		const slotResult = result.data;
 
-			expect(result.effects).toHaveLength(0);
-			expect(result.events).toHaveLength(0);
+		expect(slotResult.effects).toHaveLength(0);
+		expect(slotResult.events).toHaveLength(0);
 		});
 
 		it('should skip slots with assigneeType none', () => {
@@ -90,8 +93,8 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
-
-			expect(result.effects).toHaveLength(0);
+			expect(result.success).toBe(true);
+			expect(result.data?.effects).toHaveLength(0);
 		});
 
 		it('should generate resources for player-assigned slot', () => {
@@ -110,9 +113,12 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
+		expect(result.success).toBe(true);
+		if (!result.data) throw new Error('Expected data');
+		const slotResult = result.data;
 
 			// Should have at least timer update effect
-			expect(result.effects.length).toBeGreaterThan(0);
+			expect(slotResult.effects.length).toBeGreaterThan(0);
 		});
 
 		it('should generate more resources for adventurer-assigned slot', () => {
@@ -131,9 +137,12 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
+		expect(result.success).toBe(true);
+		if (!result.data) throw new Error('Expected data');
+		const slotResult = result.data;
 
 			// Should have effects (adventurer has 1.5x multiplier)
-			expect(result.effects.length).toBeGreaterThan(0);
+			expect(slotResult.effects.length).toBeGreaterThan(0);
 		});
 
 		it('should apply facility multiplier', () => {
@@ -152,9 +161,12 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
+		expect(result.success).toBe(true);
+		if (!result.data) throw new Error('Expected data');
+		const slotResult = result.data;
 
 			// Should have effects
-			expect(result.effects.length).toBeGreaterThan(0);
+			expect(slotResult.effects.length).toBeGreaterThan(0);
 		});
 
 		it('should skip slots when no time has elapsed', () => {
@@ -172,8 +184,8 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
-
-			expect(result.effects).toHaveLength(0);
+		expect(result.success).toBe(true);
+		expect(result.data?.effects).toHaveLength(0);
 		});
 
 		it('should handle first tick (no lastTickAt)', () => {
@@ -191,9 +203,9 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
-
-			// Should still update timer for first tick
-			expect(result.effects.length).toBeGreaterThanOrEqual(0);
+		expect(result.success).toBe(true);
+		// Should still update timer for first tick
+		expect(result.data?.effects.length).toBeGreaterThanOrEqual(0);
 		});
 
 		it('should handle missing facility gracefully', () => {
@@ -207,9 +219,10 @@ describe('SlotGenerationSystem', () => {
 			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
-
-			// Should skip slot when facility not found
-			expect(result.effects).toHaveLength(0);
+		expect(result.success).toBe(true);
+		// Should have warning about missing facility
+		expect(result.warnings?.length).toBeGreaterThan(0);
+		expect(result.data?.effects).toHaveLength(0);
 		});
 	});
 });

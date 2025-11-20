@@ -8,6 +8,7 @@ import type { Timestamp } from '../valueObjects/Timestamp';
 import type { MissionAttributes } from '../attributes/MissionAttributes';
 import type { MissionState } from '../states/MissionState';
 import type { Entity } from '../primitives/Requirement';
+import { validateEntity } from '../primitives/EntityValidation';
 import type { EntityMetadata } from '../primitives/EntityMetadata';
 
 export type MissionId = Identifier<'MissionId'>;
@@ -33,6 +34,9 @@ export class Mission implements Entity {
 		timers: Record<string, number | null> = {},
 		metadata: EntityMetadata = {}
 	) {
+		// Validate entity
+		validateEntity(id.value, 'Mission');
+
 		this._id = id;
 		this.id = id.value; // String ID for Entity interface
 		this.attributes = attributes;

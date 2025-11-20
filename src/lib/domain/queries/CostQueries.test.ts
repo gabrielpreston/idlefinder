@@ -13,7 +13,6 @@ import {
 import { createTestGameState, createTestFacility } from '../../test-utils/testFactories';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
-import type { GameState } from '../entities/GameState';
 import type { Entity } from '../primitives/Requirement';
 // Import gating module to ensure gates are registered
 import '../gating';

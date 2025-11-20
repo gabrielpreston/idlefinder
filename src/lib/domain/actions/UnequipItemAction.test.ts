@@ -11,6 +11,7 @@ import { NumericStatMap } from '../valueObjects/NumericStatMap';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import type { RequirementContext, Entity } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
+import type { Effect } from '../primitives/Effect';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -98,8 +99,7 @@ describe('UnequipItemAction', () => {
 		it('should return empty array when item not found', () => {
 			const entities = new Map<string, Entity>();
 			const resources = new ResourceBundle(new Map());
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new UnequipItemAction('nonexistent-item', 'adv-1', 'weapon');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -111,8 +111,7 @@ describe('UnequipItemAction', () => {
 			const item = createTestItem({ id: 'item-1', itemType: 'weapon' });
 			const entities = new Map<string, Entity>([[item.id, item]]);
 			const resources = new ResourceBundle(new Map());
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new UnequipItemAction('item-1', 'nonexistent-adv', 'weapon');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -128,8 +127,7 @@ describe('UnequipItemAction', () => {
 				[adventurer.id, adventurer]
 			]);
 			const resources = new ResourceBundle(new Map());
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new UnequipItemAction('item-1', 'adv-1', 'weapon');
 			const events = action.generateEvents(entities, resources, effects, {});

@@ -6,7 +6,6 @@ import { describe, it, expect } from 'vitest';
 import { createQueryContext } from './Query';
 import { createTestGameState } from '../../test-utils/testFactories';
 import { Timestamp } from '../valueObjects/Timestamp';
-import type { GameState } from '../entities/GameState';
 
 describe('Query', () => {
 	describe('createQueryContext', () => {

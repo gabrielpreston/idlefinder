@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
-	import { adventurersPanelUnlocked, facilitiesPanelUnlocked, gameState } from '$lib/stores/gameState';
+	import { adventurersPanelUnlocked, facilitiesPanelUnlocked, missionsPanelUnlocked, equipmentPanelUnlocked, craftingPanelUnlocked, doctrinePanelUnlocked, gameState } from '$lib/stores/gameState';
 	import { getPanelUnlockReason, PANEL_IDS } from '$lib/domain/queries/UIGatingQueries';
 	
 	export let activeTab: Writable<string>;
@@ -8,30 +8,46 @@
 
 	const tabs = [
 		{ id: 'dashboard', label: 'Dashboard', alwaysAvailable: true },
-		{ id: 'roster', label: 'Roster', alwaysAvailable: false },
 		{ id: 'facilities', label: 'Facilities', alwaysAvailable: false },
-		{ id: 'equipment', label: 'Equipment', alwaysAvailable: true },
-		{ id: 'crafting', label: 'Crafting', alwaysAvailable: true },
-		{ id: 'doctrine', label: 'Doctrine', alwaysAvailable: true }
+		{ id: 'missions', label: 'Missions', alwaysAvailable: false },
+		{ id: 'roster', label: 'Roster', alwaysAvailable: false },
+		{ id: 'equipment', label: 'Equipment', alwaysAvailable: false },
+		{ id: 'crafting', label: 'Crafting', alwaysAvailable: false },
+		{ id: 'doctrine', label: 'Doctrine', alwaysAvailable: false }
 	];
 
 	function isTabUnlocked(tabId: string): boolean {
 		switch (tabId) {
-			case 'roster':
-				return $adventurersPanelUnlocked;
+			case 'dashboard':
+				return true; // Always available
 			case 'facilities':
 				return $facilitiesPanelUnlocked;
+			case 'missions':
+				return $missionsPanelUnlocked;
+			case 'roster':
+				return $adventurersPanelUnlocked;
+			case 'equipment':
+				return $equipmentPanelUnlocked;
+			case 'crafting':
+				return $craftingPanelUnlocked;
+			case 'doctrine':
+				return $doctrinePanelUnlocked;
 			default:
-				return true; // Dashboard, Equipment, Crafting, Doctrine always available
+				return false;
 		}
 	}
 
 	function getTabUnlockReason(tabId: string): string | null {
 		if (isTabUnlocked(tabId)) return null;
 		if (!$gameState) return 'Game not loaded';
-		// Map 'roster' tab ID to 'adventurers' panel ID for UIGatingQueries
+		// Map tab IDs to panel IDs for UIGatingQueries
 		const panelId = tabId === 'roster' ? PANEL_IDS.ADVENTURERS : tabId;
-		return getPanelUnlockReason(panelId, $gameState);
+		const reason = getPanelUnlockReason(panelId, $gameState);
+		// If no reason is provided but tab is locked, provide a default message
+		if (!reason && !isTabUnlocked(tabId)) {
+			return 'This panel is locked';
+		}
+		return reason;
 	}
 
 	function handleTabClick(tabId: string) {

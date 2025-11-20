@@ -8,8 +8,9 @@
 	import EquipmentPanel from '../equipment/EquipmentPanel.svelte';
 	import CraftingPanel from '../crafting/CraftingPanel.svelte';
 	import FacilitiesPanel from '../facilities/FacilitiesPanel.svelte';
+	import MissionsPanel from '../missions/MissionsPanel.svelte';
 	import DevTools from '../DevTools.svelte';
-	import { adventurersPanelUnlocked, facilitiesPanelUnlocked, gameState } from '$lib/stores/gameState';
+	import { adventurersPanelUnlocked, facilitiesPanelUnlocked, missionsPanelUnlocked, equipmentPanelUnlocked, craftingPanelUnlocked, doctrinePanelUnlocked, gameState } from '$lib/stores/gameState';
 	import { getPanelUnlockReason, PANEL_IDS } from '$lib/domain/queries/UIGatingQueries';
 
 	const activeTab = writable('dashboard');
@@ -20,7 +21,7 @@
 
 	function getLockedMessage(tab: string): string | null {
 		if (!$gameState) return null;
-		// Map 'roster' tab ID to 'adventurers' panel ID for UIGatingQueries
+		// Map tab IDs to panel IDs for UIGatingQueries
 		const panelId = tab === 'roster' ? PANEL_IDS.ADVENTURERS : tab;
 		return getPanelUnlockReason(panelId, $gameState);
 	}
@@ -32,17 +33,6 @@
 	<div class="content-area">
 		{#if $activeTab === 'dashboard'}
 			<DashboardPanel />
-		{:else if $activeTab === 'doctrine'}
-			<DoctrinePanel />
-		{:else if $activeTab === 'roster'}
-			{#if $adventurersPanelUnlocked}
-				<RosterPanel />
-			{:else}
-				<div class="locked-panel">
-					<h2>Roster</h2>
-					<p class="locked-message">{getLockedMessage('roster') || 'This panel is locked'}</p>
-				</div>
-			{/if}
 		{:else if $activeTab === 'facilities'}
 			{#if $facilitiesPanelUnlocked}
 				<FacilitiesPanel />
@@ -52,10 +42,51 @@
 					<p class="locked-message">{getLockedMessage('facilities') || 'This panel is locked'}</p>
 				</div>
 			{/if}
+		{:else if $activeTab === 'missions'}
+			{#if $missionsPanelUnlocked}
+				<MissionsPanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Missions</h2>
+					<p class="locked-message">{getLockedMessage('missions') || 'This panel is locked'}</p>
+				</div>
+			{/if}
+		{:else if $activeTab === 'roster'}
+			{#if $adventurersPanelUnlocked}
+				<RosterPanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Roster</h2>
+					<p class="locked-message">{getLockedMessage('roster') || 'This panel is locked'}</p>
+				</div>
+			{/if}
 		{:else if $activeTab === 'equipment'}
-			<EquipmentPanel />
+			{#if $equipmentPanelUnlocked}
+				<EquipmentPanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Equipment</h2>
+					<p class="locked-message">{getLockedMessage('equipment') || 'This panel is locked'}</p>
+				</div>
+			{/if}
 		{:else if $activeTab === 'crafting'}
-			<CraftingPanel />
+			{#if $craftingPanelUnlocked}
+				<CraftingPanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Crafting</h2>
+					<p class="locked-message">{getLockedMessage('crafting') || 'This panel is locked'}</p>
+				</div>
+			{/if}
+		{:else if $activeTab === 'doctrine'}
+			{#if $doctrinePanelUnlocked}
+				<DoctrinePanel />
+			{:else}
+				<div class="locked-panel">
+					<h2>Doctrine</h2>
+					<p class="locked-message">{getLockedMessage('doctrine') || 'This panel is locked'}</p>
+				</div>
+			{/if}
 		{/if}
 	</div>
 	<DevTools />

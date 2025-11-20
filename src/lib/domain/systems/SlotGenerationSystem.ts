@@ -8,9 +8,11 @@ import type { Timestamp } from '../valueObjects/Timestamp';
 import type { ResourceSlot } from '../entities/ResourceSlot';
 import type { Facility } from '../entities/Facility';
 import { getTimer } from '../primitives/TimerHelpers';
-import { ModifyResourceEffect, SetTimerEffect, type Effect } from '../primitives/Effect';
+import { ModifyResourceEffect, SetTimerEffect, SetEntityMetadataEffect, type Effect } from '../primitives/Effect';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { DomainEvent } from '../primitives/Event';
+import { getEntityAs, isFacility } from '../primitives/EntityTypeGuards';
+import { success, type SystemResult } from '../primitives/SystemResult';
 
 /**
  * Slot Generation Result - effects and events from slot generation
@@ -43,9 +45,10 @@ export function getWorkerMultiplier(assigneeType: 'player' | 'adventurer'): numb
 export function processSlotGeneration(
 	state: GameState,
 	now: Timestamp
-): SlotGenerationResult {
+): SystemResult<SlotGenerationResult> {
 	const effects: Effect[] = [];
 	const events: DomainEvent[] = [];
+	const warnings: string[] = [];
 
 	// Find all ResourceSlot entities with assignee (occupied or player-assigned)
 	const slots = Array.from(state.entities.values()).filter(
@@ -67,9 +70,9 @@ export function processSlotGeneration(
 		}
 
 		// Get facility for multiplier calculation
-		const facility = state.entities.get(slot.attributes.facilityId) as Facility | undefined;
-		if (!facility || facility.type !== 'Facility') {
-			console.warn(`[SlotGenerationSystem] Facility ${slot.attributes.facilityId} not found for slot ${slot.id}`);
+		const facility = getEntityAs(state.entities, slot.attributes.facilityId, isFacility);
+		if (!facility) {
+			warnings.push(`Facility ${slot.attributes.facilityId} not found for slot ${slot.id}`);
 			continue;
 		}
 
@@ -103,16 +106,10 @@ export function processSlotGeneration(
 		// Update lastTickAt timer
 		effects.push(new SetTimerEffect(slot.id, 'lastTickAt', now));
 		
-		// Update fractional accumulator in slot metadata
-		// Since entities are mutable in the effect system, we can update metadata directly
-		// The slot entity in the state's entities map will be updated
-		const slotEntity = state.entities.get(slot.id) as ResourceSlot | undefined;
-		if (slotEntity) {
-			// Update metadata directly (entities are mutable)
-			(slotEntity.metadata as Record<string, unknown>).fractionalAccumulator = remainingFraction;
-		}
+		// Update fractional accumulator in slot metadata via effect (maintains system purity)
+		effects.push(new SetEntityMetadataEffect(slot.id, 'fractionalAccumulator', remainingFraction));
 	}
 
-	return { effects, events };
+	return success({ effects, events }, warnings.length > 0 ? warnings : undefined);
 }
 

@@ -9,7 +9,7 @@ import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import type { RequirementContext, Entity } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
-import { SetTimerEffect } from '../primitives/Effect';
+import { SetTimerEffect, type Effect } from '../primitives/Effect';
 
 describe('StartMissionAction', () => {
 	describe('computeEffects', () => {
@@ -32,7 +32,7 @@ describe('StartMissionAction', () => {
 
 			// Should have SetTimerEffect with custom start time
 			const startTimerEffect = effects.find(e => {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				 
 				return e instanceof SetTimerEffect && (e as any).entityId === 'mission-1' && (e as any).timerKey === 'startedAt';
 			});
 			expect(startTimerEffect).toBeDefined();
@@ -62,8 +62,7 @@ describe('StartMissionAction', () => {
 			const adventurer = createTestAdventurer({ id: 'adv-1' });
 			const entities = new Map<string, Entity>([[adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('nonexistent-mission', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -75,8 +74,7 @@ describe('StartMissionAction', () => {
 			const mission = createTestMission({ id: 'mission-1' });
 			const entities = new Map<string, Entity>([[mission.id, mission]]);
 			const resources = ResourceBundle.fromArray([]);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'nonexistent-adventurer');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -88,8 +86,7 @@ describe('StartMissionAction', () => {
 			const entities = new Map<string, Entity>();
 			const resources = ResourceBundle.fromArray([]);
 			 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('nonexistent-mission', 'nonexistent-adventurer');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -104,8 +101,7 @@ describe('StartMissionAction', () => {
 			const resources = ResourceBundle.fromArray([]);
 			const startedAt = Timestamp.now();
 			const endsAt = startedAt.add(Duration.ofMinutes(10));
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
@@ -123,8 +119,7 @@ describe('StartMissionAction', () => {
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
 			const startedAt = Timestamp.now();
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
@@ -144,12 +139,11 @@ describe('StartMissionAction', () => {
 			const startedAt = Timestamp.now();
 			const endsAt = startedAt.add(Duration.ofMinutes(10));
 			// Set endsAt timer on mission
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			(mission as any).timers = { endsAt: endsAt.value };
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
@@ -167,13 +161,12 @@ describe('StartMissionAction', () => {
 			const mission = createTestMission({ id: 'mission-1', state: 'Available' });
 			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
 			// Ensure endsAt timer is not set
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			(mission as any).timers = {};
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
 			const startedAt = Timestamp.now();
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
@@ -192,12 +185,11 @@ describe('StartMissionAction', () => {
 			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
 			const endsAt = Timestamp.now().add(Duration.ofMinutes(10));
 			// Set endsAt timer but not startedAt
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			(mission as any).timers = { endsAt: endsAt.value };
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {

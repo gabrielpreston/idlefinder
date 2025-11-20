@@ -3,6 +3,8 @@
 	import { missions } from '$lib/stores/gameState';
 	import type { GameRuntime } from '$lib/runtime/startGame';
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+	import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
+	import { IdleLoop } from '$lib/domain/systems/IdleLoop';
 
 	// Get runtime from context
 	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
@@ -181,15 +183,26 @@
 		for (const mission of stuckMissions) {
 			try {
 				// Use the idle loop to resolve missions
-				const { Timestamp } = await import('$lib/domain/valueObjects/Timestamp');
-				const idleLoop = new (await import('$lib/domain/systems/IdleLoop')).IdleLoop();
+				const idleLoop = new IdleLoop();
 				const result = idleLoop.processIdleProgression(state, Timestamp.from(now));
+				
+				// Log warnings and errors (infrastructure layer)
+				if (result.warnings) {
+					for (const warning of result.warnings) {
+						console.warn(`[IdleLoop] ${warning}`);
+					}
+				}
+				if (result.errors) {
+					for (const error of result.errors) {
+						console.error(`[IdleLoop] ${error}`);
+					}
+				}
 				
 				if (result.newState !== state) {
 					runtime.busManager.setState(result.newState);
 					// Publish events
 					for (const event of result.events) {
-						await runtime.busManager.domainEventBus.publish(event);
+						runtime.busManager.domainEventBus.publish(event);
 					}
 					completed++;
 				}

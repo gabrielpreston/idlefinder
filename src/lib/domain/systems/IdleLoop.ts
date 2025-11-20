@@ -22,6 +22,8 @@ import { processSlotGeneration } from './SlotGenerationSystem';
 export interface IdleLoopResult {
 	newState: GameState;
 	events: DomainEvent[];
+	warnings?: string[];
+	errors?: string[];
 }
 
 /**
@@ -41,6 +43,8 @@ export class IdleLoop {
 		const entities = new Map(previousState.entities);
 		let resources = previousState.resources;
 		const events: DomainEvent[] = [];
+		const allWarnings: string[] = [];
+		const allErrors: string[] = [];
 
 		// Find missions that are ready for resolution
 		const missions = Array.from(entities.values()).filter(
@@ -83,7 +87,7 @@ export class IdleLoop {
 							events.push(...actionEvents);
 						}
 					} catch (error) {
-						console.error(`[IdleLoop] Error resolving mission ${mission.id}:`, error);
+						allErrors.push(`Error resolving mission ${mission.id}: ${error instanceof Error ? error.message : String(error)}`);
 					}
 				}
 			}
@@ -159,9 +163,9 @@ export class IdleLoop {
 					);
 					events.push(...actionEvents);
 				}
-			} catch (error) {
-				console.error(`[IdleLoop] Error processing crafting action:`, error);
-			}
+				} catch (error) {
+					allErrors.push(`Error processing crafting action: ${error instanceof Error ? error.message : String(error)}`);
+				}
 		}
 
 		events.push(...craftingResult.events);
@@ -172,16 +176,26 @@ export class IdleLoop {
 			now
 		);
 
-		// Apply slot generation effects
-		if (slotGenerationResult.effects.length > 0) {
-			const slotEffectResult = applyEffects(slotGenerationResult.effects, entities, resources);
-			resources = slotEffectResult.resources;
-			
-			// Note: Fractional accumulator is already updated in slot metadata by SlotGenerationSystem
-			// (entities are mutable in the effect system, so the update persists)
+		// Collect warnings and errors from slot generation
+		if (slotGenerationResult.warnings) {
+			allWarnings.push(...slotGenerationResult.warnings);
+		}
+		if (slotGenerationResult.errors) {
+			allErrors.push(...slotGenerationResult.errors);
 		}
 
-		events.push(...slotGenerationResult.events);
+		// Apply slot generation effects if successful
+		if (slotGenerationResult.success && slotGenerationResult.data) {
+			if (slotGenerationResult.data.effects.length > 0) {
+				const slotEffectResult = applyEffects(slotGenerationResult.data.effects, entities, resources);
+				resources = slotEffectResult.resources;
+				
+				// Note: Fractional accumulator is updated via SetEntityMetadataEffect
+				// (effects are applied here, maintaining system purity)
+			}
+
+			events.push(...slotGenerationResult.data.events);
+		}
 
 		// Create new GameState with updated entities and resources
 		const newState = new GameState(
@@ -193,7 +207,9 @@ export class IdleLoop {
 
 		return {
 			newState,
-			events
+			events,
+			...(allWarnings.length > 0 ? { warnings: allWarnings } : {}),
+			...(allErrors.length > 0 ? { errors: allErrors } : {})
 		};
 	}
 }

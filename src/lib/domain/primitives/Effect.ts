@@ -11,6 +11,7 @@ import type { Timestamp } from '../valueObjects/Timestamp';
 import type { NumericStatMap } from '../valueObjects/NumericStatMap';
 import type { Entity } from './Requirement';
 import { getTimer } from './TimerHelpers';
+import { isAdventurer, isFacility, isItem, isMission } from './EntityTypeGuards';
 
 /**
  * Result of applying an effect
@@ -76,35 +77,33 @@ export class SetEntityStateEffect implements Effect {
 		}
 		
 		// Call entity methods for state transitions (per spec: Effects call entity methods)
-		if (entity.type === 'Mission') {
-			const mission = entity as import('../entities/Mission').Mission;
+		if (isMission(entity)) {
 			if (this.newState === 'InProgress') {
 				// Mission.start() requires startedAt and endsAt timers
 				// These should be set by SetTimerEffect before this effect runs
-				const startedAt = getTimer(mission, 'startedAt');
-				const endsAt = getTimer(mission, 'endsAt');
+				const startedAt = getTimer(entity, 'startedAt');
+				const endsAt = getTimer(entity, 'endsAt');
 				if (startedAt && endsAt) {
-					mission.start(startedAt, endsAt);
+					entity.start(startedAt, endsAt);
 				} else {
 					// Fallback: direct mutation if timers not set yet
-					mission.state = this.newState as import('../states/MissionState').MissionState;
+					entity.state = this.newState as import('../states/MissionState').MissionState;
 				}
 			} else if (this.newState === 'Completed') {
-				const completedAt = getTimer(mission, 'endsAt') || getTimer(mission, 'startedAt');
+				const completedAt = getTimer(entity, 'endsAt') || getTimer(entity, 'startedAt');
 				if (completedAt) {
-					mission.complete(completedAt);
+					entity.complete(completedAt);
 				} else {
 					// Fallback: direct mutation
-					mission.state = this.newState as import('../states/MissionState').MissionState;
+					entity.state = this.newState as import('../states/MissionState').MissionState;
 				}
 			} else if (this.newState === 'Expired') {
-				mission.expire();
+				entity.expire();
 			} else {
-				mission.state = this.newState as import('../states/MissionState').MissionState;
+				entity.state = this.newState as import('../states/MissionState').MissionState;
 			}
-		} else if (entity.type === 'Adventurer') {
-			const adventurer = entity as import('../entities/Adventurer').Adventurer;
-			if (this.newState === 'OnMission' && adventurer.state === 'Idle') {
+		} else if (isAdventurer(entity)) {
+			if (this.newState === 'OnMission' && entity.state === 'Idle') {
 				// Use provided missionId or find it from entities
 				const missionIdToUse = this.missionId || (() => {
 					for (const [id, e] of entities.entries()) {
@@ -117,15 +116,15 @@ export class SetEntityStateEffect implements Effect {
 				
 				if (missionIdToUse) {
 					const missionIdObj = Identifier.from<'MissionId'>(missionIdToUse);
-					adventurer.assignToMission(missionIdObj);
+					entity.assignToMission(missionIdObj);
 				} else {
 					// Fallback: direct mutation if mission not found
-					adventurer.state = this.newState as import('../states/AdventurerState').AdventurerState;
+					entity.state = this.newState as import('../states/AdventurerState').AdventurerState;
 				}
-			} else if (this.newState === 'Idle' && adventurer.state === 'OnMission') {
-				adventurer.completeMission();
+			} else if (this.newState === 'Idle' && entity.state === 'OnMission') {
+				entity.completeMission();
 			} else {
-				adventurer.state = this.newState as import('../states/AdventurerState').AdventurerState;
+				entity.state = this.newState as import('../states/AdventurerState').AdventurerState;
 			}
 		} else {
 			// Fallback for other entity types
@@ -162,28 +161,26 @@ export class SetEntityAttributeEffect implements Effect {
 		if (parts.length === 2 && parts[0] === 'attributes') {
 			const attributeName = parts[1];
 			
-			if (entity.type === 'Adventurer') {
-				const adventurer = entity as import('../entities/Adventurer').Adventurer;
+			if (isAdventurer(entity)) {
 				if (attributeName === 'xp' && typeof this.value === 'number') {
-					adventurer.attributes.xp = this.value;
+					entity.attributes.xp = this.value;
 				} else if (attributeName === 'level' && typeof this.value === 'number') {
-					adventurer.attributes.level = this.value;
+					entity.attributes.level = this.value;
 				} else {
 					// Fallback: direct assignment
-					(adventurer.attributes as unknown as Record<string, unknown>)[attributeName] = this.value;
+					(entity.attributes as unknown as Record<string, unknown>)[attributeName] = this.value;
 				}
-			} else if (entity.type === 'Facility') {
-				const facility = entity as import('../entities/Facility').Facility;
+			} else if (isFacility(entity)) {
 				if (attributeName === 'tier' && typeof this.value === 'number') {
 					// Use facility.upgrade() method, but we need to set to specific tier
 					// For now, upgrade until we reach the target tier
-					while (facility.attributes.tier < this.value) {
-						facility.upgrade();
+					while (entity.attributes.tier < this.value) {
+						entity.upgrade();
 					}
 				} else {
 					// Fallback: direct assignment (may not work if attributes is readonly)
 					try {
-						(facility.attributes as unknown as Record<string, unknown>)[attributeName] = this.value;
+						(entity.attributes as unknown as Record<string, unknown>)[attributeName] = this.value;
 					} catch {
 						// Ignore if readonly
 					}
@@ -242,6 +239,38 @@ export class SetTimerEffect implements Effect {
 }
 
 /**
+ * Effect: Set entity metadata field
+ * Note: Entity must have a metadata Record<string, unknown>
+ * Follows same pattern as SetEntityAttributeEffect
+ */
+export class SetEntityMetadataEffect implements Effect {
+	constructor(
+		private readonly entityId: string,
+		private readonly metadataKey: string,
+		private readonly value: unknown
+	) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		const entity = entities.get(this.entityId);
+		if (!entity) {
+			throw new Error(`Entity ${this.entityId} not found`);
+		}
+		
+		// Update metadata (metadata is mutable per spec)
+		// Type assertion: all entities have metadata property
+		const entityWithMetadata = entity as Entity & {
+			metadata: Record<string, unknown>;
+		};
+		entityWithMetadata.metadata[this.metadataKey] = this.value;
+		
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
  * Effect: Add tags to entity
  * Note: Entity must have a tags array
  */
@@ -287,37 +316,33 @@ export class EquipItemEffect implements Effect {
 		const item = entities.get(this.itemId);
 		const adventurer = entities.get(this.adventurerId);
 
-		if (!item || item.type !== 'Item') {
+		if (!item || !isItem(item)) {
 			throw new Error(`Item ${this.itemId} not found`);
 		}
-		if (!adventurer || adventurer.type !== 'Adventurer') {
+		if (!adventurer || !isAdventurer(adventurer)) {
 			throw new Error(`Adventurer ${this.adventurerId} not found`);
 		}
 
-		const itemEntity = item as import('../entities/Item').Item;
-		const adventurerEntity = adventurer as import('../entities/Adventurer').Adventurer;
-
 		// Unequip any existing item in this slot
-		const existingItemId = adventurerEntity.attributes.equipment?.[`${this.slot}Id`];
+		const existingItemId = adventurer.attributes.equipment?.[`${this.slot}Id`];
 		if (existingItemId) {
 			const existingItem = entities.get(existingItemId);
-			if (existingItem && existingItem.type === 'Item') {
-				const existingItemEntity = existingItem as import('../entities/Item').Item;
-				if (existingItemEntity.state === 'Equipped') {
-					existingItemEntity.unequip();
+			if (existingItem && isItem(existingItem)) {
+				if (existingItem.state === 'Equipped') {
+					existingItem.unequip();
 				}
 			}
 		}
 
 		// Equip the new item
 		const adventurerIdObj = Identifier.from<'AdventurerId'>(this.adventurerId);
-		itemEntity.equip(adventurerIdObj);
+		item.equip(adventurerIdObj);
 
 		// Update adventurer equipment reference
-		if (!adventurerEntity.attributes.equipment) {
-			adventurerEntity.attributes.equipment = {};
+		if (!adventurer.attributes.equipment) {
+			adventurer.attributes.equipment = {};
 		}
-		adventurerEntity.attributes.equipment[`${this.slot}Id`] = this.itemId;
+		adventurer.attributes.equipment[`${this.slot}Id`] = this.itemId;
 
 		return {
 			entities,
@@ -341,24 +366,21 @@ export class UnequipItemEffect implements Effect {
 		const item = entities.get(this.itemId);
 		const adventurer = entities.get(this.adventurerId);
 
-		if (!item || item.type !== 'Item') {
+		if (!item || !isItem(item)) {
 			throw new Error(`Item ${this.itemId} not found`);
 		}
-		if (!adventurer || adventurer.type !== 'Adventurer') {
+		if (!adventurer || !isAdventurer(adventurer)) {
 			throw new Error(`Adventurer ${this.adventurerId} not found`);
 		}
 
-		const itemEntity = item as import('../entities/Item').Item;
-		const adventurerEntity = adventurer as import('../entities/Adventurer').Adventurer;
-
 		// Unequip the item
-		if (itemEntity.state === 'Equipped') {
-			itemEntity.unequip();
+		if (item.state === 'Equipped') {
+			item.unequip();
 		}
 
 		// Clear adventurer equipment reference
-		if (adventurerEntity.attributes.equipment) {
-			delete adventurerEntity.attributes.equipment[`${this.slot}Id`];
+		if (adventurer.attributes.equipment) {
+			delete adventurer.attributes.equipment[`${this.slot}Id`];
 		}
 
 		return {
@@ -378,12 +400,11 @@ export class RepairItemEffect implements Effect {
 	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
 		const item = entities.get(this.itemId);
 
-		if (!item || item.type !== 'Item') {
+		if (!item || !isItem(item)) {
 			throw new Error(`Item ${this.itemId} not found`);
 		}
 
-		const itemEntity = item as import('../entities/Item').Item;
-		itemEntity.repair();
+		item.repair();
 
 		return {
 			entities,
@@ -406,21 +427,18 @@ export class SalvageItemEffect implements Effect {
 	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
 		const item = entities.get(this.itemId);
 
-		if (!item || item.type !== 'Item') {
+		if (!item || !isItem(item)) {
 			throw new Error(`Item ${this.itemId} not found`);
 		}
 
-		const itemEntity = item as import('../entities/Item').Item;
-
 		// If item is equipped, unequip it first
-		if (itemEntity.state === 'Equipped') {
-			itemEntity.unequip();
+		if (item.state === 'Equipped') {
+			item.unequip();
 			// Also clear any adventurer equipment references
 			for (const entity of entities.values()) {
-				if (entity.type === 'Adventurer') {
-					const adventurer = entity as import('../entities/Adventurer').Adventurer;
-					if (adventurer.attributes.equipment) {
-						const eq = adventurer.attributes.equipment;
+				if (isAdventurer(entity)) {
+					if (entity.attributes.equipment) {
+						const eq = entity.attributes.equipment;
 						if (eq.weaponId === this.itemId) delete eq.weaponId;
 						if (eq.armorId === this.itemId) delete eq.armorId;
 						if (eq.offHandId === this.itemId) delete eq.offHandId;

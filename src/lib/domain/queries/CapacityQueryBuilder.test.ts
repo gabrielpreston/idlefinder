@@ -6,7 +6,6 @@ import { describe, it, expect } from 'vitest';
 import { CapacityQueryBuilder } from './CapacityQueryBuilder';
 import type { Query } from './Query';
 import { createTestGameState } from '../../test-utils/testFactories';
-import type { Capacity } from './Capacity';
 
 describe('CapacityQueryBuilder', () => {
 	describe('create', () => {

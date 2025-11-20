@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
-	import { facilities, gameState, guildHallUpgradeCost, canUpgradeGuildHallState } from '$lib/stores/gameState';
-	import { getGuildHall } from '$lib/domain/queries/FacilityQueries';
+	import { facilities, guildHallUpgradeCost, canUpgradeGuildHallState, guildHall } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import type { CommandFailedEvent } from '$lib/bus/types';
 	import type { GameRuntime } from '$lib/runtime/startGame';
@@ -26,13 +25,11 @@
 		return unsubscribe;
 	});
 
-	$: guildhall = $gameState ? getGuildHall($gameState) : null;
-
 	async function upgradeGuildHall() {
-		if (!guildhall) return;
+		if (!$guildHall) return;
 		error = null;
 		await dispatchCommand(runtime, 'UpgradeFacility', {
-			facility: guildhall.id
+			facility: $guildHall.id
 		});
 	}
 </script>
@@ -54,7 +51,7 @@
 				</div>
 				{#if facility.attributes.facilityType === 'Guildhall'}
 					<SlotPanel {facility} />
-					{#if guildhall}
+					{#if $guildHall}
 						{#if $canUpgradeGuildHallState && $guildHallUpgradeCost}
 							<div class="upgrade-section">
 								<div class="upgrade-cost">

@@ -9,6 +9,7 @@ import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
+import type { Effect } from '../primitives/Effect';
 import { CraftingJob } from '../entities/CraftingJob';
 import { Identifier } from '../valueObjects/Identifier';
 import type { CraftingJobAttributes } from '../attributes/CraftingJobAttributes';
@@ -131,7 +132,7 @@ describe('StartCraftingAction', () => {
 		it('should return empty array when job not found', () => {
 			const entities = new Map();
 			const resources = ResourceBundle.fromArray([]);
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartCraftingAction('nonexistent-job', Duration.ofMinutes(5));
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -143,7 +144,7 @@ describe('StartCraftingAction', () => {
 			const job = createTestCraftingJob({ id: 'job-1', state: 'Queued', recipeId: 'common-weapon' });
 			const entities = new Map([[job.id, job]]);
 			const resources = ResourceBundle.fromArray([]);
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new StartCraftingAction('job-1', Duration.ofMinutes(5));
 			const events = action.generateEvents(entities, resources, effects, {});

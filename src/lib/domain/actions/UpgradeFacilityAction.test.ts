@@ -9,6 +9,7 @@ import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
+import type { Effect } from '../primitives/Effect';
 
 describe('UpgradeFacilityAction', () => {
 	describe('getRequirements', () => {
@@ -94,7 +95,7 @@ describe('UpgradeFacilityAction', () => {
 		it('should return empty array when facility not found', () => {
 			const entities = new Map();
 			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('nonexistent-facility');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -106,7 +107,7 @@ describe('UpgradeFacilityAction', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
 			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('facility-1');
 			const events = action.generateEvents(entities, resources, effects, {});

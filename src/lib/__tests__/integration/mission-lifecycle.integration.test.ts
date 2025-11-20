@@ -81,7 +81,7 @@ describe('Mission Lifecycle Integration', () => {
 			vi.advanceTimersByTime(elapsed);
 
 			// Manually trigger tick handler (IdleLoop tick handler)
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(now + elapsed));
@@ -152,7 +152,7 @@ describe('Mission Lifecycle Integration', () => {
 			vi.advanceTimersByTime(elapsed);
 
 			// Manually trigger tick handler
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(Date.now()));

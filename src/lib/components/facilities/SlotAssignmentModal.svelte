@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { adventurers } from '$lib/stores/gameState';
+	import { adventurers, gameState } from '$lib/stores/gameState';
+	import { getSlotEffectiveRate } from '$lib/domain/queries/FacilityEffectQueries';
 	import type { ResourceSlot } from '$lib/domain/entities/ResourceSlot';
 
 	export let slot: ResourceSlot;
@@ -11,6 +12,13 @@
 	}>();
 
 	$: idleAdventurers = $adventurers.filter(a => a.state === 'Idle');
+
+	function getEffectiveRate(assigneeType: 'player' | 'adventurer'): number {
+		if (!$gameState) return 0;
+		
+		// Use centralized query function
+		return getSlotEffectiveRate(slot, assigneeType, $gameState);
+	}
 
 	function assignPlayer() {
 		dispatch('assign', { assigneeType: 'player' });
@@ -36,7 +44,7 @@
 			<div class="assignment-options">
 				<button class="option-btn" onclick={assignPlayer}>
 					<div class="option-label">Yourself (Guildmaster)</div>
-					<div class="option-desc">6 {slot.attributes.resourceType}/min</div>
+					<div class="option-desc">{getEffectiveRate('player').toFixed(1)} {slot.attributes.resourceType}/min</div>
 				</button>
 				
 				{#if idleAdventurers.length > 0}
@@ -50,7 +58,7 @@
 								<div class="option-label">
 									{adventurer.metadata.displayName || adventurer.metadata.name || 'Unknown'}
 								</div>
-								<div class="option-desc">9 {slot.attributes.resourceType}/min</div>
+								<div class="option-desc">{getEffectiveRate('adventurer').toFixed(1)} {slot.attributes.resourceType}/min</div>
 							</button>
 						{/each}
 					</div>

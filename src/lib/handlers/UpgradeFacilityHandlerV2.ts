@@ -9,6 +9,7 @@ import { GameState } from '../domain/entities/GameState';
 import { UpgradeFacilityAction } from '../domain/actions/UpgradeFacilityAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
+import { getEntityAs, isFacility } from '../domain/primitives/EntityTypeGuards';
 
 /**
  * Create UpgradeFacility command handler using Actions
@@ -21,17 +22,13 @@ export function createUpgradeFacilityHandlerV2(): CommandHandler<UpgradeFacility
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
 		// payload.facility can be either a facility ID or facilityType (for MVP compatibility)
 		// Try to find by ID first, then by type
-		let facility = state.entities.get(payload.facility) as import('../domain/entities/Facility').Facility | undefined;
+		let facility = getEntityAs(state.entities, payload.facility, isFacility);
 		
-		if (!facility || facility.type !== 'Facility') {
+		if (!facility) {
 			// Fallback: find by facilityType
-			const facilities = Array.from(state.entities.values()).filter(
-				(e) => {
-					if (e.type !== 'Facility') return false;
-					const f = e as import('../domain/entities/Facility').Facility;
-					return f.attributes.facilityType === payload.facility;
-				}
-			);
+			const facilities = Array.from(state.entities.values())
+				.filter(isFacility)
+				.filter((f) => f.attributes.facilityType === payload.facility);
 			
 			if (facilities.length === 0) {
 				return {
@@ -49,7 +46,7 @@ export function createUpgradeFacilityHandlerV2(): CommandHandler<UpgradeFacility
 				};
 			}
 			
-			facility = facilities[0] as import('../domain/entities/Facility').Facility;
+			facility = facilities[0];
 		}
 
 		// Create requirement context

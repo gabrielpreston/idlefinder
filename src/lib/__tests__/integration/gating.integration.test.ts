@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createTestGameState, createTestFacility, setupMockLocalStorage } from '../../test-utils';
+import { createTestGameState, setupMockLocalStorage } from '../../test-utils';
 import type { GameState } from '../../domain/entities/GameState';
 import { ResourceBundle } from '../../domain/valueObjects/ResourceBundle';
 import { ResourceUnit } from '../../domain/valueObjects/ResourceUnit';
@@ -69,22 +69,9 @@ describe('Gating Integration', () => {
 				expect(isGateUnlocked('ui_panel_missions', state)).toBe(true);
 			});
 
-			it('should unlock facilities panel when Training Grounds exists', () => {
-				// Initial state has no Training Grounds
-				expect(isGateUnlocked('ui_panel_facilities', state)).toBe(false);
-
-				// Add Training Grounds facility
-				const trainingGrounds = createTestFacility({
-					facilityType: 'TrainingGrounds',
-					tier: 1,
-				});
-				const entities = new Map(state.entities);
-				entities.set(trainingGrounds.id, trainingGrounds);
-				const stateWithTraining = createTestGameState({ entities });
-
-				expect(isGateUnlocked('ui_panel_facilities', stateWithTraining)).toBe(
-					true
-				);
+			it('should unlock facilities panel when Guild Hall reaches Tier 0', () => {
+				// Initial state has Guild Hall at Tier 0
+				expect(isGateUnlocked('ui_panel_facilities', state)).toBe(true);
 			});
 		});
 
@@ -121,15 +108,15 @@ describe('Gating Integration', () => {
 		describe('facility tier gates', () => {
 			it('should unlock facility tiers at correct fame thresholds', () => {
 				// Tier 2 requires 100 fame
-				expect(isGateUnlocked('facility_tier_2', state)).toBe(false);
+				expect(isGateUnlocked('guildhall_tier_2', state)).toBe(false);
 
 				const resources = ResourceBundle.fromArray([
 					new ResourceUnit('fame', 100),
 				]);
 				const stateWithFame = createTestGameState({ resources });
 
-				expect(isGateUnlocked('facility_tier_2', stateWithFame)).toBe(true);
-				expect(isGateUnlocked('facility_tier_3', stateWithFame)).toBe(false);
+				expect(isGateUnlocked('guildhall_tier_2', stateWithFame)).toBe(true);
+				expect(isGateUnlocked('guildhall_tier_3', stateWithFame)).toBe(false);
 			});
 
 			it('should respect fame limits for tier upgrades', () => {
@@ -139,19 +126,19 @@ describe('Gating Integration', () => {
 				const stateWithFame = createTestGameState({ resources });
 
 				// Can upgrade to tier 2
-				expect(canUpgradeFacilityToTier(2, stateWithFame)).toBe(true);
+				expect(canUpgradeFacilityToTier('Guildhall', 2, stateWithFame)).toBe(true);
 				// Cannot upgrade to tier 3
-				expect(canUpgradeFacilityToTier(3, stateWithFame)).toBe(false);
+				expect(canUpgradeFacilityToTier('Guildhall', 3, stateWithFame)).toBe(false);
 			});
 		});
 	});
 
 	describe('migration validation', () => {
 		it('should maintain backward compatibility for UI panel queries', () => {
-			// Initial state - panels locked
+			// Initial state - Facilities unlocked at Tier 0, others locked
 			expect(isAdventurersPanelUnlocked(state)).toBe(false);
 			expect(isMissionsPanelUnlocked(state)).toBe(false);
-			expect(isFacilitiesPanelUnlocked(state)).toBe(false);
+			expect(isFacilitiesPanelUnlocked(state)).toBe(true); // Unlocked at Tier 0
 
 			// Upgrade Guild Hall to Tier 1
 			const guildhall = Array.from(state.entities.values()).find(
@@ -163,8 +150,8 @@ describe('Gating Integration', () => {
 
 			expect(isAdventurersPanelUnlocked(state)).toBe(true);
 			expect(isMissionsPanelUnlocked(state)).toBe(true);
-			// Facilities panel still locked (needs Training Grounds)
-			expect(isFacilitiesPanelUnlocked(state)).toBe(false);
+			// Facilities panel unlocked at Tier 0
+			expect(isFacilitiesPanelUnlocked(state)).toBe(true);
 		});
 
 		it('should return correct unlock reasons', () => {
@@ -200,14 +187,14 @@ describe('Gating Integration', () => {
 
 		it('should return correct max facility tier', () => {
 			// Initial state has 0 fame - max tier 1
-			expect(getMaxFacilityTier(undefined, state)).toBe(1);
+			expect(getMaxFacilityTier('Guildhall', state)).toBe(1);
 
 			// Add 500 fame - max tier 3
 			const resources = ResourceBundle.fromArray([
 				new ResourceUnit('fame', 500),
 			]);
 			const stateWithFame = createTestGameState({ resources });
-			expect(getMaxFacilityTier(undefined, stateWithFame)).toBe(3);
+			expect(getMaxFacilityTier('Guildhall', stateWithFame)).toBe(3);
 		});
 
 		it('should check mission tier unlock status correctly', () => {
@@ -223,17 +210,17 @@ describe('Gating Integration', () => {
 
 		it('should check facility tier upgrade correctly', () => {
 			// Tier 1 always available
-			expect(canUpgradeFacilityToTier(1, state)).toBe(true);
+			expect(canUpgradeFacilityToTier('Guildhall', 1, state)).toBe(true);
 
 			// Tier 2 requires fame
-			expect(canUpgradeFacilityToTier(2, state)).toBe(false);
+			expect(canUpgradeFacilityToTier('Guildhall', 2, state)).toBe(false);
 
 			const resources = ResourceBundle.fromArray([
 				new ResourceUnit('fame', 100),
 			]);
 			const stateWithFame = createTestGameState({ resources });
-			expect(canUpgradeFacilityToTier(2, stateWithFame)).toBe(true);
-			expect(canUpgradeFacilityToTier(3, stateWithFame)).toBe(false);
+			expect(canUpgradeFacilityToTier('Guildhall', 2, stateWithFame)).toBe(true);
+			expect(canUpgradeFacilityToTier('Guildhall', 3, stateWithFame)).toBe(false);
 		});
 	});
 
@@ -273,13 +260,13 @@ describe('Gating Integration', () => {
 
 			// Check for expected gate types
 			const uiPanels = gateRegistry.getByType('ui_panel');
-			expect(uiPanels.length).toBe(3);
+			expect(uiPanels.length).toBe(6); // adventurers, missions, facilities, equipment, crafting, doctrine
 
 			const missionTiers = gateRegistry.getByType('mission_tier');
 			expect(missionTiers.length).toBe(5);
 
 			const facilityTiers = gateRegistry.getByType('facility_tier');
-			expect(facilityTiers.length).toBe(4);
+			expect(facilityTiers.length).toBe(25); // 5 facilities × 5 tiers
 		});
 	});
 });

@@ -9,6 +9,7 @@ import type {
 import { Timestamp } from '../valueObjects/Timestamp';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
+import { success, type SystemResult } from '../primitives/SystemResult';
 
 /**
  * Result of resolving a task.
@@ -55,8 +56,9 @@ export class TaskResolutionSystem {
 		archetypes: Map<string, TaskArchetype>,
 		facilities: FacilityInstance[],
 		now: Timestamp
-	): TaskResolutionResult[] {
+	): SystemResult<TaskResolutionResult[]> {
 		const results: TaskResolutionResult[] = [];
+		const warnings: string[] = [];
 
 		for (const task of tasks) {
 			if (!task.isReadyForResolution(now)) {
@@ -65,7 +67,7 @@ export class TaskResolutionSystem {
 
 			const archetype = archetypes.get(task.taskArchetypeId.value);
 			if (!archetype) {
-				console.warn('[TaskResolutionSystem] Missing archetype for task:', task.id.value.slice(0, 8), 'archetypeId:', task.taskArchetypeId.value, 'available keys:', Array.from(archetypes.keys()));
+				warnings.push(`Missing archetype for task ${task.id.value.slice(0, 8)}, archetypeId: ${task.taskArchetypeId.value}, available keys: ${Array.from(archetypes.keys()).join(', ')}`);
 				continue;
 			}
 
@@ -98,7 +100,7 @@ export class TaskResolutionSystem {
 			});
 		}
 
-		return results;
+		return success(results, warnings.length > 0 ? warnings : undefined);
 	}
 
 	/**

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
-	import { facilities, resources } from '$lib/stores/gameState';
+	import { facilities, resources, gameState } from '$lib/stores/gameState';
+	import { calculateFacilityUpgradeCost, canAffordFacilityUpgrade } from '$lib/domain/queries/CostQueries';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import type { CommandFailedEvent } from '$lib/bus/types';
 	import type { GameRuntime } from '$lib/runtime/startGame';
@@ -37,21 +38,21 @@
 	}
 
 	function canAfford(facilityType: string): boolean {
-		if (!$facilities || !$resources) return false;
+		if (!$facilities || !$resources || !$gameState) return false;
 		const facility = findFacility(facilityType);
 		if (!facility) return false;
 		const currentTier = facility.attributes.tier;
-		// Simple cost calculation: tier * 100 gold
-		const cost = currentTier * 100;
-		return ($resources.get('gold') || 0) >= cost;
+		const targetTier = currentTier + 1;
+		return canAffordFacilityUpgrade($gameState, targetTier);
 	}
 
 	function getUpgradeCost(facilityType: string): number {
-		if (!$facilities) return 0;
+		if (!$facilities || !$gameState) return 0;
 		const facility = findFacility(facilityType);
 		if (!facility) return 0;
 		const currentTier = facility.attributes.tier;
-		return currentTier * 100;
+		const targetTier = currentTier + 1;
+		return calculateFacilityUpgradeCost(targetTier);
 	}
 </script>
 

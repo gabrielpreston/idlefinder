@@ -54,6 +54,12 @@ export default [
 			'no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
 		}
 	},
+	{
+		files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+		rules: {
+			'@typescript-eslint/no-explicit-any': 'off'
+		}
+	},
 	prettierConfig
 ];
 

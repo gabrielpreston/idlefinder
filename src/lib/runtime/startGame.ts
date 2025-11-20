@@ -10,6 +10,8 @@ import { RealTimeSource, type DomainTimeSource } from '../time/DomainTimeSource'
 import { registerHandlersV2 } from '../handlers/indexV2';
 import type { GameState } from '../domain/entities/GameState';
 import { writable, type Readable } from 'svelte/store';
+import { GameState as GameStateClass } from '../domain/entities/GameState';
+import { handleFacilityUpgrade } from '../domain/systems/SlotSystem';
 
 /**
  * Game runtime interface - encapsulates all game systems
@@ -59,9 +61,8 @@ export function startGame(
 		busManager.domainEventBus.subscribe('AdventurerRecruited', () => {
 			set(busManager.getState());
 		}),
-		busManager.domainEventBus.subscribe('FacilityUpgraded', async (payload) => {
+		busManager.domainEventBus.subscribe('FacilityUpgraded', (payload) => {
 			// Handle slot creation on facility upgrade
-			const { handleFacilityUpgrade } = await import('../domain/systems/SlotSystem');
 			const event = payload as import('../domain/primitives/Event').FacilityUpgradedEvent;
 			const currentState = busManager.getState();
 			const now = ts.now();
@@ -75,7 +76,7 @@ export function startGame(
 					newEntities.set(slot.id, slot);
 				}
 				
-				const newState = new (await import('../domain/entities/GameState')).GameState(
+				const newState = new GameStateClass(
 					currentState.playerId,
 					currentState.lastPlayed,
 					newEntities,

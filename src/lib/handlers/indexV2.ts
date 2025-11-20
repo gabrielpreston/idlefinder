@@ -40,6 +40,18 @@ function createIdleTickHandler(
 		// Process idle progression
 		const idleLoop = new IdleLoop();
 		const result = idleLoop.processIdleProgression(state, now);
+		
+		// Log warnings and errors from domain systems (infrastructure layer)
+		if (result.warnings) {
+			for (const warning of result.warnings) {
+				console.warn(`[IdleLoop] ${warning}`);
+			}
+		}
+		if (result.errors) {
+			for (const error of result.errors) {
+				console.error(`[IdleLoop] ${error}`);
+			}
+		}
 
 		// Update state
 		busManager.setState(result.newState);

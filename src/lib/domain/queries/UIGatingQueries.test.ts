@@ -11,8 +11,9 @@ import {
 	isFacilitiesPanelUnlocked,
 	getPanelUnlockReason
 } from './UIGatingQueries';
-import { createTestGameState, createTestFacility, createTestAdventurer } from '../../test-utils/testFactories';
+import { createTestGameState, createTestAdventurer } from '../../test-utils/testFactories';
 import type { GameState } from '../entities/GameState';
+import type { Facility } from '../entities/Facility';
 import type { Entity } from '../primitives/Requirement';
 // Import gating module to ensure gates are registered
 import '../gating';
@@ -73,28 +74,40 @@ describe('UIGatingQueries', () => {
 	});
 
 	describe('isFacilitiesPanelUnlocked', () => {
-		it('should return false when Training Grounds not exists', () => {
-			expect(isFacilitiesPanelUnlocked(state)).toBe(false);
+		it('should return true when Guild Hall is at Tier 0', () => {
+			// Initial state has Guild Hall at Tier 0
+			expect(isFacilitiesPanelUnlocked(state)).toBe(true);
 		});
 
-		it('should return true when Training Grounds exists', () => {
-			const trainingGrounds = createTestFacility({ facilityType: 'TrainingGrounds', tier: 1 });
-			const entities = new Map<string, Entity>([
-				...Array.from(state.entities.entries()),
-				[trainingGrounds.id, trainingGrounds]
-			]);
-			const stateWithTraining = createTestGameState({ entities });
-
-			expect(isFacilitiesPanelUnlocked(stateWithTraining)).toBe(true);
+		it('should return true when Guild Hall is at Tier 1+', () => {
+			const guildhall = Array.from(state.entities.values()).find(
+				(e) => e.type === 'Facility' && (e as Facility).attributes.facilityType === 'Guildhall'
+			) as Facility;
+			if (guildhall) {
+				guildhall.upgrade(); // Tier 0 -> 1
+			}
+			expect(isFacilitiesPanelUnlocked(state)).toBe(true);
 		});
 	});
 
 	describe('getPanelUnlockReason', () => {
 		it('should return null for always-available panels', () => {
 			expect(getPanelUnlockReason(PANEL_IDS.DASHBOARD, state)).toBeNull();
-			expect(getPanelUnlockReason(PANEL_IDS.EQUIPMENT, state)).toBeNull();
-			expect(getPanelUnlockReason(PANEL_IDS.CRAFTING, state)).toBeNull();
-			expect(getPanelUnlockReason(PANEL_IDS.DOCTRINE, state)).toBeNull();
+		});
+
+		it('should return unlock reason for gated panels', () => {
+			// Equipment, Crafting, Doctrine are now gated
+			const equipmentReason = getPanelUnlockReason(PANEL_IDS.EQUIPMENT, state);
+			expect(equipmentReason).not.toBeNull();
+			expect(equipmentReason).toContain('tier 2');
+
+			const craftingReason = getPanelUnlockReason(PANEL_IDS.CRAFTING, state);
+			expect(craftingReason).not.toBeNull();
+			expect(craftingReason).toContain('tier 3');
+
+			const doctrineReason = getPanelUnlockReason(PANEL_IDS.DOCTRINE, state);
+			expect(doctrineReason).not.toBeNull();
+			expect(doctrineReason).toContain('tier 4');
 		});
 
 		it('should return reason for locked adventurers panel', () => {
@@ -145,9 +158,10 @@ describe('UIGatingQueries', () => {
 			expect(reason).toBeNull();
 		});
 
-		it('should return reason for locked facilities panel', () => {
+		it('should return null for unlocked facilities panel at Tier 0', () => {
+			// Facilities panel is unlocked at Tier 0
 			const reason = getPanelUnlockReason(PANEL_IDS.FACILITIES, state);
-			expect(reason).not.toBeNull();
+			expect(reason).toBeNull();
 		});
 
 		it('should return unknown panel for invalid panel ID', () => {

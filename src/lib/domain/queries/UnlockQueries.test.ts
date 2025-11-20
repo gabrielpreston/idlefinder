@@ -127,7 +127,7 @@ describe('UnlockQueries', () => {
 
 	describe('getMaxFacilityTier', () => {
 		it('should return at least tier 1', () => {
-			const maxTier = getMaxFacilityTier(undefined, state);
+			const maxTier = getMaxFacilityTier('Guildhall', state);
 			expect(maxTier).toBeGreaterThanOrEqual(1);
 		});
 
@@ -135,17 +135,15 @@ describe('UnlockQueries', () => {
 			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 500)]);
 			const stateWithFame = createTestGameState({ resources });
 
-			const maxTier = getMaxFacilityTier(undefined, stateWithFame);
+			const maxTier = getMaxFacilityTier('Guildhall', stateWithFame);
 			expect(maxTier).toBeGreaterThanOrEqual(1);
 		});
 
-		it('should ignore facilityType parameter', () => {
+		it('should return same tier for different facilities with same fame', () => {
 			const maxTier1 = getMaxFacilityTier('Guildhall', state);
 			const maxTier2 = getMaxFacilityTier('Dormitory', state);
-			const maxTier3 = getMaxFacilityTier(undefined, state);
 
 			expect(maxTier1).toBe(maxTier2);
-			expect(maxTier2).toBe(maxTier3);
 		});
 	});
 
@@ -168,23 +166,23 @@ describe('UnlockQueries', () => {
 
 	describe('canUpgradeFacilityToTier', () => {
 		it('should return true for tier 1', () => {
-			expect(canUpgradeFacilityToTier(1, state)).toBe(true);
+			expect(canUpgradeFacilityToTier('Guildhall', 1, state)).toBe(true);
 		});
 
 		it('should return true for tier 0 or negative', () => {
-			expect(canUpgradeFacilityToTier(0, state)).toBe(true);
-			expect(canUpgradeFacilityToTier(-1, state)).toBe(true);
+			expect(canUpgradeFacilityToTier('Guildhall', 0, state)).toBe(true);
+			expect(canUpgradeFacilityToTier('Guildhall', -1, state)).toBe(true);
 		});
 
 		it('should return false for tier 2 at 0 fame', () => {
-			expect(canUpgradeFacilityToTier(2, state)).toBe(false);
+			expect(canUpgradeFacilityToTier('Guildhall', 2, state)).toBe(false);
 		});
 
 		it('should return true for tier 2 with sufficient fame', () => {
 			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
 			const stateWithFame = createTestGameState({ resources });
 
-			expect(canUpgradeFacilityToTier(2, stateWithFame)).toBe(true);
+			expect(canUpgradeFacilityToTier('Guildhall', 2, stateWithFame)).toBe(true);
 		});
 	});
 });

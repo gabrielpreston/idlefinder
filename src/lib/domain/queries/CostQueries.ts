@@ -102,7 +102,7 @@ export function canUpgradeGuildHall(state: GameState): boolean {
 	const targetTier = currentTier + 1;
 	
 	// Check if tier is allowed by fame
-	if (!canUpgradeFacilityToTier(targetTier, state)) {
+	if (!canUpgradeFacilityToTier('Guildhall', targetTier, state)) {
 		return false;
 	}
 	

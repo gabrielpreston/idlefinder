@@ -12,7 +12,6 @@ import {
 } from './RosterQueries';
 import { createTestGameState, createTestAdventurer, createTestFacility } from '../../test-utils/testFactories';
 import type { Entity } from '../primitives/Requirement';
-import type { Capacity } from './Capacity';
 
 describe('RosterQueries', () => {
 	describe('getMaxRosterCapacity', () => {

@@ -10,6 +10,7 @@ import { NumericStatMap } from '../valueObjects/NumericStatMap';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
+import type { Effect } from '../primitives/Effect';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -91,7 +92,7 @@ describe('RepairItemAction', () => {
 		it('should return empty array when item not found', () => {
 			const entities = new Map();
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new RepairItemAction('nonexistent-item');
 			const events = action.generateEvents(entities, resources, effects, {});
@@ -103,7 +104,7 @@ describe('RepairItemAction', () => {
 			const item = createTestItem({ id: 'item-1' });
 			const entities = new Map([[item.id, item]]);
 			const resources = new ResourceBundle(new Map());
-			const effects: any[] = [];
+			const effects: Effect[] = [];
 
 			const action = new RepairItemAction('item-1');
 			const events = action.generateEvents(entities, resources, effects, {});

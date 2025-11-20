@@ -164,9 +164,9 @@ describe('PersistenceBus', () => {
 	describe('window handling', () => {
 		it('should handle when window is undefined', () => {
 			// Save original window
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const originalWindow = (global as any).window;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			delete (global as any).window;
 
 			// Create new PersistenceBus - should not throw
@@ -181,7 +181,7 @@ describe('PersistenceBus', () => {
 
 			// Restore window
 			if (originalWindow) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				 
 				(global as any).window = originalWindow;
 			}
 		});

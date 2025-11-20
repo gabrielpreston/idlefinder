@@ -77,7 +77,7 @@ describe('TaskResolutionSystem', () => {
 			task.assignedAgentIds.push(agent.id);
 
 			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[task],
 				new Map([[agent.id.value, agent]]),
 				new Map([[archetype.id.value, archetype]]),
@@ -85,9 +85,11 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(1);
-			expect(results[0].taskId).toBe(task.id);
-			expect(results[0].outcomeCategory).toBeDefined();
+			expect(result.success).toBe(true);
+			if (!result.data) throw new Error('Expected data');
+			expect(result.data.length).toBe(1);
+			expect(result.data[0].taskId).toBe(task.id);
+			expect(result.data[0].outcomeCategory).toBeDefined();
 		});
 
 		it('should not resolve tasks not ready', () => {
@@ -97,7 +99,7 @@ describe('TaskResolutionSystem', () => {
 			task.assignedAgentIds.push(agent.id);
 
 			const now = task.expectedCompletionAt.subtract(Duration.ofSeconds(1));
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[task],
 				new Map([[agent.id.value, agent]]),
 				new Map([[archetype.id.value, archetype]]),
@@ -105,7 +107,8 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(0);
+			expect(result.success).toBe(true);
+			expect(result.data?.length).toBe(0);
 		});
 	});
 
@@ -123,10 +126,13 @@ describe('TaskResolutionSystem', () => {
 			const result1 = system.resolveTasks([task], agents, archetypes, [], now);
 			const result2 = system.resolveTasks([task], agents, archetypes, [], now);
 
-			expect(result1.length).toBe(result2.length);
-			if (result1.length > 0 && result2.length > 0) {
-				expect(result1[0].outcomeCategory).toBe(result2[0].outcomeCategory);
-				expect(result1[0].rewards.get('gold')).toBe(result2[0].rewards.get('gold'));
+			expect(result1.success).toBe(true);
+			expect(result2.success).toBe(true);
+			if (!result1.data || !result2.data) throw new Error('Expected data');
+			expect(result1.data.length).toBe(result2.data.length);
+			if (result1.data.length > 0 && result2.data.length > 0) {
+				expect(result1.data[0].outcomeCategory).toBe(result2.data[0].outcomeCategory);
+				expect(result1.data[0].rewards.get('gold')).toBe(result2.data[0].rewards.get('gold'));
 			}
 		});
 	});
@@ -140,7 +146,7 @@ describe('TaskResolutionSystem', () => {
 			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
 			const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[task],
 				new Map([[agent.id.value, agent]]),
 				new Map(), // Empty archetypes map
@@ -148,12 +154,10 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(0);
-			expect(consoleSpy).toHaveBeenCalled();
-			// Verify the warning message contains expected text
-			const callArgs = consoleSpy.mock.calls[0];
-			expect(callArgs[0]).toContain('[TaskResolutionSystem] Missing archetype');
-			expect(callArgs.length).toBeGreaterThan(0);
+			expect(result.success).toBe(true);
+			expect(result.data?.length).toBe(0);
+			// Should have warning about missing archetype
+			expect(result.warnings?.length).toBeGreaterThan(0);
 
 			consoleSpy.mockRestore();
 		});
@@ -174,7 +178,7 @@ describe('TaskResolutionSystem', () => {
 			);
 
 			const now = taskWithNoAgents.expectedCompletionAt.add(Duration.ofSeconds(1));
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[taskWithNoAgents],
 				new Map(), // Empty agents map
 				new Map([[archetype.id.value, archetype]]),
@@ -182,9 +186,11 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(1);
+			expect(result.success).toBe(true);
+			if (!result.data) throw new Error('Expected data');
+			expect(result.data.length).toBe(1);
 			// Should still generate rewards with level 1 multiplier (default)
-			expect(results[0].rewards.get('gold')).toBeGreaterThan(0);
+			expect(result.data[0].rewards.get('gold')).toBeGreaterThan(0);
 		});
 
 		it('should compute agent changes with injury logic for failures', () => {
@@ -195,7 +201,7 @@ describe('TaskResolutionSystem', () => {
 			task.assignedAgentIds.push(agent.id);
 
 			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[task],
 				new Map([[agent.id.value, agent]]),
 				new Map([[archetype.id.value, archetype]]),
@@ -203,13 +209,15 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(1);
-			expect(results[0].outcomeCategory).toBe('FAILURE');
-			expect(results[0].agentChanges.length).toBe(1);
-			expect(results[0].agentChanges[0].agentId).toBe(agent.id);
-			expect(results[0].agentChanges[0].xpGain).toBe(10); // Failure XP
+			expect(result.success).toBe(true);
+			if (!result.data) throw new Error('Expected data');
+			expect(result.data.length).toBe(1);
+			expect(result.data[0].outcomeCategory).toBe('FAILURE');
+			expect(result.data[0].agentChanges.length).toBe(1);
+			expect(result.data[0].agentChanges[0].agentId).toBe(agent.id);
+			expect(result.data[0].agentChanges[0].xpGain).toBe(10); // Failure XP
 			// Injury is deterministic based on agent ID hash
-			expect(typeof results[0].agentChanges[0].injury).toBe('boolean');
+			expect(typeof result.data[0].agentChanges[0].injury).toBe('boolean');
 		});
 
 		it('should handle facility effects with statBonus', () => {
@@ -219,6 +227,7 @@ describe('TaskResolutionSystem', () => {
 			task.assignedAgentIds.push(agent.id);
 
 			// Create facility with statBonus effect
+			 
 			const facility: import('../entities/FacilityInstance').FacilityInstance = {
 				id: Identifier.generate(),
 				organizationId: Identifier.generate(),
@@ -230,7 +239,7 @@ describe('TaskResolutionSystem', () => {
 			} as any;
 
 			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[task],
 				new Map([[agent.id.value, agent]]),
 				new Map([[archetype.id.value, archetype]]),
@@ -238,9 +247,11 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(1);
+			expect(result.success).toBe(true);
+			if (!result.data) throw new Error('Expected data');
+			expect(result.data.length).toBe(1);
 			// Score should be higher due to facility bonus
-			expect(results[0].outcomeCategory).toBeDefined();
+			expect(result.data[0].outcomeCategory).toBeDefined();
 		});
 
 		it('should ignore facility effects without statBonus', () => {
@@ -250,6 +261,7 @@ describe('TaskResolutionSystem', () => {
 			task.assignedAgentIds.push(agent.id);
 
 			// Create facility with non-statBonus effect
+			 
 			const facility: import('../entities/FacilityInstance').FacilityInstance = {
 				id: Identifier.generate(),
 				organizationId: Identifier.generate(),
@@ -261,7 +273,7 @@ describe('TaskResolutionSystem', () => {
 			} as any;
 
 			const now = task.expectedCompletionAt.add(Duration.ofSeconds(1));
-			const results = system.resolveTasks(
+			const result = system.resolveTasks(
 				[task],
 				new Map([[agent.id.value, agent]]),
 				new Map([[archetype.id.value, archetype]]),
@@ -269,9 +281,11 @@ describe('TaskResolutionSystem', () => {
 				now
 			);
 
-			expect(results.length).toBe(1);
+			expect(result.success).toBe(true);
+			if (!result.data) throw new Error('Expected data');
+			expect(result.data.length).toBe(1);
 			// Should work normally without statBonus effect
-			expect(results[0].outcomeCategory).toBeDefined();
+			expect(result.data[0].outcomeCategory).toBeDefined();
 		});
 
 		it('should handle different outcome categories correctly', () => {
@@ -291,15 +305,17 @@ describe('TaskResolutionSystem', () => {
 				[strongAgent.id]
 			);
 			const now = taskWithStrongAgent.expectedCompletionAt.add(Duration.ofSeconds(1));
-			const results1 = system.resolveTasks(
+			const result1 = system.resolveTasks(
 				[taskWithStrongAgent],
 				new Map([[strongAgent.id.value, strongAgent]]),
 				new Map([[archetype.id.value, archetype]]),
 				[],
 				now
 			);
-			expect(results1[0].outcomeCategory).toBe('GREAT_SUCCESS');
-			expect(results1[0].agentChanges[0].xpGain).toBe(50);
+			expect(result1.success).toBe(true);
+			if (!result1.data) throw new Error('Expected data');
+			expect(result1.data[0].outcomeCategory).toBe('GREAT_SUCCESS');
+			expect(result1.data[0].agentChanges[0].xpGain).toBe(50);
 
 			// Test SUCCESS (score >= 50)
 			const mediumAgent = createAgent(50);
@@ -313,15 +329,17 @@ describe('TaskResolutionSystem', () => {
 				task.originOfferId,
 				[mediumAgent.id]
 			);
-			const results2 = system.resolveTasks(
+			const result2 = system.resolveTasks(
 				[taskWithMediumAgent],
 				new Map([[mediumAgent.id.value, mediumAgent]]),
 				new Map([[archetype.id.value, archetype]]),
 				[],
 				now
 			);
-			expect(results2[0].outcomeCategory).toBe('SUCCESS');
-			expect(results2[0].agentChanges[0].xpGain).toBe(30);
+			expect(result2.success).toBe(true);
+			if (!result2.data) throw new Error('Expected data');
+			expect(result2.data[0].outcomeCategory).toBe('SUCCESS');
+			expect(result2.data[0].agentChanges[0].xpGain).toBe(30);
 		});
 	});
 });
