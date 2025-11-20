@@ -1,5 +1,5 @@
 /**
- * SalvageItem Action - Converts item to materials/rare essence
+ * SalvageItem Action - Converts item to materials
  * Per Systems Primitives Spec: Requirements -> Effects -> Events lifecycle
  */
 
@@ -16,23 +16,20 @@ import type { Item } from '../entities/Item';
 export interface SalvageItemParams {
 	itemId: string;
 	materialsAmount?: number;
-	rareEssenceAmount?: number;
 }
 
 /**
  * Calculate salvage yields based on item rarity and base value
  */
-function calculateSalvageYields(item: Item): { materials: number; rareEssence: number } {
+function calculateSalvageYields(item: Item): { materials: number } {
 	const baseValue = item.attributes.baseValue;
 	const rarity = item.attributes.rarity;
 
-	// Base materials yield: 50% of base value
-	const materials = Math.floor(baseValue * 0.5);
+	// Materials yield: 50% for common/uncommon, 60% for rare items
+	const materialsMultiplier = rarity === 'rare' ? 0.6 : 0.5;
+	const materials = Math.floor(baseValue * materialsMultiplier);
 
-	// Rare essence: only for rare items, 10% of base value
-	const rareEssence = rarity === 'rare' ? Math.floor(baseValue * 0.1) : 0;
-
-	return { materials, rareEssence };
+	return { materials };
 }
 
 /**
@@ -41,8 +38,7 @@ function calculateSalvageYields(item: Item): { materials: number; rareEssence: n
 export class SalvageItemAction extends Action {
 	constructor(
 		private readonly itemId: string,
-		private readonly materialsAmount?: number,
-		private readonly rareEssenceAmount?: number
+		private readonly materialsAmount?: number
 	) {
 		super();
 	}
@@ -66,13 +62,12 @@ export class SalvageItemAction extends Action {
 		// Calculate yields if not provided
 		const yields = salvageParams?.materialsAmount !== undefined
 			? {
-					materials: salvageParams.materialsAmount ?? 0,
-					rareEssence: salvageParams.rareEssenceAmount ?? 0
+					materials: salvageParams.materialsAmount ?? 0
 				}
 			: calculateSalvageYields(item);
 
 		return [
-			new SalvageItemEffect(itemId, yields.materials, yields.rareEssence)
+			new SalvageItemEffect(itemId, yields.materials)
 		];
 	}
 
@@ -87,15 +82,13 @@ export class SalvageItemAction extends Action {
 
 		// Item should be removed by SalvageItemEffect, so we check resources instead
 		const materials = resources.get('materials') ?? 0;
-		const rareEssence = resources.get('rareEssence') ?? 0;
 
 		return [
 			{
 				type: 'ItemSalvaged',
 				payload: {
 					itemId,
-					materials,
-					rareEssence
+					materials
 				},
 				timestamp: new Date().toISOString()
 			}

@@ -41,16 +41,16 @@ export function createTestGameState(overrides?: {
 		Timestamp.now()
 	);
 	
-	if (overrides?.entities || overrides?.resources) {
-		return new GameStateImpl(
-			overrides?.playerId || base.playerId,
-			base.lastPlayed,
-			overrides?.entities || base.entities,
-			overrides?.resources || base.resources
-		);
-	}
+	// Default test state includes enough gold for common operations (e.g., recruiting adventurers costs 50)
+	// If resources are not explicitly overridden, add enough gold for testing
+	const defaultResources = overrides?.resources ?? createTestResourceBundle({ gold: 1000 });
 	
-	return base;
+	return new GameStateImpl(
+		overrides?.playerId || base.playerId,
+		base.lastPlayed,
+		overrides?.entities || base.entities,
+		defaultResources
+	);
 }
 
 /**

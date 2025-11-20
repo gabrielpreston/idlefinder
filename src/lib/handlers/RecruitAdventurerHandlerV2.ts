@@ -9,12 +9,15 @@ import { GameState } from '../domain/entities/GameState';
 import { Adventurer } from '../domain/entities/Adventurer';
 import { Identifier } from '../domain/valueObjects/Identifier';
 import { NumericStatMap } from '../domain/valueObjects/NumericStatMap';
+import { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
+import { ResourceUnit } from '../domain/valueObjects/ResourceUnit';
 import type { AdventurerAttributes } from '../domain/attributes/AdventurerAttributes';
 import { deriveRoleKey } from '../domain/attributes/RoleKey';
 import {
 	getRandomPathfinderClassKey,
 	getRandomPathfinderAncestryKey
 } from '../domain/data/pathfinder';
+import { GameConfig } from '../domain/config/GameConfig';
 
 /**
  * Create RecruitAdventurer command handler using new entity system
@@ -35,6 +38,25 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 						payload: {
 							commandType: 'RecruitAdventurer',
 							reason: 'Adventurer name is required'
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			};
+		}
+
+		// Validation: Check if player has enough gold
+		const recruitCost = GameConfig.costs.recruitAdventurer;
+		const currentGold = state.resources.get('gold') || 0;
+		if (currentGold < recruitCost) {
+			return {
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'RecruitAdventurer',
+							reason: `Insufficient gold: need ${recruitCost}, have ${currentGold}`
 						},
 						timestamp: new Date().toISOString()
 					}
@@ -83,12 +105,16 @@ export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdvent
 		const newEntities = new Map(state.entities);
 		newEntities.set(adventurer.id, adventurer);
 
+		// Deduct recruitment cost from resources
+		const costBundle = ResourceBundle.fromArray([new ResourceUnit('gold', GameConfig.costs.recruitAdventurer)]);
+		const newResources = state.resources.subtract(costBundle);
+
 		// Create new GameState
 		const newState = new GameState(
 			state.playerId,
 			state.lastPlayed,
 			newEntities,
-			state.resources
+			newResources
 		);
 
 		// Emit AdventurerRecruited event

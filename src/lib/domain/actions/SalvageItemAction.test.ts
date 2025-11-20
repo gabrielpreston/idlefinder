@@ -66,7 +66,7 @@ describe('SalvageItemAction', () => {
 			const effects = action.computeEffects(context, {});
 
 			expect(effects.length).toBe(1);
-			// Common items: 50% materials, 0 rare essence
+			// Common items: 50% materials
 		});
 
 		it('should calculate yields for rare item', () => {
@@ -82,7 +82,7 @@ describe('SalvageItemAction', () => {
 			const effects = action.computeEffects(context, {});
 
 			expect(effects.length).toBe(1);
-			// Rare items: 50% materials, 10% rare essence
+			// Rare items: 60% materials
 		});
 
 		it('should use provided yields when specified', () => {
@@ -94,12 +94,11 @@ describe('SalvageItemAction', () => {
 				currentTime: Timestamp.now()
 			};
 
-			const action = new SalvageItemAction('item-1', 50, 10);
-			// When materialsAmount is provided in params, it uses that
-			const effects = action.computeEffects(context, {
-				materialsAmount: 50,
-				rareEssenceAmount: 10
-			});
+		const action = new SalvageItemAction('item-1', 50);
+		// When materialsAmount is provided in params, it uses that
+		const effects = action.computeEffects(context, {
+			materialsAmount: 50
+		});
 
 			expect(effects.length).toBe(1);
 		});
@@ -124,10 +123,9 @@ describe('SalvageItemAction', () => {
 		it('should return ItemSalvaged event', () => {
 			const item = createTestItem({ id: 'item-1' });
 			const entities = new Map([[item.id, item]]);
-			const resources = ResourceBundle.fromArray([
-				new ResourceUnit('materials', 50),
-				new ResourceUnit('rareEssence', 10)
-			]);
+		const resources = ResourceBundle.fromArray([
+			new ResourceUnit('materials', 50)
+		]);
 			const effects: Effect[] = [];
 
 			const action = new SalvageItemAction('item-1');

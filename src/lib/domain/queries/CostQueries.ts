@@ -10,6 +10,7 @@ import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import { getGuildHallTier } from './FacilityQueries';
 import { canUpgradeFacilityToTier } from './UnlockQueries';
+import { GameConfig } from '../config/GameConfig';
 
 /**
  * Cost Calculator Interface
@@ -46,7 +47,7 @@ export interface CostCalculator {
  * @returns Cost in gold
  */
 export function calculateFacilityUpgradeCost(tier: number): number {
-	return tier * 100;
+	return GameConfig.costs.facilityUpgrade(tier);
 }
 
 /**
@@ -108,5 +109,26 @@ export function canUpgradeGuildHall(state: GameState): boolean {
 	
 	// Check if player can afford
 	return canAffordFacilityUpgrade(state, targetTier);
+}
+
+/**
+ * Get adventurer recruitment cost
+ * 
+ * @returns ResourceBundle with gold cost for recruiting an adventurer
+ */
+export function getRecruitAdventurerCost(): ResourceBundle {
+	return ResourceBundle.fromArray([new ResourceUnit('gold', GameConfig.costs.recruitAdventurer)]);
+}
+
+/**
+ * Check if player can afford to recruit an adventurer
+ * 
+ * @param state GameState
+ * @returns True if player has enough gold
+ */
+export function canAffordRecruitAdventurer(state: GameState): boolean {
+	const cost = GameConfig.costs.recruitAdventurer;
+	const currentGold = state.resources.get('gold') || 0;
+	return currentGold >= cost;
 }
 

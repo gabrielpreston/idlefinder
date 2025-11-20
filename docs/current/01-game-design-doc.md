@@ -172,7 +172,7 @@ This is where the player **leans in**.
 
 **Durability & Repair (MVP):** Durability 0–100 on items. Lower durability reduces effectiveness. System can auto-repair common/uncommon items. Player may manually prioritize rare gear for repair.
 
-**Salvage:** Player can salvage unwanted gear for generic materials or rare essences (from rares).
+**Salvage:** Player can salvage unwanted gear for generic materials (higher yield for rare items).
 
 The **core feeling** is: "I spend my active time curating, crafting, repairing, and optimizing gear. The game uses that gear intelligently while I'm away."
 

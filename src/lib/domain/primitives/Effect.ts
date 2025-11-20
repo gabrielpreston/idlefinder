@@ -415,13 +415,12 @@ export class RepairItemEffect implements Effect {
 
 /**
  * Effect: Salvage item
- * Removes item, adds materials/rare essence to resources
+ * Removes item, adds materials to resources
  */
 export class SalvageItemEffect implements Effect {
 	constructor(
 		private readonly itemId: string,
-		private readonly materialsAmount: number = 0,
-		private readonly rareEssenceAmount: number = 0
+		private readonly materialsAmount: number = 0
 	) {}
 
 	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
@@ -451,13 +450,10 @@ export class SalvageItemEffect implements Effect {
 		// Remove item from entities
 		entities.delete(this.itemId);
 
-		// Add materials/rare essence to resources
+		// Add materials to resources
 		const resourceUnits: ResourceUnit[] = [];
 		if (this.materialsAmount > 0) {
 			resourceUnits.push(new ResourceUnit('materials', this.materialsAmount));
-		}
-		if (this.rareEssenceAmount > 0) {
-			resourceUnits.push(new ResourceUnit('rareEssence', this.rareEssenceAmount));
 		}
 
 		const newResources =

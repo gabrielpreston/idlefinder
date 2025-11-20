@@ -24,7 +24,7 @@ import { getPlayerAssignedSlots, hasOddJobsAvailable, getOddJobsGoldRate } from 
 import { isAdventurersPanelUnlocked, isMissionsPanelUnlocked, isMissionsPanelFunctional, isFacilitiesPanelUnlocked, isEquipmentPanelUnlocked, isCraftingPanelUnlocked, isDoctrinePanelUnlocked } from '../domain/queries/UIGatingQueries';
 // Ensure gates are registered when store module loads
 import '../domain/gating';
-import { getGuildHallUpgradeCost, canUpgradeGuildHall } from '../domain/queries/CostQueries';
+import { getGuildHallUpgradeCost, canUpgradeGuildHall, getRecruitAdventurerCost, canAffordRecruitAdventurer } from '../domain/queries/CostQueries';
 import type { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 import { getGateProgress, getGateStatus } from '../domain/gating/GateQueries';
 import { gateRegistry } from '../domain/gating/GateRegistry';
@@ -273,6 +273,17 @@ export const guildHallUpgradeCost: Readable<ResourceBundle | null> = derived(
 export const canUpgradeGuildHallState: Readable<boolean> = derived(
 	gameState,
 	($state) => $state ? canUpgradeGuildHall($state) : false
+);
+
+// Recruitment cost queries
+export const recruitAdventurerCost: Readable<ResourceBundle | null> = derived(
+	gameState,
+	($state) => $state ? getRecruitAdventurerCost() : null
+);
+
+export const canAffordRecruitAdventurerState: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? canAffordRecruitAdventurer($state) : false
 );
 
 // Gate progress tracking stores

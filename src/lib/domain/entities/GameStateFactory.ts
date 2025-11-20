@@ -15,6 +15,7 @@ import { AutoEquipRules } from './AutoEquipRules';
 import { CraftingQueue } from './CraftingQueue';
 import { ResourceSlot } from './ResourceSlot';
 import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
+import { GameConfig } from '../config/GameConfig';
 
 /**
  * Create initial GameState with default facilities
@@ -27,10 +28,10 @@ export function createInitialGameState(
 ): GameState {
 	const lastPlayed = currentTime;
 	
-	// Create initial resources (15 gold - starting from nothing)
+	// Create initial resources (starting from nothing)
 	const resources = ResourceBundle.fromArray([
-		new ResourceUnit('gold', 15),
-		new ResourceUnit('fame', 0)
+		new ResourceUnit('gold', GameConfig.startingResources.gold),
+		new ResourceUnit('fame', GameConfig.startingResources.fame)
 	]);
 
 	// Create initial facilities
@@ -41,7 +42,7 @@ export function createInitialGameState(
 	const guildhallAttributes: FacilityAttributes = {
 		facilityType: 'Guildhall',
 		tier: 0,
-		baseCapacity: 1,
+		baseCapacity: GameConfig.resourceGeneration.initialBaseCapacity,
 		bonusMultipliers: {}
 	};
 	const guildhall = new Facility(
@@ -59,7 +60,7 @@ export function createInitialGameState(
 	const goldSlotAttributes: ResourceSlotAttributes = {
 		facilityId: guildhall.id,
 		resourceType: 'gold',
-		baseRatePerMinute: 6,
+		baseRatePerMinute: GameConfig.resourceGeneration.initialGoldRatePerMinute,
 		assigneeType: 'player',
 		assigneeId: null
 	};

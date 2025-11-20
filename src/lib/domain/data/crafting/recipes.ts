@@ -20,7 +20,7 @@ export class CraftingRecipe {
 		public readonly id: CraftingRecipeId,
 		public readonly itemType: ItemType,
 		public readonly rarity: ItemRarity,
-		public readonly input: ResourceBundle, // materials, rareEssence, gold
+		public readonly input: ResourceBundle, // materials, gold
 		public readonly duration: Duration, // Crafting time
 		public readonly output: {
 			itemType: ItemType;
@@ -173,15 +173,14 @@ export function getDefaultCraftingRecipes(): CraftingRecipe[] {
 		)
 	);
 
-	// Rare Items (5-10x cost + rare essence, 60 minutes)
+	// Rare Items (5-10x cost, 60 minutes)
 	recipes.push(
 		new CraftingRecipe(
 			'rare-weapon',
 			'weapon',
 			'rare',
 			ResourceBundle.fromArray([
-				new ResourceUnit('materials', 50),
-				new ResourceUnit('rareEssence', 5),
+				new ResourceUnit('materials', 100),
 				new ResourceUnit('gold', 500)
 			]),
 			Duration.ofMinutes(60),
@@ -197,8 +196,7 @@ export function getDefaultCraftingRecipes(): CraftingRecipe[] {
 			'armor',
 			'rare',
 			ResourceBundle.fromArray([
-				new ResourceUnit('materials', 75),
-				new ResourceUnit('rareEssence', 8),
+				new ResourceUnit('materials', 155),
 				new ResourceUnit('gold', 750)
 			]),
 			Duration.ofMinutes(60),
@@ -214,8 +212,7 @@ export function getDefaultCraftingRecipes(): CraftingRecipe[] {
 			'offHand',
 			'rare',
 			ResourceBundle.fromArray([
-				new ResourceUnit('materials', 40),
-				new ResourceUnit('rareEssence', 3),
+				new ResourceUnit('materials', 70),
 				new ResourceUnit('gold', 400)
 			]),
 			Duration.ofMinutes(60),
@@ -231,8 +228,7 @@ export function getDefaultCraftingRecipes(): CraftingRecipe[] {
 			'accessory',
 			'rare',
 			ResourceBundle.fromArray([
-				new ResourceUnit('materials', 25),
-				new ResourceUnit('rareEssence', 2),
+				new ResourceUnit('materials', 45),
 				new ResourceUnit('gold', 250)
 			]),
 			Duration.ofMinutes(60),

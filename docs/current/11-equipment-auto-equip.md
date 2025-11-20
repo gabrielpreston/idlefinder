@@ -270,15 +270,14 @@ Unwanted gear can be salvaged for materials.
 2. **Confirm Salvage**: Player confirms salvage action
 3. **Calculate Returns**:
    * **Common Items**: Generic materials (based on item value)
-   * **Uncommon Items**: Generic materials + small amount of rare essence
-   * **Rare Items**: Generic materials + rare essence (significant amount)
+   * **Uncommon Items**: Generic materials
+   * **Rare Items**: Generic materials (higher yield)
 4. **Remove Item**: Item removed from game (state → `Salvaged`)
 5. **Add Materials**: Materials added to global resources
 
 ### Salvage Returns
 
 * **Generic Materials**: Used for crafting common and uncommon items
-* **Rare Essence**: Used for crafting rare items
 * **Gold**: Small gold return (optional, based on design)
 
 ### Auto-Salvage Policy

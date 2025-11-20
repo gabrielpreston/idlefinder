@@ -29,15 +29,13 @@ export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, G
 		// Create action
 		const action = new SalvageItemAction(
 			payload.itemId,
-			payload.materialsAmount,
-			payload.rareEssenceAmount
+			payload.materialsAmount
 		);
 
 		// Execute action (validates requirements, computes effects)
 		const actionResult = action.execute(requirementContext, {
 			itemId: payload.itemId,
-			materialsAmount: payload.materialsAmount,
-			rareEssenceAmount: payload.rareEssenceAmount
+			materialsAmount: payload.materialsAmount
 		});
 
 		if (!actionResult.success) {
@@ -74,8 +72,7 @@ export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, G
 			actionResult.effects,
 			{
 				itemId: payload.itemId,
-				materialsAmount: payload.materialsAmount,
-				rareEssenceAmount: payload.rareEssenceAmount
+				materialsAmount: payload.materialsAmount
 			}
 		);
 

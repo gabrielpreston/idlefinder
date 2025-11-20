@@ -9,6 +9,7 @@ import { ResourceSlot } from '../entities/ResourceSlot';
 import { Identifier } from '../valueObjects/Identifier';
 import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
 import { Timestamp } from '../valueObjects/Timestamp';
+import { GameConfig } from '../config/GameConfig';
 
 /**
  * Handle facility upgrade and determine which slots should be created
@@ -41,7 +42,7 @@ export function handleFacilityUpgrade(
 			const attributes: ResourceSlotAttributes = {
 				facilityId: event.facilityId,
 				resourceType: 'gold',
-				baseRatePerMinute: 6,
+				baseRatePerMinute: GameConfig.resourceGeneration.initialGoldRatePerMinute,
 				assigneeType: 'none',
 				assigneeId: null
 			};

@@ -30,7 +30,6 @@ Global resources are stored in `GameState.resources` (ResourceBundle):
 * **Gold**: Primary currency, earned from missions, spent on upgrades/crafting/recruitment
 * **Fame**: Reputation currency, earned from missions, gates content unlocks
 * **Materials**: Generic crafting materials, earned from missions/salvage/caravans, spent on crafting
-* **Rare Essence**: Rare crafting material, earned from salvaging rare items, spent on rare crafting
 
 ### Per-Entity Resources
 
@@ -55,8 +54,7 @@ Resources are earned passively through automated systems:
 * **Recruits**: Purchased from caravans (costs gold)
 
 ### Salvage Returns
-* **Materials**: Salvaging common/uncommon items
-* **Rare Essence**: Salvaging rare items
+* **Materials**: Salvaging items (higher yield for rare items)
 
 ### Passive Generation (Future)
 * **Resource Nodes**: Passive generation over time (future system)
@@ -67,8 +65,7 @@ Resources are earned passively through automated systems:
 Resources are spent automatically through automated systems:
 
 ### Crafting
-* **Materials**: Consumed for crafting items
-* **Rare Essence**: Consumed for crafting rare items
+* **Materials**: Consumed for crafting items (higher cost for rare items)
 * **Gold**: Crafting costs
 * **Time**: Crafting takes real-world time
 
@@ -165,7 +162,7 @@ The resource system emits the following events:
 
 For MVP, the resource system includes:
 
-* ✅ 4 resource types (Gold, Fame, Materials, Rare Essence)
+* ✅ 3 resource types (Gold, Fame, Materials)
 * ✅ Passive income sources (missions, caravans, salvage)
 * ✅ Resource sinks (crafting, upgrades, recruitment, repair)
 * ✅ Time-based operations

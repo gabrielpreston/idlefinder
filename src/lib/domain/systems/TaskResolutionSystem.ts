@@ -10,6 +10,7 @@ import { Timestamp } from '../valueObjects/Timestamp';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import { success, type SystemResult } from '../primitives/SystemResult';
+import { GameConfig } from '../config/GameConfig';
 
 /**
  * Result of resolving a task.
@@ -146,13 +147,10 @@ export class TaskResolutionSystem {
 	 */
 	private determineOutcome(score: number, _archetype: TaskArchetype): OutcomeCategory {
 		// Simple threshold-based system
-		// GREAT_SUCCESS: score >= 100
-		// SUCCESS: score >= 50
-		// FAILURE: score < 50
-		if (score >= 100) {
+		if (score >= GameConfig.missionResolution.scoreThresholds.greatSuccess) {
 			return 'GREAT_SUCCESS';
 		}
-		if (score >= 50) {
+		if (score >= GameConfig.missionResolution.scoreThresholds.success) {
 			return 'SUCCESS';
 		}
 		return 'FAILURE';
@@ -169,9 +167,9 @@ export class TaskResolutionSystem {
 	): ResourceBundle {
 		// Outcome multipliers
 		const multipliers: Record<OutcomeCategory, number> = {
-			GREAT_SUCCESS: 1.5,
-			SUCCESS: 1.0,
-			FAILURE: 0.3
+			GREAT_SUCCESS: GameConfig.missionResolution.outcomeMultipliers.greatSuccess,
+			SUCCESS: GameConfig.missionResolution.outcomeMultipliers.success,
+			FAILURE: GameConfig.missionResolution.outcomeMultipliers.failure
 		};
 
 		const multiplier = multipliers[outcome];
@@ -181,7 +179,7 @@ export class TaskResolutionSystem {
 			agents.length > 0
 				? agents.reduce((sum, a) => sum + a.level, 0) / agents.length
 				: 1;
-		const levelMultiplier = 1 + (avgLevel - 1) * 0.1;
+		const levelMultiplier = 1 + (avgLevel - 1) * GameConfig.missionResolution.levelMultiplier;
 
 		// Scale base reward
 		const finalMultiplier = multiplier * levelMultiplier;
@@ -207,9 +205,9 @@ export class TaskResolutionSystem {
 
 			// XP based on outcome
 			const xpRewards: Record<OutcomeCategory, number> = {
-				GREAT_SUCCESS: 50,
-				SUCCESS: 30,
-				FAILURE: 10
+				GREAT_SUCCESS: GameConfig.missionResolution.xpRewards.greatSuccess,
+				SUCCESS: GameConfig.missionResolution.xpRewards.success,
+				FAILURE: GameConfig.missionResolution.xpRewards.failure
 			};
 			change.xpGain = xpRewards[outcome];
 

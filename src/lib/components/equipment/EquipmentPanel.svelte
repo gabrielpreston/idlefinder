@@ -37,16 +37,16 @@
 		<div class="rules-view">
 			{#if $autoEquipRules}
 				<div class="rule-section">
-					<label>
-						<span>Focus:</span>
-						<span>{$autoEquipRules.attributes.focus}</span>
-					</label>
+					<div class="rule-item">
+						<span class="rule-label">Focus:</span>
+						<span class="rule-value">{$autoEquipRules.attributes.focus}</span>
+					</div>
 				</div>
 				<div class="rule-section">
-					<label>
-						<span>Allow Rare Auto-Equip:</span>
-						<span>{$autoEquipRules.attributes.allowRareAutoEquip ? 'Yes' : 'No'}</span>
-					</label>
+					<div class="rule-item">
+						<span class="rule-label">Allow Rare Auto-Equip:</span>
+						<span class="rule-value">{$autoEquipRules.attributes.allowRareAutoEquip ? 'Yes' : 'No'}</span>
+					</div>
 				</div>
 			{:else}
 				<p>No auto-equip rules configured.</p>
@@ -129,10 +129,18 @@
 		margin-bottom: 1rem;
 	}
 
-	.rule-section label {
+	.rule-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+	}
+
+	.rule-label {
+		font-weight: 500;
+	}
+
+	.rule-value {
+		color: var(--color-text-secondary, #666);
 	}
 </style>
 

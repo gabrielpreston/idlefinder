@@ -9,6 +9,7 @@ import type { FacilityState } from '../states/FacilityState';
 import type { Entity } from '../primitives/Requirement';
 import { validateEntity, validateNonNegative } from '../primitives/EntityValidation';
 import type { EntityMetadata } from '../primitives/EntityMetadata';
+import { GameConfig } from '../config/GameConfig';
 
 export type FacilityId = Identifier<'FacilityId'>;
 
@@ -80,16 +81,16 @@ export class Facility implements Entity {
 
 		switch (this.attributes.facilityType) {
 			case 'Dormitory':
-				effects.rosterCap = this.attributes.baseCapacity + this.attributes.tier * 5;
+				effects.rosterCap = this.attributes.baseCapacity + GameConfig.facilityScaling.dormitoryRosterBonus(this.attributes.tier);
 				break;
 			case 'MissionCommand':
-				effects.maxActiveMissions = this.attributes.baseCapacity + this.attributes.tier;
+				effects.maxActiveMissions = this.attributes.baseCapacity + GameConfig.facilityScaling.missionCommandSlotBonus(this.attributes.tier);
 				break;
 			case 'TrainingGrounds':
 				effects.trainingMultiplier = this.attributes.bonusMultipliers.xp ?? 1.0;
 				break;
 			case 'ResourceDepot':
-				effects.resourceStorageCap = this.attributes.baseCapacity + this.attributes.tier * 100;
+				effects.resourceStorageCap = this.attributes.baseCapacity + GameConfig.facilityScaling.resourceDepotStorageBonus(this.attributes.tier);
 				break;
 		}
 

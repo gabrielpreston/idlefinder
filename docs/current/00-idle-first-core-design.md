@@ -378,7 +378,7 @@ When:
 * Player can salvage unwanted gear for:
 
   * generic materials,
-  * rare essences (from rares).
+  * materials (higher yield from rare items).
 * This fuels crafting and keeps the inventory clean.
 
 The **core feeling** is:

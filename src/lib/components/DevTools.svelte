@@ -58,18 +58,14 @@
 				console.log('✓ All clear! Reloading page...');
 				
 				// Step 4: Force hard reload (bypass cache)
-				// Use location.reload(true) for hard reload, or location.href for navigation
+				// Note: reload() no longer accepts arguments in modern browsers
+				// Use location.href for hard reload with cache bypass
 				setTimeout(() => {
 					// Set a flag in sessionStorage to prevent auto-save during reload
 					sessionStorage.setItem('__resetting', 'true');
 					
-					// Force hard reload
-					if (window.location.reload) {
-						window.location.reload(true);
-					} else {
-						// Fallback for browsers that don't support reload(true)
-						window.location.href = window.location.href.split('?')[0] + '?reset=' + Date.now();
-					}
+					// Force hard reload by navigating to same URL with cache-busting parameter
+					window.location.href = window.location.href.split('?')[0] + '?reset=' + Date.now();
 				}, 100);
 			} catch (error) {
 				console.error('Failed to reset game state:', error);

@@ -8,25 +8,28 @@ import {
 	getFacilityUpgradeCost,
 	canAffordFacilityUpgrade,
 	getGuildHallUpgradeCost,
-	canUpgradeGuildHall
+	canUpgradeGuildHall,
+	getRecruitAdventurerCost,
+	canAffordRecruitAdventurer
 } from './CostQueries';
-import { createTestGameState, createTestFacility } from '../../test-utils/testFactories';
+import { createTestGameState, createTestFacility, createTestResourceBundle } from '../../test-utils/testFactories';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { Entity } from '../primitives/Requirement';
+import { GameConfig } from '../config/GameConfig';
 // Import gating module to ensure gates are registered
 import '../gating';
 
 describe('CostQueries', () => {
 	describe('calculateFacilityUpgradeCost', () => {
-		it('should calculate cost as tier * 100', () => {
-			expect(calculateFacilityUpgradeCost(1)).toBe(100);
-			expect(calculateFacilityUpgradeCost(2)).toBe(200);
-			expect(calculateFacilityUpgradeCost(5)).toBe(500);
+		it('should calculate cost using GameConfig formula', () => {
+			expect(calculateFacilityUpgradeCost(1)).toBe(GameConfig.costs.facilityUpgrade(1));
+			expect(calculateFacilityUpgradeCost(2)).toBe(GameConfig.costs.facilityUpgrade(2));
+			expect(calculateFacilityUpgradeCost(5)).toBe(GameConfig.costs.facilityUpgrade(5));
 		});
 
 		it('should handle tier 0', () => {
-			expect(calculateFacilityUpgradeCost(0)).toBe(0);
+			expect(calculateFacilityUpgradeCost(0)).toBe(GameConfig.costs.facilityUpgrade(0));
 		});
 	});
 
@@ -67,7 +70,8 @@ describe('CostQueries', () => {
 		});
 
 		it('should return false when gold is 0', () => {
-			const state = createTestGameState();
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 0)]);
+			const state = createTestGameState({ resources });
 			expect(canAffordFacilityUpgrade(state, 1)).toBe(false);
 		});
 	});
@@ -98,6 +102,39 @@ describe('CostQueries', () => {
 			const cost = getGuildHallUpgradeCost(state);
 			// No guildhall means tier 0, next tier is 1, cost = 1 * 100 = 100
 			expect(cost.get('gold')).toBe(100);
+		});
+	});
+
+	describe('getRecruitAdventurerCost', () => {
+		it('should return cost from GameConfig', () => {
+			const cost = getRecruitAdventurerCost();
+			expect(cost.get('gold')).toBe(GameConfig.costs.recruitAdventurer);
+		});
+	});
+
+	describe('canAffordRecruitAdventurer', () => {
+		it('should return true when player has enough gold', () => {
+			const resources = createTestResourceBundle({ gold: 100 });
+			const state = createTestGameState({ resources });
+			expect(canAffordRecruitAdventurer(state)).toBe(true);
+		});
+
+		it('should return true when player has exactly the recruit cost', () => {
+			const resources = createTestResourceBundle({ gold: GameConfig.costs.recruitAdventurer });
+			const state = createTestGameState({ resources });
+			expect(canAffordRecruitAdventurer(state)).toBe(true);
+		});
+
+		it('should return false when player has insufficient gold', () => {
+			const resources = createTestResourceBundle({ gold: 25 });
+			const state = createTestGameState({ resources });
+			expect(canAffordRecruitAdventurer(state)).toBe(false);
+		});
+
+		it('should return false when player has no gold', () => {
+			const resources = createTestResourceBundle({ gold: 0 });
+			const state = createTestGameState({ resources });
+			expect(canAffordRecruitAdventurer(state)).toBe(false);
 		});
 	});
 

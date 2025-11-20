@@ -16,6 +16,7 @@ import { Item } from '../entities/Item';
 import { Identifier } from '../valueObjects/Identifier';
 import { NumericStatMap } from '../valueObjects/NumericStatMap';
 import { getDefaultCraftingRecipes } from '../data/crafting/recipes';
+import { GameConfig } from '../config/GameConfig';
 
 /**
  * CompleteCrafting Action
@@ -58,8 +59,8 @@ export class CompleteCraftingAction extends Action {
 				itemType: recipe.output.itemType,
 				rarity: recipe.output.rarity,
 				stats: NumericStatMap.fromMap(statsMap),
-				durability: 100,
-				maxDurability: 100,
+				durability: GameConfig.items.maxDurability,
+				maxDurability: GameConfig.items.maxDurability,
 				baseValue: recipe.output.baseValue
 			},
 			[recipe.output.rarity, recipe.output.itemType],

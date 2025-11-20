@@ -117,7 +117,6 @@ export interface RepairItemCommand {
 export interface SalvageItemCommand {
 	itemId: string;
 	materialsAmount?: number;
-	rareEssenceAmount?: number;
 }
 
 export interface UpdateAutoEquipRulesCommand {

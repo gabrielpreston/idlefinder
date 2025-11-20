@@ -654,7 +654,7 @@ describe('SalvageItemEffect', () => {
 		);
 		const entities = new Map<string, Entity>([[item.id, item]]);
 		const resources = new ResourceBundle(new Map());
-		const effect = new SalvageItemEffect('item-1', 50, 0);
+		const effect = new SalvageItemEffect('item-1', 50);
 
 		const result = effect.apply(entities, resources);
 
@@ -685,7 +685,7 @@ describe('SalvageItemEffect', () => {
 			[adventurer.id, adventurer]
 		]);
 		const resources = new ResourceBundle(new Map());
-		const effect = new SalvageItemEffect('item-1', 50, 0);
+		const effect = new SalvageItemEffect('item-1', 50);
 
 		const result = effect.apply(entities, resources);
 
@@ -694,32 +694,7 @@ describe('SalvageItemEffect', () => {
 		expect(updatedAdventurer?.attributes.equipment?.weaponId).toBeUndefined();
 	});
 
-	it('should add rare essence for rare items', () => {
-		const item = new Item(
-			Identifier.from<'ItemId'>('item-1'),
-			{
-				itemType: 'weapon',
-				rarity: 'rare',
-				stats: NumericStatMap.fromMap(new Map([['attackBonus', 1]])),
-				durability: 100,
-				maxDurability: 100,
-				baseValue: 100
-			},
-			[],
-			'InArmory',
-			{},
-			{}
-		);
-		const entities = new Map<string, Entity>([[item.id, item]]);
-		const resources = new ResourceBundle(new Map());
-		const effect = new SalvageItemEffect('item-1', 0, 10);
-
-		const result = effect.apply(entities, resources);
-
-		expect(result.resources.get('rareEssence')).toBe(10);
-	});
-
-	it('should handle no materials or rare essence', () => {
+	it('should handle no materials', () => {
 		const item = new Item(
 			Identifier.from<'ItemId'>('item-1'),
 			{
@@ -737,7 +712,7 @@ describe('SalvageItemEffect', () => {
 		);
 		const entities = new Map<string, Entity>([[item.id, item]]);
 		const resources = new ResourceBundle(new Map());
-		const effect = new SalvageItemEffect('item-1', 0, 0);
+		const effect = new SalvageItemEffect('item-1', 0);
 
 		const result = effect.apply(entities, resources);
 

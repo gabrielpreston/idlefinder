@@ -15,7 +15,6 @@ CraftingRecipe = {
   rarity: "common" | "uncommon" | "rare",
   input: {
     materials: number,
-    rareEssence?: number,
     gold: number
   },
   duration: number, // milliseconds
@@ -80,30 +79,26 @@ CraftingRecipe = {
 ## Rare Item Recipes
 
 ### Rare Weapon
-* **Materials**: 50
-* **Rare Essence**: 5
+* **Materials**: 100
 * **Gold**: 500
 * **Duration**: 60 minutes (3,600,000 ms)
 * **Output**: Rare weapon (random stat roll)
 
 ### Rare Armor
-* **Materials**: 70
-* **Rare Essence**: 7
-* **Gold**: 700
+* **Materials**: 155
+* **Gold**: 750
 * **Duration**: 60 minutes (3,600,000 ms)
 * **Output**: Rare armor (random stat roll)
 
 ### Rare Off-Hand
-* **Materials**: 40
-* **Rare Essence**: 4
+* **Materials**: 70
 * **Gold**: 400
 * **Duration**: 60 minutes (3,600,000 ms)
 * **Output**: Rare off-hand (random stat roll)
 
 ### Rare Accessory
-* **Materials**: 30
-* **Rare Essence**: 3
-* **Gold**: 300
+* **Materials**: 45
+* **Gold**: 250
 * **Duration**: 60 minutes (3,600,000 ms)
 * **Output**: Rare accessory (random stat roll)
 
@@ -112,7 +107,7 @@ CraftingRecipe = {
 Recipes scale with rarity:
 
 * **Common → Uncommon**: ~2.5x materials, ~3x gold, 3x duration
-* **Uncommon → Rare**: ~2x materials, +rare essence, ~4x gold, 4x duration
+* **Uncommon → Rare**: ~2x materials, ~4x gold, 4x duration
 
 ## MVP Scope
 
@@ -120,7 +115,7 @@ For MVP, crafting recipes include:
 
 * ✅ 4 item types × 3 rarities = 12 base recipes
 * ✅ Simple progression (common → uncommon → rare)
-* ✅ Resource costs (materials, rare essence, gold)
+* ✅ Resource costs (materials, gold)
 * ✅ Time costs (duration)
 
 Future enhancements (out of MVP scope):

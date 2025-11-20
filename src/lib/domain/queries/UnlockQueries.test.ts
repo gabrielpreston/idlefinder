@@ -15,6 +15,7 @@ import { createTestGameState } from '../../test-utils/testFactories';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { GameState } from '../entities/GameState';
+import { GameConfig } from '../config/GameConfig';
 // Import gating module to ensure gates are registered
 import '../gating';
 
@@ -22,7 +23,12 @@ describe('UnlockQueries', () => {
 	let state: GameState;
 
 	beforeEach(() => {
-		state = createTestGameState();
+		// Use GameConfig starting resources for default test state
+		const resources = ResourceBundle.fromArray([
+			new ResourceUnit('gold', GameConfig.startingResources.gold),
+			new ResourceUnit('fame', GameConfig.startingResources.fame)
+		]);
+		state = createTestGameState({ resources });
 	});
 
 	describe('createUnlockCondition', () => {
@@ -52,11 +58,13 @@ describe('UnlockQueries', () => {
 		});
 
 		it('should return reason when locked', () => {
-			const check = (state: GameState) => state.resources.get('gold') >= 50;
-			const reason = () => 'Need 50 gold';
+			const requiredGold = 50;
+			const check = (state: GameState) => state.resources.get('gold') >= requiredGold;
+			const reason = () => `Need ${requiredGold} gold`;
 			const unlockQuery = createUnlockCondition(check, reason);
 
-			expect(unlockQuery.getUnlockReason(state)).toBe('Need 50 gold');
+			// State should have default starting gold (15), which is less than 50
+			expect(unlockQuery.getUnlockReason(state)).toBe(`Need ${requiredGold} gold`);
 		});
 
 		it('should use getThreshold function when provided', () => {

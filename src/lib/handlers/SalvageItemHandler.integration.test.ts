@@ -49,8 +49,7 @@ describe('SalvageItemHandler Integration', () => {
 
 			const command = createTestCommand('SalvageItem', {
 				itemId: 'item-1',
-				materialsAmount: 5,
-				rareEssenceAmount: 0
+				materialsAmount: 5
 			});
 
 			await busManager.commandBus.dispatch(command);
@@ -66,8 +65,7 @@ describe('SalvageItemHandler Integration', () => {
 		it('should fail when item not found', async () => {
 			const command = createTestCommand('SalvageItem', {
 				itemId: 'nonexistent',
-				materialsAmount: 5,
-				rareEssenceAmount: 0
+				materialsAmount: 5
 			});
 
 			await busManager.commandBus.dispatch(command);

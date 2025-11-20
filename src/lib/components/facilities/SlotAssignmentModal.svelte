@@ -33,11 +33,22 @@
 	}
 </script>
 
-<div class="modal-overlay" onclick={close}>
-	<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+<div 
+	class="modal-overlay" 
+	onclick={close}
+	onkeydown={(e) => {
+		if (e.key === 'Escape') {
+			close();
+		}
+	}}
+	role="dialog"
+	aria-modal="true"
+	aria-labelledby="modal-title"
+>
+	<div class="modal-content" onclick={(e) => e.stopPropagation()} role="document">
 		<div class="modal-header">
-			<h3>Assign Worker to {slot.metadata.displayName || 'Slot'}</h3>
-			<button class="close-btn" onclick={close}>×</button>
+			<h3 id="modal-title">Assign Worker to {slot.metadata.displayName || 'Slot'}</h3>
+			<button class="close-btn" onclick={close} aria-label="Close modal">×</button>
 		</div>
 		
 		<div class="modal-body">

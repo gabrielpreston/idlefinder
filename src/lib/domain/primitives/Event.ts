@@ -164,7 +164,6 @@ export interface ItemRepairedEvent {
 export interface ItemSalvagedEvent {
 	itemId: string;
 	materials: number;
-	rareEssence: number;
 }
 
 export interface CraftingStartedEvent {

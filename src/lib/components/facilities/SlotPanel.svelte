@@ -76,9 +76,18 @@
 	function getAssigneeName(slot: ResourceSlot): string {
 		if (slot.attributes.assigneeType === 'player') {
 			return 'Yourself (Guildmaster)';
-		} else if (slot.attributes.assigneeType === 'adventurer' && slot.attributes.assigneeId) {
-			const adventurer = $adventurers.find(a => a.id === slot.attributes.assigneeId);
-			return adventurer?.metadata.displayName || adventurer?.metadata.name || 'Unknown Adventurer';
+		} else if (slot.attributes.assigneeType === 'adventurer') {
+			const assigneeId = slot.attributes.assigneeId;
+			if (assigneeId && typeof assigneeId === 'string' && assigneeId.length > 0) {
+				const adventurer = $adventurers.find(a => a.id === assigneeId);
+				if (adventurer) {
+					const displayName = adventurer.metadata.displayName;
+					const name = adventurer.metadata.name;
+					return (typeof displayName === 'string' ? displayName : null) 
+						|| (typeof name === 'string' ? name : null) 
+						|| 'Unknown Adventurer';
+				}
+			}
 		}
 		return 'None';
 	}

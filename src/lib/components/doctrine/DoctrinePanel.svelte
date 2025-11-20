@@ -27,7 +27,12 @@
 				<span>Focus:</span>
 				<select
 					value={$missionDoctrine.attributes.focus}
-					onchange={(e) => updateDoctrine(e.target.value, undefined)}
+					onchange={(e) => {
+						const target = e.target as HTMLSelectElement;
+						if (target) {
+							updateDoctrine(target.value, undefined);
+						}
+					}}
 				>
 					<option value="balanced">Balanced</option>
 					<option value="gold">Gold</option>
@@ -42,7 +47,12 @@
 				<span>Risk Tolerance:</span>
 				<select
 					value={$missionDoctrine.attributes.riskTolerance}
-					onchange={(e) => updateDoctrine(undefined, e.target.value)}
+					onchange={(e) => {
+						const target = e.target as HTMLSelectElement;
+						if (target) {
+							updateDoctrine(undefined, target.value);
+						}
+					}}
 				>
 					<option value="low">Low</option>
 					<option value="medium">Medium</option>

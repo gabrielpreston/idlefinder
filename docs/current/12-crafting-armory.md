@@ -40,7 +40,6 @@ CraftingRecipe = {
   rarity: "common" | "uncommon" | "rare",
   input: {
     materials: number,        // Generic materials required
-    rareEssence?: number,     // Rare essence required (for rare items)
     gold: number             // Gold cost
   },
   duration: number,          // Crafting time in milliseconds
@@ -54,7 +53,7 @@ CraftingRecipe = {
 
 * **Common Items**: Craft directly from materials
 * **Uncommon Items**: Craft from materials (higher cost than common)
-* **Rare Items**: Craft from materials + rare essence (highest cost)
+* **Rare Items**: Craft from materials (highest cost)
 
 ### Crafting Queue
 
@@ -97,13 +96,12 @@ Times may be reduced by facility tiers (future system).
 Crafting costs resources:
 
 * **Materials**: Generic materials (from missions, salvage, caravans)
-* **Rare Essence**: Rare essence (from salvaging rare items)
 * **Gold**: Gold cost (scales with rarity)
 
 Costs scale with item rarity:
 * Common: Low cost
 * Uncommon: Medium cost (2-3x common)
-* Rare: High cost (5-10x common) + rare essence
+* Rare: High cost (5-10x common)
 
 ## Armory Operations
 
@@ -159,10 +157,10 @@ This ensures newly crafted items are immediately utilized if they improve the ro
 
 ### Rare Items
 
-* **Rare Weapon**: 50 materials, 5 rare essence, 500 gold, 60 minutes
-* **Rare Armor**: 70 materials, 7 rare essence, 700 gold, 60 minutes
-* **Rare Off-Hand**: 40 materials, 4 rare essence, 400 gold, 60 minutes
-* **Rare Accessory**: 30 materials, 3 rare essence, 300 gold, 60 minutes
+* **Rare Weapon**: 100 materials, 500 gold, 60 minutes
+* **Rare Armor**: 155 materials, 750 gold, 60 minutes
+* **Rare Off-Hand**: 70 materials, 400 gold, 60 minutes
+* **Rare Accessory**: 45 materials, 250 gold, 60 minutes
 
 (Exact values subject to balance tuning)
 
