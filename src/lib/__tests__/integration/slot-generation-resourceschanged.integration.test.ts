@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
-import { registerHandlersV2 } from '../../handlers/indexV2';
+import { registerHandlers } from '../../handlers/index';
 import { createTestGameState, createTestResourceBundle, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
@@ -42,7 +42,7 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 		expect(goldSlot.attributes.assigneeType).toBe('player');
 
 		busManager = new BusManager(initialState, testTimeSource);
-		registerHandlersV2(busManager);
+		registerHandlers(busManager);
 
 		publishedEvents = [];
 		busManager.domainEventBus.subscribe('ResourcesChanged', (payload: DomainEvent['payload']) => {

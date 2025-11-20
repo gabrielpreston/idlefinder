@@ -5,7 +5,7 @@
 
 import type { BusManager } from '../bus/BusManager';
 import { BusManager as BusManagerImpl } from '../bus/BusManager';
-import { registerHandlersV2 } from '../handlers/indexV2';
+import { registerHandlers } from '../handlers/index';
 import { createTestGameState } from './testFactories';
 import { setupMockLocalStorage } from './mockLocalStorage';
 import { SimulatedTimeSource } from '../time/DomainTimeSource';
@@ -41,7 +41,7 @@ export function setupIntegrationTest(options?: {
 	const initialState = options?.initialState ?? createTestGameState();
 	const testTimeSource = new SimulatedTimeSource(Timestamp.from(Date.now()));
 	const busManager = new BusManagerImpl(initialState, testTimeSource);
-	registerHandlersV2(busManager);
+	registerHandlers(busManager);
 
 	const publishedEvents: DomainEvent[] = [];
 	const eventTypes = options?.eventTypes ?? [];

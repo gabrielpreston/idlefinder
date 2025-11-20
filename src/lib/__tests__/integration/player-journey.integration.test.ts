@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
-import { registerHandlersV2 } from '../../handlers/indexV2';
+import { registerHandlers } from '../../handlers/index';
 import { createTestGameState, createTestCommand, createTestResourceBundle, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
@@ -24,7 +24,7 @@ describe('Player Journey Integration', () => {
 
 		const initialState = createTestGameState();
 		busManager = new BusManager(initialState, testTimeSource);
-		registerHandlersV2(busManager);
+		registerHandlers(busManager);
 
 		publishedEvents = [];
 		busManager.domainEventBus.subscribe('AdventurerRecruited', (payload: DomainEvent['payload']) => {
@@ -193,7 +193,7 @@ describe('Player Journey Integration', () => {
 			});
 			const initialState = createTestGameState({ resources });
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlersV2(manager);
+			registerHandlers(manager);
 
 			// Recruit and start mission
 			await manager.commandBus.dispatch(

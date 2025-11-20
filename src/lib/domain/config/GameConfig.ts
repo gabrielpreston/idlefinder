@@ -59,12 +59,12 @@ export const GameConfig = {
 	// ============================================
 	/**
 	 * All cost values and formulas
-	 * Reference: RecruitAdventurerHandlerV2.ts:21, CostQueries.ts:49,119,129
+	 * Reference: RecruitAdventurerHandler.ts:21, CostQueries.ts:49,119,129
 	 */
 	costs: {
 		/**
 		 * Cost to recruit a new adventurer
-		 * Reference: RecruitAdventurerHandlerV2.ts:21, CostQueries.ts:119,129
+		 * Reference: RecruitAdventurerHandler.ts:21, CostQueries.ts:119,129
 		 */
 		recruitAdventurer: 50,
 		

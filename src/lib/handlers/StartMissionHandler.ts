@@ -13,7 +13,7 @@ import type { RequirementContext } from '../domain/primitives/Requirement';
 /**
  * Create StartMission command handler using Actions
  */
-export function createStartMissionHandlerV2(): CommandHandler<StartMissionCommand, GameState> {
+export function createStartMissionHandler(): CommandHandler<StartMissionCommand, GameState> {
 	return async function(
 		payload: StartMissionCommand,
 		state: GameState,

@@ -7,7 +7,7 @@
 
 import { BusManager } from '../bus/BusManager';
 import { RealTimeSource, type DomainTimeSource } from '../time/DomainTimeSource';
-import { registerHandlersV2 } from '../handlers/indexV2';
+import { registerHandlers } from '../handlers/index';
 import type { GameState } from '../domain/entities/GameState';
 import { writable, type Readable } from 'svelte/store';
 import { GameState as GameStateClass } from '../domain/entities/GameState';
@@ -38,8 +38,8 @@ export function startGame(
 	const ts = timeSource ?? new RealTimeSource();
 	const busManager = new BusManager(initialState, ts);
 	
-	// Register command handlers (V2 - Actions-based)
-	registerHandlersV2(busManager);
+	// Register command handlers
+	registerHandlers(busManager);
 	
 	// Create reactive gameState store
 	const { subscribe, set } = writable<GameState>(initialState);

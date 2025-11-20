@@ -1,5 +1,5 @@
 /**
- * UpgradeFacilityHandlerV2 Integration Tests
+ * UpgradeFacilityHandler Integration Tests
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -11,7 +11,7 @@ import { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 import { ResourceUnit } from '../domain/valueObjects/ResourceUnit';
 import type { Entity } from '../domain/primitives/Requirement';
 
-describe('UpgradeFacilityHandlerV2 Integration', () => {
+describe('UpgradeFacilityHandler Integration', () => {
 	let busManager: BusManager;
 	let publishedEvents: DomainEvent[];
 

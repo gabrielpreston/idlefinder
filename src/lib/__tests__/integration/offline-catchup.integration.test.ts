@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
-import { registerHandlersV2 } from '../../handlers/indexV2';
+import { registerHandlers } from '../../handlers/index';
 import { createTestGameState, createTestMission, createTestAdventurer, createTestResourceBundle, setupMockLocalStorage } from '../../test-utils';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
@@ -23,7 +23,7 @@ describe('Offline Catch-Up Integration', () => {
 
 		const initialState = createTestGameState();
 		busManager = new BusManager(initialState, testTimeSource);
-		registerHandlersV2(busManager);
+		registerHandlers(busManager);
 
 		publishedEvents = [];
 		busManager.domainEventBus.subscribe('MissionCompleted', (payload: DomainEvent['payload']) => {
@@ -65,7 +65,7 @@ describe('Offline Catch-Up Integration', () => {
 			const initialState = createTestGameState({ entities });
 
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlersV2(manager);
+			registerHandlers(manager);
 
 			// Mock persistence to return state with old lastPlayed
 			const lastPlayed = new Date(Date.now() - 10000);
@@ -108,7 +108,7 @@ describe('Offline Catch-Up Integration', () => {
 			const initialState = createTestGameState({ entities, resources });
 
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlersV2(manager);
+			registerHandlers(manager);
 
 			const lastPlayed = new Date(Date.now() - 10000);
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(initialState);
@@ -145,7 +145,7 @@ describe('Offline Catch-Up Integration', () => {
 			const initialState = createTestGameState({ entities });
 
 			const manager = new BusManager(initialState, testTimeSource);
-			registerHandlersV2(manager);
+			registerHandlers(manager);
 
 			const lastPlayed = new Date(Date.now() - 10000);
 			vi.spyOn(manager.persistenceBus, 'load').mockReturnValue(initialState);

@@ -14,7 +14,7 @@ import { getEntityAs, isFacility } from '../domain/primitives/EntityTypeGuards';
 /**
  * Create UpgradeFacility command handler using Actions
  */
-export function createUpgradeFacilityHandlerV2(): CommandHandler<UpgradeFacilityCommand, GameState> {
+export function createUpgradeFacilityHandler(): CommandHandler<UpgradeFacilityCommand, GameState> {
 	return async function(
 		payload: UpgradeFacilityCommand,
 		state: GameState,

@@ -1,5 +1,5 @@
 /**
- * StartMissionHandlerV2 Integration Tests
+ * StartMissionHandler Integration Tests
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -9,7 +9,7 @@ import type { DomainEvent } from '../bus/types';
 import { createTestMission } from '../test-utils/testFactories';
 import type { Entity } from '../domain/primitives/Requirement';
 
-describe('StartMissionHandlerV2 Integration', () => {
+describe('StartMissionHandler Integration', () => {
 	let busManager: BusManager;
 	let publishedEvents: DomainEvent[];
 

@@ -1,5 +1,5 @@
 /**
- * RecruitAdventurerHandlerV2 Integration Tests
+ * RecruitAdventurerHandler Integration Tests
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -7,7 +7,7 @@ import { setupIntegrationTest, createTestCommand, createTestGameState, createTes
 import type { BusManager } from '../bus/BusManager';
 import type { DomainEvent } from '../bus/types';
 
-describe('RecruitAdventurerHandlerV2 Integration', () => {
+describe('RecruitAdventurerHandler Integration', () => {
 	let busManager: BusManager;
 	let publishedEvents: DomainEvent[];
 

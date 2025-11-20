@@ -1,5 +1,5 @@
 /**
- * RecruitAdventurer command handler - Uses new Actions/Entities system
+ * RecruitAdventurer command handler - Uses Actions/Entities system
  * Creates new Adventurer entity and adds to GameState
  */
 
@@ -20,9 +20,9 @@ import {
 import { GameConfig } from '../domain/config/GameConfig';
 
 /**
- * Create RecruitAdventurer command handler using new entity system
+ * Create RecruitAdventurer command handler
  */
-export function createRecruitAdventurerHandlerV2(): CommandHandler<RecruitAdventurerCommand, GameState> {
+export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventurerCommand, GameState> {
 	return async function(
 		payload: RecruitAdventurerCommand,
 		state: GameState,

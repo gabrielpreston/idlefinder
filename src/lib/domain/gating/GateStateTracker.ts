@@ -2,7 +2,7 @@
  * Gate State Tracker
  * 
  * Pure function to track gate state transitions and detect newly unlocked gates.
- * Follows handler pattern from indexV2.ts:37-38 (store previous state, compare with new).
+ * Follows handler pattern from index.ts:37-38 (store previous state, compare with new).
  */
 
 import type { GateId } from './GateDefinition';
