@@ -1,41 +1,31 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { adventurers } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import type { CommandFailedEvent } from '$lib/bus/types';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
-
-	// Get runtime from context
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
-	}
+	import { useCommandError } from '$lib/composables/useCommandError';
+	import { ErrorMessage } from '$lib/components/ui';
 
 	let name = '';
 	let traits: string[] = [];
-	let error: string | null = null;
+	let validationError: string | null = null;
 
-	// Subscribe to command failures
+	// Use composable for command error handling
+	const { error: commandError, clearError, cleanup } = useCommandError(['RecruitAdventurer']);
+
+	// Cleanup on component unmount
 	onMount(() => {
-		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-			const failed = payload as CommandFailedEvent;
-			if (failed.commandType === 'RecruitAdventurer') {
-				error = failed.reason;
-			}
-		});
-
-		return unsubscribe;
+		return cleanup;
 	});
 
 	async function recruit() {
 		if (!name.trim()) {
-			error = 'Please enter a name';
+			validationError = 'Please enter a name';
 			return;
 		}
 
-		error = null;
-		await dispatchCommand(runtime, 'RecruitAdventurer', {
+		validationError = null;
+		clearError();
+		await dispatchCommand('RecruitAdventurer', {
 			name: name.trim(),
 			traits: traits.filter((t) => t.trim().length > 0)
 		});
@@ -49,9 +39,7 @@
 <div class="agent-roster">
 	<h2>Adventurer Roster</h2>
 
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
+	<ErrorMessage message={validationError || $commandError} />
 
 	<div class="recruit-form">
 		<h3>Recruit New Adventurer</h3>
@@ -88,11 +76,6 @@
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #ddd;
-	}
-
-	.error {
-		color: red;
-		margin-bottom: 1rem;
 	}
 
 	.recruit-form {

@@ -58,8 +58,15 @@ function createGameStateStore() {
 			if (!rt.gameState) {
 				throw new Error('GameRuntime.gameState cannot be null');
 			}
+			// Clean up any existing runtime before initializing a new one
+			if (runtime) {
+				runtime.destroy();
+				runtime = null;
+			}
 			runtime = rt;
-			// Use runtime's gameState store
+			// Set initial state immediately from runtime's current state
+			set(rt.busManager.getState());
+			// Use runtime's gameState store for future updates
 			const unsubscribe = rt.gameState.subscribe((state: GameState) => {
 				if (!state) {
 					console.warn('gameState store received null state - this should not happen');
@@ -79,6 +86,13 @@ function createGameStateStore() {
 				return; // Gracefully handle null runtime
 			}
 			set(runtime.busManager.getState());
+		},
+		reset: () => {
+			if (runtime) {
+				runtime.destroy();
+				runtime = null;
+			}
+			set(null);
 		}
 	};
 }

@@ -1,19 +1,13 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { slots, adventurers, gameState } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import type { CommandFailedEvent } from '$lib/bus/types';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+	import { useCommandError } from '$lib/composables/useCommandError';
+	import { ErrorMessage } from '$lib/components/ui';
 	import type { ResourceSlot } from '$lib/domain/entities/ResourceSlot';
 	import { getSlotEffectiveRate } from '$lib/domain/queries/FacilityEffectQueries';
 	import { getWorkerMultiplier } from '$lib/domain/systems/ResourceRateCalculator';
 	import type { Facility } from '$lib/domain/entities/Facility';
-
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context');
-	}
 
 	export let facility: Facility;
 
@@ -22,22 +16,13 @@
 
 	let showAssignmentModal = false;
 	let selectedSlot: ResourceSlot | null = null;
-	let error: string | null = null;
 
-	// Subscribe to command failures
+	// Use composable for command error handling
+	const { error, clearError, cleanup } = useCommandError(['AssignWorkerToSlot', 'UnassignWorkerFromSlot']);
+
+	// Cleanup on component unmount
 	onMount(() => {
-		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-			const failed = payload as CommandFailedEvent;
-			if (failed.commandType === 'AssignWorkerToSlot' || failed.commandType === 'UnassignWorkerFromSlot') {
-				error = failed.reason;
-				// Clear error after 5 seconds
-				setTimeout(() => {
-					error = null;
-				}, 5000);
-			}
-		});
-
-		return unsubscribe;
+		return cleanup;
 	});
 
 	function openAssignmentModal(slot: ResourceSlot) {
@@ -51,8 +36,8 @@
 	}
 
 	async function assignWorker(slotId: string, assigneeType: 'player' | 'adventurer', assigneeId?: string) {
-		error = null;
-		await dispatchCommand(runtime, 'AssignWorkerToSlot', {
+		clearError();
+		await dispatchCommand('AssignWorkerToSlot', {
 			slotId,
 			assigneeType,
 			assigneeId
@@ -61,8 +46,8 @@
 	}
 
 	async function unassignWorker(slotId: string) {
-		error = null;
-		await dispatchCommand(runtime, 'UnassignWorkerFromSlot', {
+		clearError();
+		await dispatchCommand('UnassignWorkerFromSlot', {
 			slotId
 		});
 	}
@@ -104,9 +89,7 @@
 <div class="slot-panel">
 	<h3>Resource Generation Slots</h3>
 	
-	{#if error}
-		<div class="error-message">{error}</div>
-	{/if}
+	<ErrorMessage message={$error} />
 	
 	{#if facilitySlots.length === 0}
 		<p class="no-slots">No slots available for this facility.</p>
@@ -179,16 +162,6 @@
 	.slot-panel h3 {
 		margin: 0 0 1rem 0;
 		font-size: 1.1rem;
-	}
-
-	.error-message {
-		padding: 0.75rem;
-		margin-bottom: 1rem;
-		background: #fee;
-		border: 1px solid #fcc;
-		border-radius: 4px;
-		color: #c33;
-		font-size: 0.9rem;
 	}
 
 	.no-slots {

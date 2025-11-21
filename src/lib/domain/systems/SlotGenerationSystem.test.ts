@@ -174,21 +174,21 @@ describe('SlotGenerationSystem', () => {
 
 		it('should skip slots when no time has elapsed', () => {
 			const facility = createTestFacility({ id: 'facility-1' });
+			const now = Timestamp.now(); // Use same timestamp for both
 			const slot = createTestResourceSlot({
 				facilityId: facility.id,
 				assigneeType: 'player',
-				lastTickAt: Timestamp.now() // Same time
+				lastTickAt: now // Same time
 			});
 			const entities = new Map<string, Entity>([
 				[facility.id, facility],
 				[slot.id, slot]
 			]);
 			const state = createTestGameState({ entities });
-			const now = Timestamp.now();
 
 			const result = processSlotGeneration(state, now);
-		expect(result.success).toBe(true);
-		expect(result.data?.effects).toHaveLength(0);
+			expect(result.success).toBe(true);
+			expect(result.data?.effects).toHaveLength(0);
 		});
 
 		it('should handle first tick (no lastTickAt)', () => {

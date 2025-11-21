@@ -2,12 +2,9 @@
  * Component Test Helpers - Utilities for testing Svelte components with game state
  */
 
-import { render } from '@testing-library/svelte/svelte5';
-import { setContext } from 'svelte';
 import { writable, type Readable } from 'svelte/store';
 import type { GameState } from '../domain/entities/GameState';
 import type { GameRuntime } from '../runtime/startGame';
-import { GAME_RUNTIME_KEY } from '../runtime/constants';
 import { createTestGameState } from './testFactories';
 import { BusManager } from '../bus/BusManager';
 import { SimulatedTimeSource } from '../time/DomainTimeSource';
@@ -35,22 +32,6 @@ export function createMockGameRuntime(initialState?: GameState): GameRuntime {
 	};
 }
 
-/**
- * Render component with game state context
- */
-export function renderWithGameState<T>(
-	Component: import('svelte').ComponentType,
-	props: T,
-	gameState?: GameState
-) {
-	const runtime = createMockGameRuntime(gameState);
-	
-	// Set context before rendering
-	setContext(GAME_RUNTIME_KEY, runtime);
-	
-	const result = render(Component, { props });
-	return { ...result, runtime };
-}
 
 /**
  * Update game state in mock runtime

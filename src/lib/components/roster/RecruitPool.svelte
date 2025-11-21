@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import { 
 		recruitPool, 
@@ -9,13 +8,6 @@
 	import RecruitPreviewCard from './RecruitPreviewCard.svelte';
 	import RecruitPreviewModal from './RecruitPreviewModal.svelte';
 	import type { Adventurer } from '$lib/domain/entities/Adventurer';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
-
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
-	}
 
 	let selectedPreview: Adventurer | null = null;
 	let modalOpen = false;
@@ -35,7 +27,7 @@
 
 	async function handleRefresh() {
 		if (!canAffordRefresh) return;
-		await dispatchCommand(runtime, 'RefreshRecruitPool', {});
+		await dispatchCommand('RefreshRecruitPool', {});
 	}
 </script>
 

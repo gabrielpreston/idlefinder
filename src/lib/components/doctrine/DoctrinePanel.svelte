@@ -1,17 +1,21 @@
 <script lang="ts">
 	import { missionDoctrine } from '$lib/stores/gameState';
-	import { getContext } from 'svelte';
+	import { onMount } from 'svelte';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+	import { useCommandError } from '$lib/composables/useCommandError';
+	import { ErrorMessage } from '$lib/components/ui';
 
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context');
-	}
+	// Use composable for command error handling
+	const { error, clearError, cleanup } = useCommandError(['UpdateMissionDoctrine']);
+
+	// Cleanup on component unmount
+	onMount(() => {
+		return cleanup;
+	});
 
 	async function updateDoctrine(focus?: string, riskTolerance?: string) {
-		await dispatchCommand(runtime, 'UpdateMissionDoctrine', {
+		clearError();
+		await dispatchCommand('UpdateMissionDoctrine', {
 			focus: focus as any,
 			riskTolerance: riskTolerance as any
 		});
@@ -20,6 +24,8 @@
 
 <div class="doctrine-panel">
 	<h2>Mission Doctrine</h2>
+	
+	<ErrorMessage message={$error} />
 	
 	{#if $missionDoctrine}
 		<div class="doctrine-section">

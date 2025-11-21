@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import Modal from '../ui/Modal.svelte';
 	import Tabs from '../ui/Tabs.svelte';
 	import XPProgressBar from './XPProgressBar.svelte';
@@ -9,18 +8,11 @@
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import { gameState, items } from '$lib/stores/gameState';
 	import type { Adventurer } from '$lib/domain/entities/Adventurer';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import type { Item } from '$lib/domain/entities/Item';
 
 	export let adventurer: Adventurer | null = null;
 	export let open: boolean = false;
 	export let onClose: () => void = () => {};
-
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
-	}
 
 	let activeTab = 'overview';
 
@@ -59,7 +51,7 @@
 
 	async function handleEquipItem(itemId: string, slot: 'weapon' | 'armor' | 'offHand' | 'accessory') {
 		if (!adventurer) return;
-		await dispatchCommand(runtime, 'EquipItem', {
+		await dispatchCommand('EquipItem', {
 			itemId,
 			adventurerId: adventurer.id,
 			slot
@@ -68,7 +60,7 @@
 
 	async function handleUnequipItem(itemId: string, slot: 'weapon' | 'armor' | 'offHand' | 'accessory') {
 		if (!adventurer) return;
-		await dispatchCommand(runtime, 'UnequipItem', {
+		await dispatchCommand('UnequipItem', {
 			itemId,
 			adventurerId: adventurer.id,
 			slot

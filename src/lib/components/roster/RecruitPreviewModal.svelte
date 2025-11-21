@@ -1,25 +1,28 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { onMount } from 'svelte';
 	import Modal from '../ui/Modal.svelte';
 	import Badge from '../ui/Badge.svelte';
+	import { ErrorMessage } from '../ui';
 	import { getPathfinderClass, getPathfinderAncestry } from '$lib/domain/data/pathfinder';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import { recruitAdventurerCost, canAffordRecruitAdventurerState } from '$lib/stores/gameState';
+	import { useCommandError } from '$lib/composables/useCommandError';
 	import type { Adventurer } from '$lib/domain/entities/Adventurer';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 
 	export let adventurer: Adventurer | null = null;
 	export let open: boolean = false;
 	export let onClose: () => void = () => {};
 
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
-	}
-
 	let name = '';
-	let error: string | null = null;
+	let validationError: string | null = null;
+
+	// Use composable for command error handling
+	const { error: commandError, clearError, cleanup } = useCommandError(['RecruitAdventurer']);
+
+	// Cleanup on component unmount
+	onMount(() => {
+		return cleanup;
+	});
 
 	$: className = adventurer ? getPathfinderClass(adventurer.attributes.classKey as any)?.name || adventurer.attributes.classKey : '';
 	$: ancestryName = adventurer ? getPathfinderAncestry(adventurer.attributes.ancestryKey as any)?.name || adventurer.attributes.ancestryKey : '';
@@ -30,17 +33,18 @@
 		if (!adventurer) return;
 		
 		if (!name.trim()) {
-			error = 'Please enter a name';
+			validationError = 'Please enter a name';
 			return;
 		}
 
 		if (!canAfford) {
-			error = 'Insufficient gold';
+			validationError = 'Insufficient gold';
 			return;
 		}
 
-		error = null;
-		await dispatchCommand(runtime, 'RecruitAdventurer', {
+		validationError = null;
+		clearError();
+		await dispatchCommand('RecruitAdventurer', {
 			name: name.trim(),
 			traits: [],
 			previewAdventurerId: adventurer.id
@@ -53,7 +57,8 @@
 
 	function handleClose() {
 		name = '';
-		error = null;
+		validationError = null;
+		clearError();
 		onClose();
 	}
 </script>
@@ -105,9 +110,7 @@
 					}}
 				/>
 				
-				{#if error}
-					<div class="error">{error}</div>
-				{/if}
+				<ErrorMessage message={validationError || $commandError} />
 
 				<div class="cost-info">
 					Cost: <strong>{cost} gold</strong>
@@ -186,12 +189,6 @@
 		border: 1px solid var(--color-border, #ddd);
 		border-radius: 4px;
 		font-size: 1rem;
-	}
-
-	.error {
-		color: var(--color-error, #d32f2f);
-		margin-bottom: 0.5rem;
-		font-size: 0.9rem;
 	}
 
 	.cost-info {

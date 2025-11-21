@@ -1,16 +1,9 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount } from 'svelte';
 	import { adventurers } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import type { CommandFailedEvent } from '$lib/bus/types';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
-
-	// Get runtime from context
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
-	}
+	import { useCommandError } from '$lib/composables/useCommandError';
+	import { ErrorMessage } from '$lib/components/ui';
 
 	// For MVP: Simple mission offers (in future, this would come from a mission template system)
 	// These are template IDs - each mission start will generate a unique instance ID
@@ -20,30 +13,26 @@
 		{ templateId: 'rescue-villagers', name: 'Rescue Villagers', duration: 180000 } // 3 minutes
 	];
 
-	let error: string | null = null;
+	let validationError: string | null = null;
 	let selectedMissionTemplate: string | null = null;
 	let selectedAdventurers: string[] = [];
 
-	// Subscribe to command failures
-	onMount(() => {
-		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-			const failed = payload as CommandFailedEvent;
-			if (failed.commandType === 'StartMission') {
-				error = failed.reason;
-			}
-		});
+	// Use composable for command error handling
+	const { error: commandError, clearError, cleanup } = useCommandError(['StartMission']);
 
-		return unsubscribe;
+	// Cleanup on component unmount
+	onMount(() => {
+		return cleanup;
 	});
 
 	async function startMission() {
 		if (!selectedMissionTemplate) {
-			error = 'Please select a mission';
+			validationError = 'Please select a mission';
 			return;
 		}
 
 		if (selectedAdventurers.length === 0) {
-			error = 'Please select at least one adventurer';
+			validationError = 'Please select at least one adventurer';
 			return;
 		}
 
@@ -51,8 +40,9 @@
 		// Format: templateId-timestamp-random
 		const uniqueMissionId = `${selectedMissionTemplate}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-		error = null;
-		await dispatchCommand(runtime, 'StartMission', {
+		validationError = null;
+		clearError();
+		await dispatchCommand('StartMission', {
 			missionId: uniqueMissionId,
 			adventurerIds: selectedAdventurers
 		});
@@ -74,9 +64,7 @@
 <div class="task-board">
 	<h2>Mission Board</h2>
 
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
+	<ErrorMessage message={validationError || $commandError} />
 
 	<div class="missions">
 		<h3>Available Missions</h3>
@@ -130,11 +118,6 @@
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #ddd;
-	}
-
-	.error {
-		color: red;
-		margin-bottom: 1rem;
 	}
 
 	.missions,

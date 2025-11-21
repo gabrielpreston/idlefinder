@@ -12,4 +12,5 @@ export { default as Badge } from './Badge.svelte';
 export { default as Modal } from './Modal.svelte';
 export { default as StatCard } from './StatCard.svelte';
 export { default as Tabs } from './Tabs.svelte';
+export { default as ErrorMessage } from './ErrorMessage.svelte';
 

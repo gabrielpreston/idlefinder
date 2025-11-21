@@ -11,14 +11,19 @@ export default defineConfig({
 		pool: 'threads', // Parallel execution (default)
 		poolOptions: {
 			threads: {
-				singleThread: false // Use all cores
+				maxThreads: 4,
+				minThreads: 1
 			}
 		},
 		// Fast test isolation
 		isolate: true,
-		// Coverage enabled by default (adds ~126ms overhead, ~25% slower)
+		// Test timeouts
+		testTimeout: 5000,
+		hookTimeout: 10000,
+		// Coverage disabled by default (adds ~126ms overhead, ~25% slower)
+		// Enable with --coverage flag: npm test -- --coverage
 		coverage: {
-			enabled: true,
+			enabled: false,
 			provider: 'v8',
 			reporter: ['text-summary', 'html'],
 			exclude: [

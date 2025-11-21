@@ -1,35 +1,22 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { facilities, resources, gameState } from '$lib/stores/gameState';
 	import { calculateFacilityUpgradeCost, canAffordFacilityUpgrade } from '$lib/domain/queries/CostQueries';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import type { CommandFailedEvent } from '$lib/bus/types';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+	import { useCommandError } from '$lib/composables/useCommandError';
+	import { ErrorMessage } from '$lib/components/ui';
 
-	// Get runtime from context
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
-	}
+	// Use composable for command error handling
+	const { error, clearError, cleanup } = useCommandError(['UpgradeFacility']);
 
-	let error: string | null = null;
-
-	// Subscribe to command failures
+	// Cleanup on component unmount
 	onMount(() => {
-		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-			const failed = payload as CommandFailedEvent;
-			if (failed.commandType === 'UpgradeFacility') {
-				error = failed.reason;
-			}
-		});
-
-		return unsubscribe;
+		return cleanup;
 	});
 
 	async function upgradeFacility(facility: string) {
-		error = null;
-		await dispatchCommand(runtime, 'UpgradeFacility', { facility });
+		clearError();
+		await dispatchCommand('UpgradeFacility', { facility });
 	}
 
 	function findFacility(facilityType: string) {
@@ -59,9 +46,7 @@
 <div class="facility-upgrades">
 	<h2>Facilities</h2>
 
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
+	<ErrorMessage message={$error} />
 
 	{#if $facilities && $facilities.length > 0}
 		<div class="facility-list">
@@ -109,11 +94,6 @@
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #ddd;
-	}
-
-	.error {
-		color: red;
-		margin-bottom: 1rem;
 	}
 
 	.facility-item {

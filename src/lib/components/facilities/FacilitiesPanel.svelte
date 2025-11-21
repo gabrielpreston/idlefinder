@@ -1,42 +1,31 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { facilities, guildHallUpgradeCost, canUpgradeGuildHallState, guildHall, missionSlotCapacity, availableFacilities, gameState } from '$lib/stores/gameState';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
-	import type { CommandFailedEvent } from '$lib/bus/types';
-	import type { GameRuntime } from '$lib/runtime/startGame';
-	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+	import { useCommandError } from '$lib/composables/useCommandError';
+	import { ErrorMessage } from '$lib/components/ui';
 	import SlotPanel from './SlotPanel.svelte';
 	import { getFacilityConstructionCost, canAffordFacilityConstruction } from '$lib/domain/queries/CostQueries';
 
-	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
-	if (!runtime) {
-		throw new Error('GameRuntime not found in context');
-	}
+	// Use composable for command error handling
+	const { error, clearError, cleanup } = useCommandError(['UpgradeFacility', 'ConstructFacility']);
 
-	let error: string | null = null;
-
+	// Cleanup on component unmount
 	onMount(() => {
-		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
-			const failed = payload as CommandFailedEvent;
-			if (failed.commandType === 'UpgradeFacility' || failed.commandType === 'ConstructFacility') {
-				error = failed.reason;
-				setTimeout(() => { error = null; }, 5000);
-			}
-		});
-		return unsubscribe;
+		return cleanup;
 	});
 
 	async function upgradeGuildHall() {
 		if (!$guildHall) return;
-		error = null;
-		await dispatchCommand(runtime, 'UpgradeFacility', {
+		clearError();
+		await dispatchCommand('UpgradeFacility', {
 			facility: $guildHall.id
 		});
 	}
 
 	async function constructFacility(facilityType: 'Dormitory' | 'MissionCommand' | 'TrainingGrounds' | 'ResourceDepot') {
-		error = null;
-		await dispatchCommand(runtime, 'ConstructFacility', {
+		clearError();
+		await dispatchCommand('ConstructFacility', {
 			facilityType
 		});
 	}
@@ -66,9 +55,7 @@
 <div class="facilities-panel">
 	<h2>Facilities</h2>
 	
-	{#if error}
-		<div class="error-message">{error}</div>
-	{/if}
+	<ErrorMessage message={$error} />
 
 	<div class="capacity-summary">
 		<h3>Mission Slots: {$missionSlotCapacity.current} / {$missionSlotCapacity.max}</h3>
@@ -193,16 +180,6 @@
 		gap: 0.5rem;
 		font-size: 0.9rem;
 		color: var(--color-text-secondary, #666);
-	}
-
-	.error-message {
-		padding: 0.75rem;
-		margin-bottom: 1rem;
-		background: #fee;
-		border: 1px solid #fcc;
-		border-radius: 4px;
-		color: #c33;
-		font-size: 0.9rem;
 	}
 
 	.upgrade-section {

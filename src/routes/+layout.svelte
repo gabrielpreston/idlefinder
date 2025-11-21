@@ -7,6 +7,7 @@
 	import { gameState } from '$lib/stores/gameState';
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import { LocalStorageAdapter } from '$lib/persistence/LocalStorageAdapter';
+	import { initializeCommandDispatcher } from '$lib/bus/commandDispatcher';
 	import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
 	import '../app.css';
 
@@ -78,6 +79,9 @@
 		// Initialize game state store with runtime
 		// This subscribes to domain events for future updates
 		gameState.initialize(runtime);
+
+		// Initialize command dispatcher with runtime
+		initializeCommandDispatcher(runtime);
 	});
 </script>
 
