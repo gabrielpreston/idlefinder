@@ -95,7 +95,7 @@ export interface CompleteMissionCommand {
 }
 
 export interface RecruitAdventurerCommand {
-	name: string;
+	name?: string; // Optional - will be auto-generated if not provided
 	traits: string[];
 	previewAdventurerId?: string;
 }

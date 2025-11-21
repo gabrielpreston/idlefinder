@@ -1,0 +1,78 @@
+---
+description: Common error handling patterns for Cursor commands
+---
+
+# Common Error Handling Patterns
+
+## Standard Errors
+
+### File Not Found
+- **Detection**: `read_file` fails or file not found
+- **Resolution**: Ask user for correct file path or verify file was created
+- **Example**: Plan document doesn't exist - ask user for plan file path or verify plan was created
+
+### npm Script Not Found
+- **Detection**: `run_terminal_cmd` returns error or `read_file` shows script missing from package.json
+- **Resolution**: Either add script to package.json (if permission exists in cli.json) or use alternative validation method
+- **Example**: `npm run type-check` fails - check package.json, use alternative or note missing script
+
+### Tool Execution Failure
+- **Detection**: Tool returns error or operation fails
+- **Resolution**: Verify file path, check file permissions, verify parameters match exactly, retry
+- **Example**: `write` operation fails - check `.cursor/plans/` directory exists, verify write permissions, retry with corrected path
+
+### Type Checking Errors
+- **Detection**: `run_terminal_cmd` returns non-zero exit code for `npm run type-check`
+- **Resolution**: Review error output, fix type errors immediately (do not defer or create workarounds), re-run type-check
+- **Note**: For aggressive refactoring, update all dependent code directly, do not create compatibility layers
+
+### Code References Not Found
+- **Detection**: `codebase_search` or `grep` returns no results for claimed pattern
+- **Resolution**: Verify pattern exists, adjust search query, or remove unsubstantiated claim
+- **Example**: Claimed pattern cannot be found - mark claim as unsubstantiated, recommend removing or correcting
+
+### Linting Errors
+- **Detection**: `run_terminal_cmd` returns non-zero exit code for `npm run lint` or `read_lints` shows errors
+- **Resolution**: Review linting errors, fix issues, re-run lint or use `npm run lint -- --fix` if available
+
+### Test Failures
+- **Detection**: `run_terminal_cmd` returns non-zero exit code for `npm test`
+- **Resolution**: Review test failures, fix issues, re-run tests
+- **Note**: For aggressive refactoring, skip comprehensive testing - focus on type safety
+
+### File Modification Failures
+- **Detection**: `search_replace` or `write` fails or file not updated correctly
+- **Resolution**: Verify file path, check file permissions, verify old_string matches exactly (including whitespace), retry
+
+## Error Handling Template
+
+For command-specific errors, use this format:
+
+```markdown
+## Error Handling
+
+See `.cursor/rules/default-error-handling.mdc` for common error patterns.
+
+Command-specific errors:
+- **[Error Type]**: [Brief description]
+  - Detection: [How to identify this error]
+  - Resolution: [How to fix or recover]
+```
+
+## Common Error Patterns by Context
+
+### Plan-Related Errors
+- **Plan file not found**: Verify plan exists in `.cursor/plans/` directory
+- **Plan structure issues**: Check for required sections, add missing sections
+- **Plan status issues**: Verify status format matches expected pattern
+
+### Codebase-Related Errors
+- **Code references not found**: Verify pattern exists, adjust search query
+- **Integration points not found**: Verify components exist separately
+- **Pattern not found**: Mark claim as unsubstantiated, recommend correction
+
+### Validation-Related Errors
+- **npm script not found**: Check package.json, use alternative method
+- **Type checking errors**: Fix type errors immediately, re-run type-check
+- **Linting errors**: Fix linting issues, re-run lint
+- **Test failures**: Fix test issues, re-run tests

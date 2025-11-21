@@ -30,24 +30,21 @@ Use proper Markdown heading hierarchy (`#`, `##`, `###`) for clear document stru
 
 ### Code Block Standards
 
-```markdown
-# Use language hints for syntax highlighting
+**Pattern**: Use language hints for syntax highlighting.
+
 ```typescript
 function processGameState(state: GameState): void {
-  // Process game state
   updateSystems(state);
 }
 ```
 
 ```bash
-# Use bash for shell commands
 npm test
 npm run lint
 npm run dev
 ```
 
 ```json
-# Use json for configuration files
 {
   "compilerOptions": {
     "strict": true,

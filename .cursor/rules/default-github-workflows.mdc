@@ -108,6 +108,9 @@ steps:
 ## Workflow Architecture Patterns
 
 ### Node.js Build Pipeline
+
+**Pattern**: Cancellation-aware jobs with step-level timeouts and emergency cleanup.
+
 ```yaml
 jobs:
   lint:
@@ -115,18 +118,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
       - name: "Install dependencies"
         timeout-minutes: 3
         run: npm ci
       - name: "Run linters"
         timeout-minutes: 2
         run: npm run lint
-      - name: "Type check"
-        timeout-minutes: 2
-        run: npm run type-check
   
   test:
     needs: ["lint"]
@@ -135,25 +132,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-      - name: "Install dependencies"
-        timeout-minutes: 3
-        run: npm ci
       - name: "Run tests"
         timeout-minutes: 10
         run: npm test
-      - name: "Cleanup after test"
-        if: ${{ !cancelled() }}
-        timeout-minutes: 1
-        run: rm -rf node_modules || true
       - name: "Emergency cleanup on cancellation"
         if: cancelled()
         timeout-minutes: 1
-        run: |
-          echo "Workflow cancelled - emergency cleanup"
-          rm -rf node_modules || true
+        run: rm -rf node_modules || true
   
   build:
     needs: ["test"]
@@ -162,31 +147,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-      - name: "Install dependencies"
-        timeout-minutes: 3
-        run: npm ci
       - name: "Build application"
         timeout-minutes: 5
         run: npm run build
-      - name: "Upload build artifacts"
-        if: ${{ !cancelled() }}
-        timeout-minutes: 2
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
       - name: "Emergency cleanup on cancellation"
         if: cancelled()
         timeout-minutes: 1
-        run: |
-          echo "Workflow cancelled - emergency cleanup"
-          rm -rf node_modules dist || true
+        run: rm -rf node_modules dist || true
 ```
 
 ### Test Execution
+
+**Pattern**: Cancellation-aware test jobs with cleanup.
 ```yaml
 jobs:
   test:

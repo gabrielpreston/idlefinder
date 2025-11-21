@@ -18,6 +18,8 @@ import {
 	getRandomPathfinderAncestryKey
 } from '../domain/data/pathfinder';
 import { GameConfig } from '../domain/config/GameConfig';
+import { generateAdventurerName } from '../domain/systems/adventurerNameGenerator';
+import { canRecruit, getMaxRosterCapacity, getCurrentRosterSize } from '../domain/queries/RosterQueries';
 
 /**
  * Create RecruitAdventurer command handler
@@ -28,23 +30,6 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 		state: GameState,
 		_context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
-		// Validation: Check if name is provided
-		if (!payload.name || payload.name.trim().length === 0) {
-			return {
-				newState: state,
-				events: [
-					{
-						type: 'CommandFailed',
-						payload: {
-							commandType: 'RecruitAdventurer',
-							reason: 'Adventurer name is required'
-						},
-						timestamp: new Date().toISOString()
-					}
-				]
-			};
-		}
-
 		// Validation: Check if player has enough gold
 		const recruitCost = GameConfig.costs.recruitAdventurer;
 		const currentGold = state.resources.get('gold') || 0;
@@ -64,9 +49,31 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 			};
 		}
 
+		// Validation: Check if roster has capacity
+		if (!canRecruit(state)) {
+			const maxCapacity = getMaxRosterCapacity(state);
+			const currentSize = getCurrentRosterSize(state);
+			return {
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'RecruitAdventurer',
+							reason: `Roster is full: capacity ${maxCapacity}, current size ${currentSize}. Build or upgrade Dormitory to increase capacity.`
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			};
+		}
+
 		// Generate adventurer ID
 		const adventurerId = crypto.randomUUID();
 		const id = Identifier.from<'AdventurerId'>(adventurerId);
+
+		// Auto-generate name if not provided
+		const adventurerName = payload.name?.trim() || generateAdventurerName(adventurerId);
 
 		// Create new entities map (will be updated below)
 		const newEntities = new Map(state.entities);
@@ -143,7 +150,7 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 			traits,
 			'Idle', // Initial state
 			{}, // No timers initially (Record, not Map)
-			{ name: payload.name } // Store name in metadata
+			{ name: adventurerName } // Store name in metadata
 		);
 
 		// Add adventurer to entities map
@@ -166,7 +173,7 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 			type: 'AdventurerRecruited',
 			payload: {
 				adventurerId,
-				name: payload.name,
+				name: adventurerName,
 				traits: payload.traits || []
 			},
 			timestamp: new Date().toISOString()

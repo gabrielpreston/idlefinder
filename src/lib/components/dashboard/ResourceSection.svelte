@@ -11,9 +11,9 @@
 <div class="resource-section">
 	<h3>Resources</h3>
 	<div class="overview-grid">
-		<StatCard label="Gold" value={gold} />
-		<StatCard label="Fame" value={fame} />
-		<StatCard label="Materials" value={materials} />
+		<StatCard label="Gold" value={gold} numberType="integer" />
+		<StatCard label="Fame" value={fame} numberType="integer" />
+		<StatCard label="Materials" value={materials} numberType="integer" />
 	</div>
 	{#if Object.keys(genRates).length > 0}
 		<div class="generation-rates">

@@ -8,6 +8,9 @@ import type { BusManager } from '../bus/BusManager';
 import type { DomainEvent } from '../bus/types';
 import { GameConfig } from '../domain/config/GameConfig';
 import type { Adventurer } from '../domain/entities/Adventurer';
+import type { Facility } from '../domain/entities/Facility';
+// Import gating module to ensure gates are registered
+import '../domain/gating';
 
 describe('RecruitAdventurerHandler Integration', () => {
 	let busManager: BusManager;
@@ -17,6 +20,18 @@ describe('RecruitAdventurerHandler Integration', () => {
 		const initialState = createTestGameState({ 
 			resources: createTestResourceBundle({ gold: 100 }) 
 		});
+		
+		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+		// This allows recruitment in tests
+		const guildhall = Array.from(initialState.entities.values()).find(
+			(e) =>
+				e.type === 'Facility' &&
+				(e as Facility).attributes.facilityType === 'Guildhall'
+		) as Facility;
+		if (guildhall) {
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+		}
+		
 		({ busManager, publishedEvents } = setupIntegrationTest({
 			initialState,
 			eventTypes: ['AdventurerRecruited', 'CommandFailed']
@@ -49,42 +64,32 @@ describe('RecruitAdventurerHandler Integration', () => {
 			expect(adventurer?.state).toBe('Idle');
 		});
 
-		it('should fail when name is empty', async () => {
+		it('should auto-generate name when not provided', async () => {
 			const command = createTestCommand('RecruitAdventurer', {
-				name: '',
 				traits: []
 			});
 
 			await busManager.commandBus.dispatch(command);
 
-			// Verify CommandFailed event published
-			const failedEvents = publishedEvents.filter(e => e.type === 'CommandFailed');
-			expect(failedEvents.length).toBeGreaterThan(0);
-			const failedEvent = failedEvents[0];
-			if (failedEvent.type === 'CommandFailed') {
-				const payload = failedEvent.payload as { commandType: string; reason: string };
-				expect(payload.commandType).toBe('RecruitAdventurer');
-				expect(payload.reason).toContain('name is required');
-			}
-		});
+			// Verify event published
+			expect(publishedEvents).toHaveLength(1);
+			expect(publishedEvents[0].type).toBe('AdventurerRecruited');
+			const payload = publishedEvents[0].payload as { name: string; adventurerId: string; traits: string[] };
+			
+			// Verify name is auto-generated (starts with "Adventurer")
+			expect(payload.name).toMatch(/^Adventurer [A-F0-9]{8}$/);
+			
+			// Verify name contains short ID from adventurer ID
+			const shortId = payload.adventurerId.slice(0, 8).toUpperCase();
+			expect(payload.name).toBe(`Adventurer ${shortId}`);
 
-		it('should fail when name is whitespace only', async () => {
-			const command = createTestCommand('RecruitAdventurer', {
-				name: '   ',
-				traits: []
-			});
-
-			await busManager.commandBus.dispatch(command);
-
-			// Verify CommandFailed event published
-			const failedEvents = publishedEvents.filter(e => e.type === 'CommandFailed');
-			expect(failedEvents.length).toBeGreaterThan(0);
-			const failedEvent = failedEvents[0];
-			if (failedEvent.type === 'CommandFailed') {
-				const payload = failedEvent.payload as { commandType: string; reason: string };
-				expect(payload.commandType).toBe('RecruitAdventurer');
-				expect(payload.reason).toContain('name is required');
-			}
+			// Verify state updated
+			const state = busManager.getState();
+			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
+			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).id === payload.adventurerId) as import('../domain/entities/Adventurer').Adventurer;
+			expect(adventurer).toBeDefined();
+			expect(adventurer?.metadata.name).toBe(payload.name);
+			expect(adventurer?.state).toBe('Idle');
 		});
 
 		it('should fail when insufficient gold (new test)', async () => {
@@ -184,7 +189,6 @@ describe('RecruitAdventurerHandler Integration', () => {
 			const initialPreviewCount = previewAdventurers.length;
 
 			const command = createTestCommand('RecruitAdventurer', {
-				name: 'Recruited From Preview',
 				previewAdventurerId: previewAdventurer.id,
 				traits: []
 			});
@@ -195,7 +199,9 @@ describe('RecruitAdventurerHandler Integration', () => {
 			expect(publishedEvents).toHaveLength(1);
 			expect(publishedEvents[0].type).toBe('AdventurerRecruited');
 			const payload = publishedEvents[0].payload as { name: string; adventurerId: string; traits: string[] };
-			expect(payload.name).toBe('Recruited From Preview');
+			
+			// Verify name is auto-generated (starts with "Adventurer")
+			expect(payload.name).toMatch(/^Adventurer [A-F0-9]{8}$/);
 
 			// Verify state updated
 			const finalState = busManager.getState();
@@ -207,16 +213,16 @@ describe('RecruitAdventurerHandler Integration', () => {
 			
 			// Recruited adventurer should exist
 			const recruitedAdventurers = Array.from(finalState.entities.values()).filter(
-				e => e.type === 'Adventurer' && (e as Adventurer).metadata.name === 'Recruited From Preview'
+				e => e.type === 'Adventurer' && (e as Adventurer).id === payload.adventurerId
 			);
 			expect(recruitedAdventurers.length).toBe(1);
 			const recruited = recruitedAdventurers[0] as Adventurer;
 			expect(recruited.state).toBe('Idle');
+			expect(recruited.metadata.name).toBe(payload.name);
 		});
 
 		it('should recruit adventurer with random generation when no preview ID', async () => {
 			const command = createTestCommand('RecruitAdventurer', {
-				name: 'Random Generated',
 				traits: ['trait1', 'trait2']
 			});
 
@@ -226,22 +232,28 @@ describe('RecruitAdventurerHandler Integration', () => {
 			expect(publishedEvents).toHaveLength(1);
 			expect(publishedEvents[0].type).toBe('AdventurerRecruited');
 			const payload = publishedEvents[0].payload as { name: string; adventurerId: string; traits: string[] };
-			expect(payload.name).toBe('Random Generated');
+			
+			// Verify name is auto-generated
+			expect(payload.name).toMatch(/^Adventurer [A-F0-9]{8}$/);
 			expect(payload.traits).toEqual(['trait1', 'trait2']);
 
 			// Verify state updated
 			const finalState = busManager.getState();
 			const recruitedAdventurers = Array.from(finalState.entities.values()).filter(
-				e => e.type === 'Adventurer' && (e as Adventurer).metadata.name === 'Random Generated'
+				e => e.type === 'Adventurer' && (e as Adventurer).id === payload.adventurerId
 			);
 			expect(recruitedAdventurers.length).toBe(1);
 			const recruited = recruitedAdventurers[0] as Adventurer;
 			expect(recruited.state).toBe('Idle');
 			expect(recruited.attributes.level).toBe(1);
 			expect(recruited.attributes.xp).toBe(0);
+			expect(recruited.metadata.name).toBe(payload.name);
 		});
 
 		it('should recruit adventurer with traits', async () => {
+			// Clear any previous events
+			publishedEvents.length = 0;
+			
 			const command = createTestCommand('RecruitAdventurer', {
 				name: 'Brave Fighter',
 				traits: ['brave', 'combat']
@@ -249,36 +261,16 @@ describe('RecruitAdventurerHandler Integration', () => {
 
 			await busManager.commandBus.dispatch(command);
 
+			// Verify event published
+			expect(publishedEvents).toHaveLength(1);
+			expect(publishedEvents[0].type).toBe('AdventurerRecruited');
+			
 			const state = busManager.getState();
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Brave Fighter') as import('../domain/entities/Adventurer').Adventurer;
 			expect(adventurer).toBeDefined();
 			expect(adventurer?.attributes.traitTags).toContain('brave');
 			expect(adventurer?.attributes.traitTags).toContain('combat');
-		});
-
-		it('should fail when name is empty', async () => {
-			const command = createTestCommand('RecruitAdventurer', {
-				name: '',
-				traits: []
-			});
-
-			await busManager.commandBus.dispatch(command);
-
-			const failedEvents = publishedEvents.filter(e => e.type === 'CommandFailed');
-			expect(failedEvents.length).toBeGreaterThan(0);
-		});
-
-		it('should fail when name is whitespace only', async () => {
-			const command = createTestCommand('RecruitAdventurer', {
-				name: '   ',
-				traits: []
-			});
-
-			await busManager.commandBus.dispatch(command);
-
-			const failedEvents = publishedEvents.filter(e => e.type === 'CommandFailed');
-			expect(failedEvents.length).toBeGreaterThan(0);
 		});
 
 		it('should create adventurer with default attributes', async () => {
@@ -301,7 +293,18 @@ describe('RecruitAdventurerHandler Integration', () => {
 			const initialState = createTestGameState({ 
 				resources: createTestResourceBundle({ gold: 100 }) 
 			});
-			const { busManager: testBusManager } = setupIntegrationTest({
+			
+			// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+			const guildhall = Array.from(initialState.entities.values()).find(
+				(e) =>
+					e.type === 'Facility' &&
+					(e as Facility).attributes.facilityType === 'Guildhall'
+			) as Facility;
+			if (guildhall) {
+				guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+			}
+			
+			const { busManager: testBusManager, publishedEvents: testEvents } = setupIntegrationTest({
 				initialState,
 				eventTypes: ['AdventurerRecruited', 'CommandFailed']
 			});
@@ -312,6 +315,10 @@ describe('RecruitAdventurerHandler Integration', () => {
 			});
 
 			await testBusManager.commandBus.dispatch(command);
+
+			// Verify recruitment succeeded
+			expect(testEvents).toHaveLength(1);
+			expect(testEvents[0].type).toBe('AdventurerRecruited');
 
 			const state = testBusManager.getState();
 			expect(state.resources.get('gold')).toBe(50);

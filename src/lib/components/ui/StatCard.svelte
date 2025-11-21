@@ -5,6 +5,23 @@
 	export let value: number;
 	export let icon: string = '';
 	export let subtitle: string = '';
+	
+	/**
+	 * Number type for automatic formatting
+	 * - 'integer': Always shows as integer (no decimals)
+	 * - 'decimal': Shows with decimals
+	 */
+	export let numberType: 'integer' | 'decimal';
+	
+	/**
+	 * Decimal places for 'decimal' type (default: 1)
+	 */
+	export let decimalPlaces: number = 1;
+	
+	/**
+	 * Optional custom formatter (overrides numberType)
+	 * Use for special cases like rates with units
+	 */
 	export let format: ((_n: number) => string) | undefined = undefined;
 </script>
 
@@ -16,7 +33,12 @@
 		{label}
 	</div>
 	<div class="stat-value">
-		<AnimatedNumber {value} {format} />
+		<AnimatedNumber 
+			{value} 
+			{numberType}
+			{decimalPlaces}
+			{format} 
+		/>
 	</div>
 	{#if subtitle}
 		<div class="stat-subtitle">{subtitle}</div>

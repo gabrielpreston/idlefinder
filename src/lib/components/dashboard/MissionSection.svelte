@@ -32,6 +32,7 @@
 				<StatCard 
 					label="Active Missions" 
 					value={stats.inProgress}
+					numberType="integer"
 				/>
 			</div>
 			
@@ -50,6 +51,7 @@
 				<StatCard 
 					label="Available" 
 					value={stats.available}
+					numberType="integer"
 				/>
 			</div>
 			
@@ -68,6 +70,7 @@
 				<StatCard 
 					label="Completed" 
 					value={stats.completed}
+					numberType="integer"
 				/>
 			</div>
 		{/if}

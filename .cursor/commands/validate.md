@@ -7,54 +7,23 @@ Execute solo development validation suite focusing on type checking, basic funct
 
 ## Building Block Validation
 
-Before validating code, check for proper use of reusable building blocks:
+See `.cursor/rules/default-building-blocks.mdc` for complete building block reference.
 
-- **Check for domain primitive reuse**
-  - Verify code uses existing Identifier, Timestamp, Duration, ResourceBundle
-  - Check that new value objects aren't duplicating existing primitives
-  - Validate Map/Set keys use `.value` property for value objects
-- **Verify entity pattern consistency**
-  - Ensure new entities follow existing entity patterns (constructor-based, validation)
-  - Check that entities compose from existing value objects
-  - Verify entities follow systems primitives pattern (id, type, attributes, tags, state, timers)
-- **Validate system reuse**
-  - Verify new systems follow existing system patterns (pure functions, no side effects)
-  - Check that business logic uses existing systems rather than duplicating
-  - Ensure systems don't depend on infrastructure (bus, UI, etc.)
-- **Check systems primitives vocabulary**
-  - Verify solution uses existing primitives (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
-  - Check that new features compose from primitives rather than creating new fundamental types
+Before validating code, check for proper use of reusable building blocks:
+- **Domain primitive reuse**: Verify code uses existing Identifier, Timestamp, Duration, ResourceBundle
+- **Entity pattern consistency**: Ensure entities follow existing patterns (constructor-based, validation)
+- **System reuse**: Verify systems follow existing patterns (pure functions, no side effects)
+- **Systems primitives vocabulary**: Verify solution uses existing primitives vocabulary
 
 ## NPM Scripts for Validation
 
-The following npm scripts are available for validation:
+See `.cursor/rules/default-development-workflow.mdc#npm-script-reference` for complete npm script reference.
 
-### Full Validation Suite
-
+Key validation scripts:
 - **`npm run type-check`** - Run TypeScript type checking (`tsc --noEmit`)
 - **`npm run lint`** - Run ESLint (validation only, no fixes)
-- **`npm test`** - Run test suite
-
-### Linting and Code Quality
-
-- **`npm run lint`** - Run ESLint (validation only, no fixes)
 - **`npm run lint -- --fix`** - Run ESLint with auto-fix
-- **`npm run format`** - Format code with Prettier
-- **`npm run type-check`** - Check TypeScript types (`tsc --noEmit`)
-
-### Testing
-
-- **`npm test`** - Run all available tests
-- **`npm test -- --watch`** - Run tests in watch mode
-- **`npm test -- --coverage`** - Run tests with coverage report
-- **`npm test -- Game.test.ts`** - Run specific test file
-- **`npm test -- -t "should update wave timer"`** - Run tests matching pattern
-
-### Validation Workflow
-
-1. **Quick validation**: `npm run lint` and `npm test` for fast feedback
-2. **Pre-commit validation**: `npm run type-check && npm run lint && npm test` for comprehensive check
-3. **Auto-fix issues**: `npm run lint -- --fix` to apply automatic fixes before re-running validation
+- **`npm test`** - Run test suite
 
 - **Run type checking**
   - Execute `npm run type-check` to check for type errors

@@ -6,9 +6,9 @@
 <div class="resource-stockpiles">
 	<h3>Stockpiles</h3>
 	<div class="stockpiles-grid">
-		<StatCard label="Gold" value={$gold} />
-		<StatCard label="Fame" value={$fame} />
-		<StatCard label="Materials" value={$materials} />
+		<StatCard label="Gold" value={$gold} numberType="integer" />
+		<StatCard label="Fame" value={$fame} numberType="integer" />
+		<StatCard label="Materials" value={$materials} numberType="integer" />
 	</div>
 </div>
 

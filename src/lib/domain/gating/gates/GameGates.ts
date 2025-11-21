@@ -10,6 +10,7 @@ import { gateRegistry } from '../GateRegistry';
 import {
 	entityTierCondition,
 	fameMilestoneCondition,
+	entityExistsCondition,
 } from '../conditions/GateConditions';
 
 /**
@@ -550,6 +551,47 @@ export function registerGameGates(): void {
 				icon: 'building',
 				category: 'facility',
 				tags: ['resourcedepot', 'construction'],
+			},
+		},
+
+		// ============================================================================
+		// ROSTER CAPACITY GATES
+		// ============================================================================
+		{
+			id: 'roster_capacity_1',
+			type: 'custom',
+			name: 'First Adventurer Slot',
+			description: 'Unlock ability to recruit your first adventurer',
+			conditions: [
+				entityTierCondition(
+					'Facility',
+					'Guildhall',
+					1,
+					'Guild Hall at Tier 1+'
+				),
+			],
+			metadata: {
+				icon: 'users',
+				category: 'roster',
+				tags: ['roster', 'capacity'],
+			},
+		},
+		{
+			id: 'roster_capacity_2',
+			type: 'custom',
+			name: 'Second Adventurer Slot',
+			description: 'Unlock ability to recruit your second adventurer',
+			conditions: [
+				entityExistsCondition(
+					'Facility',
+					'Dormitory',
+					'Dormitory facility built'
+				),
+			],
+			metadata: {
+				icon: 'users',
+				category: 'roster',
+				tags: ['roster', 'capacity'],
 			},
 		},
 

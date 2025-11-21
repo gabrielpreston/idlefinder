@@ -1,0 +1,131 @@
+---
+description: Cursor tool usage patterns and examples for commands
+---
+
+# Cursor Tool Usage Reference
+
+## Core Tools
+
+### `read_file`
+Read file contents from filesystem.
+
+**Parameters**:
+- `target_file` (required): Path to file
+- `offset` (optional): Line number to start reading
+- `limit` (optional): Number of lines to read
+
+**Example**:
+```markdown
+- Use `read_file` to read: [specific files]
+  - Example: `read_file` with `target_file: "package.json"`
+  - Example: `read_file` with `target_file: "file.ts"` and `offset: 10` and `limit: 20`
+```
+
+### `codebase_search`
+Semantic code search across codebase.
+
+**Parameters**:
+- `query` (required): Search query (complete question)
+- `target_directories` (optional array): Limit search scope
+
+**Example**:
+```markdown
+- Use `codebase_search` to find: [specific patterns]
+  - Example: `codebase_search` with `query: "How does error handling work?"` and `target_directories: ["src"]`
+  - Example: `codebase_search` with `query: "What domain primitives exist?"` and `target_directories: ["src/lib/domain/valueObjects"]`
+```
+
+### `grep`
+Pattern-based file search.
+
+**Parameters**:
+- `pattern` (required): Regular expression pattern
+- `path` (optional): File or directory to search
+- `output_mode` (optional): "content", "files_with_matches", or "count"
+
+**Example**:
+```markdown
+- Use `grep` to locate: [specific code patterns]
+  - Example: `grep` with `pattern: "function.*test"` and `path: "src"`
+  - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
+```
+
+### `run_terminal_cmd`
+Execute shell commands.
+
+**Parameters**:
+- `command` (required): Command to execute
+- `is_background` (optional, default false): Run in background
+
+**Example**:
+```markdown
+- Use `run_terminal_cmd` to: [specific action]
+  - Example: `run_terminal_cmd` with `command: "npm run type-check"` and `is_background: false`
+  - Example: `run_terminal_cmd` with `command: "date '+%Y-%m-%d %H:%M'"` and `is_background: false`
+```
+
+### `search_replace`
+Edit files with string replacement.
+
+**Parameters**:
+- `file_path` (required): Path to file
+- `old_string` (required): Text to replace (must match exactly)
+- `new_string` (required): Replacement text
+- `replace_all` (optional): Replace all occurrences
+
+**Example**:
+```markdown
+- Use `search_replace` to update: [specific content]
+  - Example: `search_replace` with `file_path: "file.ts"`, `old_string: "old code"`, `new_string: "new code"`
+```
+
+### `write`
+Create or overwrite files.
+
+**Parameters**:
+- `file_path` (required): Path to file
+- `contents` (required): File contents
+
+**Example**:
+```markdown
+- Use `write` to create: [new file]
+  - Example: `write` with `file_path: "new-file.md"` and `contents: "file content"`
+```
+
+## Common Patterns
+
+### Reading Plan Documents
+```markdown
+- Use `read_file` to read plan document
+  - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
+```
+
+### Finding Existing Patterns
+```markdown
+- Use `codebase_search` to find existing patterns
+  - Example: `codebase_search` with `query: "How is [pattern] implemented?"` and `target_directories: ["src"]`
+```
+
+### Validating npm Scripts
+```markdown
+- Use `read_file` to check package.json for referenced scripts
+  - Example: `read_file` with `target_file: "package.json"`
+- Use `run_terminal_cmd` to discover available npm scripts
+  - Example: `run_terminal_cmd` with `command: "npm run"` and `is_background: false`
+```
+
+### Updating Plan Status
+```markdown
+- Use `run_terminal_cmd` to get current date
+  - Example: `run_terminal_cmd` with `command: "date '+%Y-%m-%d %H:%M'"` and `is_background: false`
+- Use `search_replace` to update plan status
+  - Example: `search_replace` with `file_path: ".cursor/plans/{plan-name}.plan.md"`, `old_string: "**Plan Status**: Analysis Complete"`, `new_string: "**Plan Status**: Analysis Complete\n**Plan Status**: In Progress - {date}"`
+```
+
+## NPM Script Validation
+
+Before referencing npm scripts in commands:
+
+1. **Check script existence**: Use `read_file` to read `package.json` and verify script exists
+2. **Check permissions**: Verify script is allowed in `.cursor/cli.json` if needed
+3. **Handle missing scripts**: Either add script to `package.json` or use alternative approach

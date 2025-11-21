@@ -49,62 +49,47 @@ Before executing this command, ensure:
 0. **Determine implementation approach**
    - Use `read_file` to check if plan specifies refactoring approach
      - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
-   - If plan calls for aggressive refactoring:
+   - **Breaking Changes Philosophy**: This is a solo project. Breaking changes and large refactors are actively encouraged.
+   - If plan calls for aggressive refactoring or modernization:
      - Use `codebase_search` to identify all affected code paths
        - Example: `codebase_search` with `query: "Where is [component being refactored] used?"` and `target_directories: []`
      - Use `grep` to find all import statements and references
        - Example: `grep` with `pattern: "import.*Component"` and `path: "src"`
-     - Note: Skip migration paths and compatibility layers
-     - Note: Update all dependent code directly
-     - Note: Remove deprecated code immediately
-     - Note: Prioritize type-check over comprehensive testing
+     - **Accept breaking changes**: Don't try to maintain compatibility
+     - **Update all dependent code directly**: No migration paths or adapters
+     - **Remove deprecated code immediately**: Do not maintain both versions
+     - **Prioritize modernization**: Use latest TypeScript/SvelteKit patterns
+     - **Focus on type safety**: Prioritize type-check over comprehensive testing during refactoring
    - Otherwise, follow standard implementation approach
 
 1. **Begin plan implementation**
    - Follow plan's implementation order section
-   - **Before creating new code, identify reusable building blocks**:
+   - **Before creating new code, identify reusable building blocks** (see `.cursor/rules/default-building-blocks.mdc`):
      - Use `codebase_search` to find existing domain primitives
-       - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
      - Use `grep` to find existing entity patterns
-       - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
-     - Use `read_file` to review existing entity implementations
-       - Example: `read_file` with `target_file: "src/lib/domain/entities/Organization.ts"`
-     - Use `read_file` to review systems primitives spec
-       - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
+     - Use `read_file` to review existing entity implementations and systems primitives spec
    - **Compose from existing building blocks**:
-     - Reuse domain primitives (Identifier, Timestamp, Duration, ResourceBundle) rather than creating new ones
+     - Reuse domain primitives rather than creating new ones
      - Follow existing entity patterns (constructor-based, validation in constructor)
-     - Use existing systems (TaskResolutionSystem, EconomySystem) rather than duplicating logic
-     - Compose new entities from existing value objects and primitives
-     - Express new features using systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
-   - For each phase or step in the plan:
+     - Use existing systems rather than duplicating logic
+     - Express new features using systems primitives vocabulary
+   - For each phase or step in the plan (see `.cursor/rules/default-tool-usage.mdc`):
      - Use `codebase_search` to understand current implementation
-       - Example: `codebase_search` with `query: "How is [feature] currently implemented?"` and `target_directories: ["src"]`
      - Use `read_file` to read relevant files before making changes
-       - Example: `read_file` with `target_file: "file-to-modify.ts"`
-     - If aggressive refactoring:
+     - If aggressive refactoring (see `.cursor/rules/default-building-blocks.mdc#breaking-changes`):
        - Refactor core components first, accepting breaking changes
        - Use `grep` to find all files importing or using refactored code
-         - Example: `grep` with `pattern: "from.*refactored-module"` and `path: "src"`
        - Update all dependent code immediately in single pass
        - Do NOT create compatibility layers or adapters
-       - Remove deprecated code entirely (do not mark as deprecated)
+       - Remove deprecated code entirely
      - Use `search_replace` or `write` to make changes
-       - Example: `search_replace` with `file_path: "file.ts"`, `old_string: "old code"`, `new_string: "new code"`
 
 2. **Validate changes after each major step**
-   - Use `run_terminal_cmd` to run type checking
-     - Command: `npm run type-check` with `is_background: false`
-   - If aggressive refactoring:
-     - Fix type errors immediately - do not defer or create workarounds
-     - Address all breaking changes by updating dependent code directly
-     - Continue refactoring only after type-check passes
-   - Use `run_terminal_cmd` to run linting (if script exists)
-     - Command: `npm run lint` with `is_background: false` (check script exists first)
-   - Use `run_terminal_cmd` to run tests (if script exists and not aggressive refactoring)
-     - Command: `npm test` with `is_background: false` (check script exists first)
-     - Note: For aggressive refactoring, skip comprehensive testing - focus on type safety
-   - If scripts don't exist, use `read_file` to verify package.json and note missing scripts
+   - Use `run_terminal_cmd` to run type checking (`npm run type-check`)
+   - If aggressive refactoring: Fix type errors immediately, address breaking changes directly
+   - Use `run_terminal_cmd` to run linting (`npm run lint`) if script exists
+   - Use `run_terminal_cmd` to run tests (`npm test`) if script exists and not aggressive refactoring
+   - Note: For aggressive refactoring, skip comprehensive testing - focus on type safety
 
 3. **Continue implementation following plan**
    - Work through plan phases systematically

@@ -2,7 +2,8 @@
  * Roster Capacity Queries
  * 
  * Queries for roster capacity, size, and recruitment availability.
- * Aggregates Dormitory facility effects to determine max roster capacity.
+ * Base capacity from unlocked roster capacity gates.
+ * Dormitory provides tier bonuses on top of base capacity.
  */
 
 import type { GameState } from '../entities/GameState';
@@ -13,27 +14,39 @@ import { EntityQueryBuilder } from './EntityQueryBuilder';
 import { CapacityQueryBuilder } from './CapacityQueryBuilder';
 import type { Capacity } from './Capacity';
 import type { NumericStatMap } from '../valueObjects/NumericStatMap';
+import { getGatesByType } from '../gating/GateQueries';
+import { GameConfig } from '../config/GameConfig';
 
 /**
- * Get maximum roster capacity from Dormitory facilities
+ * Get maximum roster capacity
  * 
- * Aggregates rosterCap from all Dormitory facilities.
- * Base capacity is typically 5, plus Dormitory tier bonuses.
+ * Base capacity: Count of unlocked roster capacity gates
+ * Dormitory bonus: Additional capacity from Dormitory tier bonuses
+ * 
+ * Follows MissionSlotQueries pattern: base + facility tier bonuses
  * 
  * @param state GameState
  * @returns Maximum roster size
  */
 export function getMaxRosterCapacity(state: GameState): number {
-	const facilities = EntityQueryBuilder.byType<Facility>('Facility')(state);
+	// Count unlocked roster capacity gates (base capacity)
+	const rosterCapacityGates = getGatesByType('custom', state)
+		.filter(({ gate, status }) => 
+			gate.metadata?.tags?.includes('roster') && 
+			gate.metadata?.tags?.includes('capacity') &&
+			status.unlocked
+		);
 	
-	let maxCapacity = 5; // Base capacity
+	let maxCapacity = rosterCapacityGates.length;
+	
+	// Add Dormitory tier bonuses (just the bonus, like MissionSlotQueries does)
+	const facilities = EntityQueryBuilder.byType<Facility>('Facility')(state);
 	
 	for (const facility of facilities) {
 		if (facility.attributes.facilityType === 'Dormitory') {
-			const effects = facility.getActiveEffects();
-			if (effects.rosterCap !== undefined) {
-				maxCapacity = effects.rosterCap;
-			}
+			// Add tier bonus only (not full effect which includes baseCapacity)
+			// Per MissionSlotQueries pattern: "Base capacity is X, plus facility tier bonuses"
+			maxCapacity += GameConfig.facilityScaling.dormitoryRosterBonus(facility.attributes.tier);
 		}
 	}
 	

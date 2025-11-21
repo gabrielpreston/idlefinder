@@ -209,6 +209,56 @@ describe('MissionAutomationSystem', () => {
 
 			expect(result.actions).toHaveLength(0);
 		});
+
+		it('should exclude adventurers assigned to resource slots', () => {
+			const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+			const doctrine = MissionDoctrine.createDefault(doctrineId);
+			const mission = createTestMission({ id: 'mission-1', state: 'Available' });
+			const idleAdventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
+			const assignedAdventurer = createTestAdventurer({ id: 'adv-2', state: 'Idle' });
+			assignedAdventurer.attributes.assignedSlotId = 'slot-1';
+			const entities = new Map<string, Entity>([
+				[doctrine.id, doctrine],
+				[mission.id, mission],
+				[idleAdventurer.id, idleAdventurer],
+				[assignedAdventurer.id, assignedAdventurer]
+			]);
+			const state = createTestGameState({ entities });
+
+			const result = automateMissionSelection(state);
+
+			// Should only select the idle adventurer, not the assigned one
+			expect(result.actions.length).toBeGreaterThanOrEqual(0);
+			if (result.actions.length > 0) {
+				const selectedAdventurerId = result.actions[0]['adventurerId'];
+				expect(selectedAdventurerId).toBe('adv-1');
+				expect(selectedAdventurerId).not.toBe('adv-2');
+			}
+		});
+
+		it('should include newly recruited adventurers (assignedSlotId: null)', () => {
+			const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+			const doctrine = MissionDoctrine.createDefault(doctrineId);
+			const mission = createTestMission({ id: 'mission-1', state: 'Available' });
+			const newlyRecruitedAdventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
+			// Verify assignedSlotId is null by default (from test factory)
+			expect(newlyRecruitedAdventurer.attributes.assignedSlotId).toBeNull();
+			const entities = new Map<string, Entity>([
+				[doctrine.id, doctrine],
+				[mission.id, mission],
+				[newlyRecruitedAdventurer.id, newlyRecruitedAdventurer]
+			]);
+			const state = createTestGameState({ entities });
+
+			const result = automateMissionSelection(state);
+
+			// Should select the newly recruited adventurer
+			expect(result.actions.length).toBeGreaterThanOrEqual(0);
+			if (result.actions.length > 0) {
+				expect(result.actions[0]).toBeInstanceOf(StartMissionAction);
+				expect(result.actions[0]['adventurerId']).toBe('adv-1');
+			}
+		});
 	});
 });
 

@@ -43,65 +43,16 @@ Before executing this command, ensure:
 
 ### Phase 2: Request and Gather Evidence
 
-1. **For Pattern Claims**
-   - Use `grep` to find pattern in codebase
-     - Example: `grep` with `pattern: "claimed-pattern"` and `path: "src"`
-   - Use `codebase_search` to find similar implementations
-     - Example: `codebase_search` with `query: "How is [pattern] implemented?"` and `target_directories: ["src"]`
-   - Use `read_file` to read specific files where pattern exists
-     - Example: `read_file` with `target_file: "file.ts"` and `offset: start_line` and `limit: end_line - start_line`
+See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns.
 
-2. **For Integration Claims**
-   - Use `codebase_search` to find integration points
-     - Example: `codebase_search` with `query: "How does [component] integrate with [other component]?"` and `target_directories: ["src"]`
-   - Use `grep` to find import statements or usage
-     - Example: `grep` with `pattern: "import.*Component"` and `path: "src"`
-   - Use `read_file` to verify integration code
-     - Example: `read_file` with `target_file: "integration-file.ts"`
-
-3. **For Performance Claims**
-   - Use `codebase_search` to find performance-related code
-     - Example: `codebase_search` with `query: "How is [performance aspect] handled?"` and `target_directories: ["src"]`
-   - Use `grep` to find performance optimizations
-     - Example: `grep` with `pattern: "performance|optimize|cache"` and `path: "src"`
-   - Use `read_file` to verify performance improvements
-     - Example: `read_file` with `target_file: "performance-file.ts"`
-
-4. **For Architecture Claims**
-   - Use `codebase_search` to find architectural decisions
-     - Example: `codebase_search` with `query: "What architectural patterns are used?"` and `target_directories: ["src", "docs"]`
-   - Use `read_file` to review architecture documentation
-     - Example: `read_file` with `target_file: "docs/ARCHITECTURE.md"`
-   - Use `grep` to find architectural patterns in code
-     - Example: `grep` with `pattern: "pattern-name"` and `path: "src"`
-
-5. **For Codebase State Claims**
-   - Use `read_file` to check configuration files
-     - Example: `read_file` with `target_file: "package.json"` or `target_file: "tsconfig.json"`
-   - Use `grep` to find configuration values
-     - Example: `grep` with `pattern: "config-value"` and `path: "."`
-   - Use `codebase_search` to find state management
-     - Example: `codebase_search` with `query: "How is [state] managed?"` and `target_directories: ["src"]`
-
-6. **For Dependency Claims**
-   - Use `read_file` to check package.json
-     - Example: `read_file` with `target_file: "package.json"`
-   - Use `grep` to find import statements
-     - Example: `grep` with `pattern: "import.*dependency"` and `path: "src"`
-   - Use `codebase_search` to find dependency usage
-     - Example: `codebase_search` with `query: "How is [dependency] used?"` and `target_directories: ["src"]`
-
-7. **For Building Block Reuse Claims**
-   - Use `codebase_search` to verify claimed building blocks exist
-     - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
-   - Use `grep` to find existing entity patterns
-     - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
-   - Use `read_file` to verify building blocks are actually reused
-     - Example: `read_file` with `target_file: "file-using-building-blocks.ts"`
-   - Use `read_file` to review systems primitives spec
-     - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
-   - Verify composition over duplication (code composes from primitives, doesn't duplicate)
-   - Check if solution follows systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
+1. **For Pattern Claims**: Use `grep`, `codebase_search`, and `read_file` to find and verify patterns
+2. **For Integration Claims**: Use `codebase_search` and `grep` to find integration points
+3. **For Performance Claims**: Use `codebase_search` and `grep` to find performance-related code
+4. **For Architecture Claims**: Use `codebase_search`, `read_file`, and `grep` to find architectural patterns
+5. **For Codebase State Claims**: Use `read_file` and `grep` to check configuration files
+6. **For Dependency Claims**: Use `read_file`, `grep`, and `codebase_search` to find dependency usage
+7. **For Building Block Reuse Claims** (see `.cursor/rules/default-building-blocks.mdc`): Verify building blocks exist and are reused
+8. **For Modernization Claims** (see `.cursor/rules/default-building-blocks.mdc#breaking-changes`): Verify modernization opportunities and breaking changes are acceptable
 
 ### Phase 3: Validate Evidence
 
@@ -162,21 +113,13 @@ Before executing this command, ensure:
 
 ## Error Handling
 
-- **File not found**: If cited file doesn't exist
-  - Detection: `read_file` fails or file not found
-  - Resolution: Mark claim as unsubstantiated, note file doesn't exist
+See `.cursor/rules/default-error-handling.mdc` for common error patterns.
 
-- **Line numbers incorrect**: If cited line numbers don't match claim
-  - Detection: `read_file` shows different code at cited lines
-  - Resolution: Mark claim as incorrect, provide correct line numbers if pattern exists elsewhere
-
-- **Pattern not found**: If claimed pattern doesn't exist in codebase
-  - Detection: `grep` and `codebase_search` return no results
-  - Resolution: Mark claim as unsubstantiated, recommend removing or correcting
-
-- **Integration not found**: If claimed integration doesn't exist
-  - Detection: `codebase_search` and `grep` find no integration code
-  - Resolution: Mark claim as unsubstantiated, verify components exist separately
+Command-specific errors:
+- **File not found**: Mark claim as unsubstantiated, note file doesn't exist
+- **Line numbers incorrect**: Mark claim as incorrect, provide correct line numbers if pattern exists elsewhere
+- **Pattern not found**: Mark claim as unsubstantiated, recommend removing or correcting
+- **Integration not found**: Mark claim as unsubstantiated, verify components exist separately
 
 ## Success Criteria
 

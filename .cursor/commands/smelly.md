@@ -24,43 +24,10 @@ Before executing this command, ensure:
 
 ## Reusable Building Blocks & Best Principles
 
-Before analyzing code, understand what patterns should be followed:
-
-### Domain Primitives (Always Reuse)
-
-**Core Value Objects** (from `src/lib/domain/valueObjects/`):
-- **Identifier**: Use `Identifier.generate<T>()` or `Identifier.from<T>()` for all entity IDs
-  - Type aliases: `OrganizationId`, `TaskInstanceId`, `AgentId`, `TaskArchetypeId`, etc.
-- **Timestamp**: Use `Timestamp.now()` or `Timestamp.from()` for time values
-  - Domain systems receive timestamps as parameters (never call `Date.now()`)
-- **Duration**: Use `Duration.ofMinutes()`, `Duration.ofHours()`, `Duration.ofSeconds()` for time spans
-- **ResourceBundle**: Use `ResourceBundle.fromArray()` or `ResourceBundle.empty()` for resource collections
-- **ResourceUnit**: Use `new ResourceUnit(type, amount)` for individual resources
-- **NumericStatMap**: Use for stat collections (ability mods, etc.)
-
-**Design Rule**: Always use `.value` property when using value objects as Map/Set keys (JavaScript uses reference equality, not value equality).
-
-### Systems Primitives (Compose, Don't Duplicate)
-
-**Entity Pattern** (from `docs/current/08-systems-primitives-spec.md`):
-- All entities have: `id`, `type`, `attributes`, `tags`, `state`, `timers`, `metadata`
-- Core systems reason over `type`, `attributes`, `tags`, `state` - never special-case specific IDs
-- Use existing entity patterns: `Organization`, `TaskInstance`, `AgentInstance`, `TaskArchetype`, `FacilityInstance`, `ProgressTrack`
-
-**System Pattern Rules**:
-- Pure functions: given inputs, produce outputs (no side effects)
-- No dependencies on infrastructure (bus, UI, etc.)
-- Deterministic: same inputs = same outputs
-- Time passed as parameters (never call `Date.now()`)
-
-### Architecture Principles
-
-- **Domain Purity**: Domain entities/systems must not depend on infrastructure (bus, UI, etc.)
-- **Value Object Immutability**: All value objects must be immutable
-- **Entity Validation**: All entities must validate state in constructors
-- **System Purity**: Systems must be pure functions (no side effects)
-- **Repository Abstraction**: Data access through interfaces, not direct Prisma
-- **Composition over Duplication**: Compose from primitives rather than creating duplicates
+See `.cursor/rules/default-building-blocks.mdc` for complete building block reference including:
+- Domain Primitives (Identifier, Timestamp, Duration, ResourceBundle, etc.)
+- Systems Primitives (Entity Pattern, Vocabulary, Core Entities, Systems)
+- Architecture Principles (Domain Purity, Value Object Immutability, etc.)
 
 ## Code Smell Detection Categories
 
@@ -144,6 +111,29 @@ Before analyzing code, understand what patterns should be followed:
 - Can use newer JavaScript features (Array methods, destructuring)
 - Can use domain primitives instead of raw types
 
+### Modernization Opportunities
+
+**Outdated Patterns to Modernize**:
+- Code using old TypeScript patterns (can use newer features)
+- Legacy entity initialization patterns
+- Deprecated value object constructors
+- Old system interfaces that could use modern patterns
+- Code that could use latest SvelteKit patterns
+- Dependencies that could be updated to latest versions
+
+**Modernization Detection** (see `.cursor/rules/default-building-blocks.mdc#breaking-changes`):
+- Use `codebase_search` to find code using old patterns
+- Use `grep` to find deprecated patterns
+- Check package.json for outdated dependencies (use `read_file`)
+- Note: Breaking changes are acceptable when updating dependencies
+
+**Modernization Recommendations**:
+- Identify code that could use latest TypeScript features (satisfies, const assertions, etc.)
+- Find patterns that could use latest SvelteKit features
+- Recommend removing deprecated code paths entirely (not maintaining both)
+- Suggest large-scale refactors to modernize entire subsystems
+- Encourage breaking changes to improve code quality
+
 ### Performance Anti-Patterns
 
 **Memory Issues**:
@@ -177,77 +167,48 @@ Before analyzing code, understand what patterns should be followed:
 ### Phase 1: Context Gathering
 
 1. **Gather project structure and rules**
-   - Use `read_file` to read architecture rules
-     - Example: `read_file` with `target_file: ".cursor/rules/default-architecture.mdc"`
-   - Use `read_file` to read TypeScript standards
-     - Example: `read_file` with `target_file: ".cursor/rules/default-typescript-standards.mdc"`
+   - Use `read_file` to read architecture rules and TypeScript standards
    - Use `list_dir` to understand directory structure
-     - Example: `list_dir` with `target_directory: "src/lib/domain"`
 
 2. **Run static analysis tools**
-   - Use `run_terminal_cmd` to run type checking
-     - Command: `npm run type-check` with `is_background: false`
-   - Use `run_terminal_cmd` to run linting
-     - Command: `npm run lint` with `is_background: false`
-   - Note: Tools like `grep` and `codebase_search` are available for pattern matching
+   - Use `run_terminal_cmd` to run type checking (`npm run type-check`)
+   - Use `run_terminal_cmd` to run linting (`npm run lint`)
+   - See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns
 
 ### Phase 2: Pattern Detection
 
 1. **Scan for architecture violations**
    - Use `grep` to find domain entities importing infrastructure
-     - Example: `grep` with `pattern: "from.*\\$lib\\/stores|from.*\\$lib\\/app"` and `path: "src/lib/domain"`
    - Use `codebase_search` to find system impurities
-     - Example: `codebase_search` with `query: "Where do domain systems use Date.now() or have side effects?"` and `target_directories: ["src/lib/domain/systems"]`
    - Use `grep` to find value objects used as Map/Set keys without `.value`
-     - Example: `grep` with `pattern: "new Map.*Identifier[^.]|new Set.*Identifier[^.]"` and `path: "src"`
    - Use `grep` to find direct Prisma usage in domain
-     - Example: `grep` with `pattern: "PrismaClient|@prisma/client"` and `path: "src/lib/domain"`
 
 2. **Detect TypeScript anti-patterns**
-   - Use `grep` to find `any` usage
-     - Example: `grep` with `pattern: ": any[^A-Za-z]|: any$"` and `path: "src"`
-   - Use `grep` to find `@ts-ignore` comments
-     - Example: `grep` with `pattern: "@ts-ignore|@ts-expect-error"` and `path: "src"`
-   - Use `grep` to find type assertions
-     - Example: `grep` with `pattern: " as [A-Z]"` and `path: "src"`
+   - Use `grep` to find `any` usage, `@ts-ignore` comments, type assertions
    - Use `codebase_search` to find functions without return types
-     - Example: `codebase_search` with `query: "What functions are missing return type annotations?"` and `target_directories: ["src/lib/domain"]`
 
 3. **Find code duplication**
    - Use `codebase_search` to find duplicate patterns
-     - Example: `codebase_search` with `query: "Are there duplicate value object implementations or similar validation logic?"` and `target_directories: ["src/lib/domain"]`
    - Use `grep` to find similar function signatures
-     - Example: `grep` with `pattern: "function.*validate|function.*check"` and `path: "src"`
 
 4. **Identify dead code**
    - Use `grep` to find commented-out code blocks
-     - Example: `grep` with `pattern: "^\\s*//.*function|^\\s*//.*class|^\\s*//.*export"` and `path: "src"`
    - Use `codebase_search` to find potentially unused exports
-     - Example: `codebase_search` with `query: "What exported functions or classes might never be imported?"` and `target_directories: []`
    - Use `grep` to find unreachable code
-     - Example: `grep` with `pattern: "return.*return|throw.*return"` and `path: "src"`
 
 5. **Check performance patterns**
    - Use `codebase_search` to find object creation in loops
-     - Example: `codebase_search` with `query: "Where are objects created inside game loops or render functions?"` and `target_directories: ["src"]`
    - Use `grep` to find potential memory leaks
-     - Example: `grep` with `pattern: "addEventListener"` and `path: "src"`
    - Use `codebase_search` to find inefficient algorithms
-     - Example: `codebase_search` with `query: "Where are nested loops that could be optimized?"` and `target_directories: ["src"]`
 
 6. **Check entity and value object patterns**
    - Use `grep` to find `Partial<T>` usage in entity constructors
-     - Example: `grep` with `pattern: "Partial<"` and `path: "src/lib/domain/entities"`
    - Use `codebase_search` to find entities without validation
-     - Example: `codebase_search` with `query: "Do all entities validate state in constructors?"` and `target_directories: ["src/lib/domain/entities"]`
    - Use `grep` to find mutable value objects
-     - Example: `grep` with `pattern: "class.*ValueObject.*\\{[^}]*public.*=.*[^readonly]"` and `path: "src/lib/domain/valueObjects"`
 
 7. **Check import organization**
    - Use `grep` to find import statements
-     - Example: `grep` with `pattern: "^import"` and `path: "src/lib/domain"` and `output_mode: "files_with_matches"`
    - Use `read_file` to check import ordering in sample files
-     - Example: `read_file` with `target_file: "src/lib/domain/systems/TaskResolutionSystem.ts"` and `offset: 1` and `limit: 30`
 
 ### Phase 3: Analysis and Reporting
 
@@ -259,7 +220,6 @@ Before analyzing code, understand what patterns should be followed:
 
 2. **Provide evidence for each finding**
    - Use `read_file` to show specific code examples
-     - Example: `read_file` with `target_file: "file.ts"` and `offset: line_number` and `limit: 10`
    - Include file paths and line numbers for all findings
    - Show the actual code that violates the pattern
    - Explain why it's a problem and suggest a fix
@@ -278,21 +238,13 @@ Before analyzing code, understand what patterns should be followed:
 
 ## Error Handling
 
+See `.cursor/rules/default-error-handling.mdc` for common error patterns.
+
+Command-specific errors:
 - **No issues found**: Report "No major code smells detected" but include suggestions for improvement
-  - Detection: All grep/search queries return clean results
-  - Resolution: Provide general recommendations and best practices reminder
-
-- **Too many issues**: Prioritize and group by category
-  - Detection: Hundreds of findings across multiple categories
-  - Resolution: Group by category, focus on critical/high priority items, suggest phased approach
-
-- **False positives**: Verify findings before reporting
-  - Detection: Pattern match that may not be actual issue
-  - Resolution: Use `read_file` to verify context, only report confirmed issues
-
-- **Type checking errors**: Note existing type errors separately
-  - Detection: `npm run type-check` returns errors
-  - Resolution: Report type errors as separate category, don't confuse with code smells
+- **Too many issues**: Prioritize and group by category, focus on critical/high priority items
+- **False positives**: Use `read_file` to verify context, only report confirmed issues
+- **Type checking errors**: Report type errors as separate category, don't confuse with code smells
 
 ## Success Criteria
 
@@ -301,6 +253,9 @@ Before analyzing code, understand what patterns should be followed:
 - [ ] Code duplication findings with specific locations
 - [ ] Dead code identified with removal recommendations
 - [ ] Performance anti-patterns found with fix suggestions
+- [ ] Modernization opportunities identified with recommendations
+- [ ] Outdated patterns flagged for refactoring
+- [ ] Recommendations include breaking changes where appropriate
 - [ ] Findings categorized by severity (Critical/High/Medium/Low)
 - [ ] Actionable recommendations provided for each finding
 - [ ] Evidence-based reporting with code citations

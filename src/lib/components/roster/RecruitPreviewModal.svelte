@@ -13,9 +13,6 @@
 	export let open: boolean = false;
 	export let onClose: () => void = () => {};
 
-	let name = '';
-	let validationError: string | null = null;
-
 	// Use composable for command error handling
 	const { error: commandError, clearError, cleanup } = useCommandError(['RecruitAdventurer']);
 
@@ -31,33 +28,22 @@
 
 	async function handleRecruit() {
 		if (!adventurer) return;
-		
-		if (!name.trim()) {
-			validationError = 'Please enter a name';
-			return;
-		}
 
 		if (!canAfford) {
-			validationError = 'Insufficient gold';
 			return;
 		}
 
-		validationError = null;
 		clearError();
 		await dispatchCommand('RecruitAdventurer', {
-			name: name.trim(),
 			traits: [],
 			previewAdventurerId: adventurer.id
 		});
 
-		// Clear form and close
-		name = '';
+		// Close modal
 		onClose();
 	}
 
 	function handleClose() {
-		name = '';
-		validationError = null;
 		clearError();
 		onClose();
 	}
@@ -97,20 +83,7 @@
 			</div>
 
 			<div class="recruit-form">
-				<label for="adventurer-name">Name your adventurer:</label>
-				<input 
-					id="adventurer-name"
-					type="text" 
-					bind:value={name} 
-					placeholder="Enter name"
-					onkeydown={(e) => {
-						if (e.key === 'Enter') {
-							handleRecruit();
-						}
-					}}
-				/>
-				
-				<ErrorMessage message={validationError || $commandError} />
+				<ErrorMessage message={$commandError} />
 
 				<div class="cost-info">
 					Cost: <strong>{cost} gold</strong>
@@ -122,7 +95,7 @@
 				<button 
 					class="recruit-button"
 					onclick={handleRecruit}
-					disabled={!canAfford || !name.trim()}
+					disabled={!canAfford}
 				>
 					Recruit for {cost} gold
 				</button>
@@ -174,21 +147,6 @@
 		margin-top: 1.5rem;
 		padding-top: 1.5rem;
 		border-top: 2px solid var(--color-border, #ddd);
-	}
-
-	.recruit-form label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: 600;
-	}
-
-	.recruit-form input {
-		width: 100%;
-		padding: 0.5rem;
-		margin-bottom: 1rem;
-		border: 1px solid var(--color-border, #ddd);
-		border-radius: 4px;
-		font-size: 1rem;
 	}
 
 	.cost-info {

@@ -32,12 +32,15 @@
 			label="Average Level" 
 			value={Math.round($rosterAverageLevel * 10) / 10}
 			subtitle="Across all adventurers"
+			numberType="decimal"
+			decimalPlaces={1}
 		/>
 		
 		{#each Object.entries(statusSummary) as [state, count]}
 			<StatCard 
 				label={state === 'Idle' ? 'Available' : state === 'OnMission' ? 'On Mission' : state}
 				value={count}
+				numberType="integer"
 			/>
 		{/each}
 	</div>

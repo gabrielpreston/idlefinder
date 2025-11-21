@@ -8,6 +8,9 @@ import type { BusManager } from '../bus/BusManager';
 import type { DomainEvent } from '../bus/types';
 import { createTestMission } from '../test-utils/testFactories';
 import type { Entity } from '../domain/primitives/Requirement';
+import type { Facility } from '../domain/entities/Facility';
+// Import gating module to ensure gates are registered
+import '../domain/gating';
 
 describe('StartMissionHandler Integration', () => {
 	let busManager: BusManager;
@@ -16,6 +19,18 @@ describe('StartMissionHandler Integration', () => {
 	beforeEach(() => {
 		// Create initial state with missions for testing
 		const initialState = createTestGameState();
+		
+		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+		// This allows recruitment in tests
+		const guildhall = Array.from(initialState.entities.values()).find(
+			(e) =>
+				e.type === 'Facility' &&
+				(e as Facility).attributes.facilityType === 'Guildhall'
+		) as Facility;
+		if (guildhall) {
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+		}
+		
 		// Ensure we have at least one available mission
 		const existingMissions = Array.from(initialState.entities.values()).filter(
 			e => e.type === 'Mission' && (e as import('../domain/entities/Mission').Mission).state === 'Available'
@@ -28,7 +43,7 @@ describe('StartMissionHandler Integration', () => {
 		
 		({ busManager, publishedEvents } = setupIntegrationTest({
 			initialState,
-			eventTypes: ['MissionStarted', 'CommandFailed']
+			eventTypes: ['MissionStarted', 'CommandFailed', 'AdventurerRecruited']
 		}));
 	});
 

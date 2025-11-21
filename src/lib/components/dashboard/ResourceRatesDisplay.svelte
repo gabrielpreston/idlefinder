@@ -15,6 +15,8 @@
 			<StatCard
 				label={resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}
 				value={rate}
+				numberType="decimal"
+				decimalPlaces={1}
 				format={(n) => `${n.toFixed(1)}/min`}
 			/>
 		{:else}

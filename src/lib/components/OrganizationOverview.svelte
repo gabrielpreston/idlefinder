@@ -12,13 +12,13 @@
 			<div class="resource-item">
 				<span class="resource-label">Gold:</span>
 				<span class="resource-value">
-					<AnimatedNumber value={$resources.get('gold') || 0} />
+					<AnimatedNumber value={$resources.get('gold') || 0} numberType="integer" />
 				</span>
 			</div>
 			<div class="resource-item">
 				<span class="resource-label">Fame:</span>
 				<span class="resource-value">
-					<AnimatedNumber value={$resources.get('fame') || 0} />
+					<AnimatedNumber value={$resources.get('fame') || 0} numberType="integer" />
 				</span>
 			</div>
 		</div>

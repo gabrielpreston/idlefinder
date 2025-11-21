@@ -8,8 +8,8 @@ import { allocateMissionsByDoctrine } from './DoctrineEngine';
 import { StartMissionAction } from '../actions/StartMissionAction';
 import type { MissionDoctrine } from '../entities/MissionDoctrine';
 import type { Mission } from '../entities/Mission';
-import type { Adventurer } from '../entities/Adventurer';
 import { getAvailableMissionSlots } from '../queries/MissionSlotQueries';
+import { getMissionPoolAdventurers } from '../queries/MissionPoolQueries';
 
 export interface AutomationResult {
 	actions: StartMissionAction[];
@@ -49,10 +49,8 @@ export function automateMissionSelection(
 		.filter((e) => e.type === 'Mission' && (e as Mission).state === 'Available')
 		.map((e) => e as Mission);
 
-	// Get available adventurers (Idle state)
-	const availableAdventurers = Array.from(state.entities.values())
-		.filter((e) => e.type === 'Adventurer' && (e as Adventurer).state === 'Idle')
-		.map((e) => e as Adventurer);
+	// Get available adventurers for mission pool (Idle + not assigned to slots)
+	const availableAdventurers = getMissionPoolAdventurers(state);
 
 	if (availableMissions.length === 0 || availableAdventurers.length === 0) {
 		return { actions };

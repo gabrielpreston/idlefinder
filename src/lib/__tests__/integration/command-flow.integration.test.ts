@@ -5,8 +5,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestCommand, setupIntegrationTest, createTestGameState, createTestMission } from '../../test-utils';
+import { createTestFacility } from '../../test-utils/testFactories';
 import type { BusManager } from '../../bus/BusManager';
 import type { DomainEvent } from '../../bus/types';
+import type { Facility } from '../../domain/entities/Facility';
+// Import gating module to ensure gates are registered
+import '../../domain/gating';
 
 describe('Command Flow Integration', () => {
 	let busManager: BusManager;
@@ -15,6 +19,18 @@ describe('Command Flow Integration', () => {
 	beforeEach(() => {
 		// Create initial state with missions for testing
 		const initialState = createTestGameState();
+		
+		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+		// This allows recruitment in tests
+		const guildhall = Array.from(initialState.entities.values()).find(
+			(e) =>
+				e.type === 'Facility' &&
+				(e as Facility).attributes.facilityType === 'Guildhall'
+		) as Facility;
+		if (guildhall) {
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+		}
+		
 		// Ensure we have at least one available mission
 		const existingMissions = Array.from(initialState.entities.values()).filter(
 			e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
@@ -27,7 +43,7 @@ describe('Command Flow Integration', () => {
 		
 		({ busManager, publishedEvents } = setupIntegrationTest({
 			initialState,
-			eventTypes: ['MissionStarted', 'AdventurerRecruited', 'ResourcesChanged']
+			eventTypes: ['MissionStarted', 'AdventurerRecruited', 'ResourcesChanged', 'CommandFailed']
 		}));
 	});
 
@@ -102,6 +118,15 @@ describe('Command Flow Integration', () => {
 		});
 
 		it('should handle multiple commands in sequence', async () => {
+			// Add Dormitory facility to unlock roster_capacity_2 (capacity = 2)
+			let state = busManager.getState();
+			const dormitory = createTestFacility({ 
+				facilityType: 'Dormitory', 
+				tier: 1 
+			});
+			state.entities.set(dormitory.id, dormitory);
+			busManager.setState(state);
+			
 			// Recruit multiple adventurers
 			await busManager.commandBus.dispatch(
 				createTestCommand('RecruitAdventurer', { name: 'Adventurer 1', traits: [] })
@@ -110,7 +135,7 @@ describe('Command Flow Integration', () => {
 				createTestCommand('RecruitAdventurer', { name: 'Adventurer 2', traits: [] })
 			);
 
-			const state = busManager.getState();
+			state = busManager.getState();
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			// Initial state has 4 preview adventurers, so we should have 6 total (4 + 2 new)
 			expect(adventurers.length).toBeGreaterThanOrEqual(6);
@@ -160,6 +185,15 @@ describe('Command Flow Integration', () => {
 
 	describe('event ordering', () => {
 		it('should publish events in correct order', async () => {
+			// Add Dormitory facility to unlock roster_capacity_2 (capacity = 2)
+			let state = busManager.getState();
+			const dormitory = createTestFacility({ 
+				facilityType: 'Dormitory', 
+				tier: 1 
+			});
+			state.entities.set(dormitory.id, dormitory);
+			busManager.setState(state);
+			
 			await busManager.commandBus.dispatch(
 				createTestCommand('RecruitAdventurer', { name: 'Test', traits: [] })
 			);

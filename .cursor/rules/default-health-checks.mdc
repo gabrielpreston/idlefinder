@@ -30,49 +30,29 @@ All domain entities and systems must implement simple validation for solo develo
 - **System Purity**: Validate systems are pure functions
 - **Repository Consistency**: Validate repository data integrity
 
-**Industry Standards Integration:**
-- **Entity Validation**: Validate entities at critical points
-- **System Validation**: Validate system inputs and outputs
-- **Repository Validation**: Validate data consistency
-- **Error Handling**: Graceful degradation on validation failures
+**Industry Standards Integration**: See `.cursor/rules/default-development-workflow.mdc` for industry standards integration.
 
 ## Simple Implementation Pattern
 
 ### Basic Entity Validation
 
+**Pattern**: Validate in constructor, validate inputs in methods.
+
 ```typescript
-// src/lib/domain/entities/Organization.ts
 export class Organization {
-  constructor(
-    public readonly id: OrganizationId,
-    public readonly ownerPlayerId: PlayerId,
-    public readonly createdAt: Timestamp,
-    public lastActiveAt: Timestamp,
-    public readonly progressTracks: Map<TrackKey, ProgressTrack>,
-    public readonly economyState: EconomyState,
-    public lastSimulatedAt: Timestamp
-  ) {
+  constructor(/* ... */) {
     this.validate();
   }
 
   private validate(): void {
-    if (!this.id.isValid()) {
-      throw new DomainError('Invalid organization ID');
-    }
-
+    if (!this.id.isValid()) throw new DomainError('Invalid organization ID');
     if (this.lastSimulatedAt.value < this.createdAt.value) {
       throw new DomainError('lastSimulatedAt cannot be before createdAt');
-    }
-
-    if (this.lastActiveAt.value < this.createdAt.value) {
-      throw new DomainError('lastActiveAt cannot be before createdAt');
     }
   }
 
   canAfford(cost: ResourceBundle): boolean {
-    if (!cost.isValid()) {
-      throw new DomainError('Invalid resource bundle');
-    }
+    if (!cost.isValid()) throw new DomainError('Invalid resource bundle');
     return this.economyState.hasResources(cost);
   }
 
@@ -81,47 +61,32 @@ export class Organization {
       throw new DomainError('Cannot advance to past timestamp');
     }
     this.lastSimulatedAt = now;
-    this.lastActiveAt = now;
   }
 }
 ```
 
 ### Value Object Validation
 
-```typescript
-// src/lib/domain/valueObjects/ResourceBundle.ts
-export class ResourceBundle {
-  private resources: Map<ResourceType, number>;
+**Pattern**: Validate in constructor, provide isValid() method.
 
+```typescript
+export class ResourceBundle {
   constructor(resources: ResourceUnit[]) {
     this.resources = new Map();
     for (const unit of resources) {
-      if (unit.amount < 0) {
-        throw new DomainError('Resource amount cannot be negative');
-      }
+      if (unit.amount < 0) throw new DomainError('Resource amount cannot be negative');
       const current = this.resources.get(unit.resourceType) || 0;
       this.resources.set(unit.resourceType, current + unit.amount);
     }
   }
 
   isValid(): boolean {
-    for (const amount of this.resources.values()) {
-      if (amount < 0) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  get(resourceType: ResourceType): number {
-    return this.resources.get(resourceType) || 0;
+    return Array.from(this.resources.values()).every(amount => amount >= 0);
   }
 
   hasResources(required: ResourceBundle): boolean {
     for (const [type, amount] of required.resources) {
-      if (this.get(type) < amount) {
-        return false;
-      }
+      if (this.get(type) < amount) return false;
     }
     return true;
   }
@@ -193,35 +158,19 @@ export class TaskResolutionSystem {
 
 ### Organization Validation
 
+**Pattern**: Comprehensive validation in constructor.
+
 ```typescript
-// src/lib/domain/entities/Organization.ts
 export class Organization {
   private validate(): void {
-    // Validate ID
-    if (!this.id.isValid()) {
-      throw new DomainError('Invalid organization ID');
-    }
-
-    // Validate timestamps
+    if (!this.id.isValid()) throw new DomainError('Invalid organization ID');
     if (this.lastSimulatedAt.value < this.createdAt.value) {
       throw new DomainError('lastSimulatedAt cannot be before createdAt');
     }
-
-    if (this.lastActiveAt.value < this.createdAt.value) {
-      throw new DomainError('lastActiveAt cannot be before createdAt');
-    }
-
-    // Validate progress tracks
     for (const [key, track] of this.progressTracks) {
-      if (track.currentValue < 0) {
-        throw new DomainError(`Progress track ${key} has negative value`);
-      }
+      if (track.currentValue < 0) throw new DomainError(`Progress track ${key} has negative value`);
     }
-
-    // Validate economy state
-    if (!this.economyState.wallet.isValid()) {
-      throw new DomainError('Invalid economy state wallet');
-    }
+    if (!this.economyState.wallet.isValid()) throw new DomainError('Invalid economy state wallet');
   }
 
   validateState(): ValidationResult {
@@ -445,73 +394,26 @@ export class StartTaskService {
 - **System Purity**: Systems are pure functions
 - **Repository Consistency**: Repository data is consistent
 
-### Industry Standards Domain Model Validation (Solo-Implemented)
+### Industry Standards Integration
 
-**Enhanced Domain Model Validation Implementation:**
+See `.cursor/rules/default-development-workflow.mdc` for industry standards integration.
+
+**Domain Validator Pattern**:
+
 ```typescript
 export class DomainValidator {
   validateOrganization(org: Organization): ValidationResult {
     const errors: string[] = [];
-
-    // Validate ID
-    if (!org.id.isValid()) {
-      errors.push(`Invalid organization ID: ${org.id}`);
-    }
-
-    // Validate timestamps
+    if (!org.id.isValid()) errors.push(`Invalid organization ID: ${org.id}`);
     if (org.lastSimulatedAt.value < org.createdAt.value) {
       errors.push('lastSimulatedAt is before createdAt');
     }
-
-    // Validate progress tracks
     for (const [key, track] of org.progressTracks) {
-      if (track.currentValue < 0) {
-        errors.push(`Progress track ${key} has negative value: ${track.currentValue}`);
-      }
+      if (track.currentValue < 0) errors.push(`Progress track ${key} has negative value`);
     }
-
-    // Validate economy state
-    if (!org.economyState.wallet.isValid()) {
-      errors.push('Invalid economy state wallet');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
-
-  validateTaskInstance(task: TaskInstance): ValidationResult {
-    const errors: string[] = [];
-
-    if (!task.id.isValid()) {
-      errors.push(`Invalid task instance ID: ${task.id}`);
-    }
-
-    if (task.expectedCompletionAt.value < task.startedAt.value) {
-      errors.push('expectedCompletionAt is before startedAt');
-    }
-
-    if (task.status === 'IN_PROGRESS' && task.completedAt) {
-      errors.push('IN_PROGRESS task cannot have completedAt set');
-    }
-
-    if (task.status === 'COMPLETED' && !task.completedAt) {
-      errors.push('COMPLETED task must have completedAt set');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+    return { isValid: errors.length === 0, errors };
   }
 }
 ```
 
-**Industry Standards Checklist:**
-- [ ] Entity validation implemented
-- [ ] Value object validation implemented
-- [ ] System input validation implemented
-- [ ] Repository data integrity checks implemented
-- [ ] Validation logging implemented
-- [ ] Error recovery implemented
+**Checklist**: Entity validation, value object validation, system input validation, repository data integrity checks

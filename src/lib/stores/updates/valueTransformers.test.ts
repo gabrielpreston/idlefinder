@@ -9,7 +9,9 @@ import {
 	formatNumber,
 	toPercentage,
 	formatTimeRemaining,
-	clamp
+	clamp,
+	formatInteger,
+	formatDecimal
 } from './valueTransformers';
 
 describe('valueTransformers', () => {
@@ -233,6 +235,66 @@ describe('valueTransformers', () => {
 			const clamped = clamp(source, -100, -10);
 
 			expect(get(clamped)).toBe(-50);
+		});
+	});
+
+	describe('formatInteger', () => {
+		it('should format whole number as integer', () => {
+			expect(formatInteger(100)).toBe('100');
+		});
+
+		it('should round down fractional values', () => {
+			expect(formatInteger(10.123)).toBe('10');
+			expect(formatInteger(10.999)).toBe('10');
+		});
+
+		it('should format large numbers with grouping', () => {
+			expect(formatInteger(1234567)).toBe('1,234,567');
+		});
+
+		it('should handle zero', () => {
+			expect(formatInteger(0)).toBe('0');
+		});
+
+		it('should handle negative numbers (rounds down)', () => {
+			expect(formatInteger(-1.5)).toBe('-2');
+			expect(formatInteger(-10.9)).toBe('-11');
+		});
+
+		it('should handle negative whole numbers', () => {
+			expect(formatInteger(-100)).toBe('-100');
+		});
+	});
+
+	describe('formatDecimal', () => {
+		it('should format number with 1 decimal place by default', () => {
+			expect(formatDecimal(10.5)).toBe('10.5');
+			expect(formatDecimal(10.123)).toBe('10.1');
+		});
+
+		it('should format number with specified decimal places', () => {
+			expect(formatDecimal(10.123, 2)).toBe('10.12');
+			expect(formatDecimal(10.1, 2)).toBe('10.10');
+			expect(formatDecimal(10.123456, 3)).toBe('10.123');
+		});
+
+		it('should format whole numbers with decimal places', () => {
+			expect(formatDecimal(10, 1)).toBe('10.0');
+			expect(formatDecimal(100, 2)).toBe('100.00');
+		});
+
+		it('should format large numbers with grouping', () => {
+			expect(formatDecimal(1234567.89, 1)).toBe('1,234,567.9');
+		});
+
+		it('should handle zero', () => {
+			expect(formatDecimal(0, 1)).toBe('0.0');
+			expect(formatDecimal(0, 2)).toBe('0.00');
+		});
+
+		it('should handle negative numbers', () => {
+			expect(formatDecimal(-10.5, 1)).toBe('-10.5');
+			expect(formatDecimal(-10.123, 2)).toBe('-10.12');
 		});
 	});
 });

@@ -120,3 +120,26 @@ export function clamp(
 	return derived(source, (value) => Math.min(Math.max(value, min), max));
 }
 
+/**
+ * Formats a number as an integer (rounds during animation)
+ * Use for: Gold, Fame, Materials, counts, tiers
+ */
+export function formatInteger(n: number): string {
+	return Math.floor(n).toLocaleString();
+}
+
+/**
+ * Formats a number with specified decimal places
+ * Use for: Rates, percentages, averages
+ * 
+ * @param n Number to format
+ * @param decimals Number of decimal places (default: 1)
+ */
+export function formatDecimal(n: number, decimals: number = 1): string {
+	return n.toLocaleString(undefined, {
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals,
+		useGrouping: true
+	});
+}
+

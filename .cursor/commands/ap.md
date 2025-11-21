@@ -24,49 +24,36 @@ Before executing this command, ensure:
 
 ## AI Execution Steps
 
+See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns.
+
 ### Phase 1: Context Gathering
 
 1. **Mark plan status as Being Analyzed**
    - Use `run_terminal_cmd` to get current date
-     - Command: `date '+%Y-%m-%d %H:%M'` with `is_background: false`
    - Use `read_file` to read plan document
-     - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
    - Use `search_replace` to update plan status
-     - Example: `search_replace` with `file_path: ".cursor/plans/{plan-name}-{uuid}.plan.md"`, `old_string: "**Plan Status**: Plan Created"`, `new_string: "**Plan Status**: Plan Created\n**Plan Status**: Being Analyzed - {date}"`
 
 2. **Read plan contents (ensure not cached)**
    - Use `read_file` to read entire plan document
-     - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
    - Identify plan structure, phases, and proposed changes
 
 3. **Establish codebase context**
    - Use `codebase_search` to understand current implementation
-     - Example: `codebase_search` with `query: "How does [relevant system] work?"` and `target_directories: ["src"]`
-   - Use `run_terminal_cmd` to check codebase state
-     - Command: `npm run type-check` with `is_background: false`
-   - Use `run_terminal_cmd` to discover npm scripts
-     - Command: `npm run` with `is_background: false`
-   - Use `read_file` to review package.json
-     - Example: `read_file` with `target_file: "package.json"`
-   - Use `codebase_search` to find GitHub workflows
-     - Example: `codebase_search` with `query: "GitHub Actions workflows"` and `target_directories: [".github"]`
-   - Use `read_file` to review project documentation standards
-     - Example: `read_file` with `target_file: ".cursor/rules/default-documentation.mdc"`
+   - Use `run_terminal_cmd` to check codebase state (`npm run type-check`)
+   - Use `run_terminal_cmd` to discover npm scripts (`npm run`)
+   - Use `read_file` to review package.json and documentation standards
 
 ### Phase 2: Analysis
 
 1. **Review for over-engineering and holistic approach**
    - Use `codebase_search` to find similar implementations
      - Example: `codebase_search` with `query: "How is [similar feature] implemented?"` and `target_directories: ["src"]`
-   - **Validate building block reuse**:
+   - **Validate building block reuse** (see `.cursor/rules/default-building-blocks.mdc`):
      - Use `codebase_search` to verify plan uses existing domain primitives
-       - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
      - Use `grep` to check if plan duplicates existing entities
-       - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
      - Use `read_file` to review systems primitives spec
-       - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
      - Verify plan composes from existing building blocks rather than creating duplicates
-     - Check if plan follows systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
+     - Check if plan follows systems primitives vocabulary
    - Assess if plan solutions are unnecessarily complex
    - Check if fixes are too narrow in scope
    - Evaluate if unified patterns could replace multiple narrow fixes
@@ -75,15 +62,10 @@ Before executing this command, ensure:
 2. **Validate assumptions with evidence ("Prove Your Homework")**
    - For each claim in plan (e.g., "follows existing patterns"):
      - Use `grep` to find pattern in codebase
-       - Example: `grep` with `pattern: "claimed-pattern"` and `path: "src"`
      - Use `read_file` to verify specific code references
-       - Example: `read_file` with `target_file: "file.ts"` and `offset: start_line` and `limit: end_line - start_line`
      - Use `codebase_search` to find integration points
-       - Example: `codebase_search` with `query: "How does [component] integrate with [other component]?"` and `target_directories: ["src"]`
    - Verify architectural decisions against existing patterns
-   - Validate npm script assumptions
-     - Use `read_file` to check package.json for referenced scripts
-       - Example: `read_file` with `target_file: "package.json"`
+   - Validate npm script assumptions (use `read_file` to check package.json)
    - Cross-reference multiple sources when possible
 
 3. **Validate plan against codebase state**
@@ -111,22 +93,24 @@ Before executing this command, ensure:
 6. **Assess refactoring approach**
    - Use `read_file` to check if plan specifies refactoring approach
      - Example: `read_file` with `target_file: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
-   - If plan calls for aggressive refactoring:
+   - **Default to aggressive refactoring**: Unless there's a specific reason not to, recommend aggressive refactoring
+   - If plan calls for aggressive refactoring or modernization (see `.cursor/rules/default-building-blocks.mdc#breaking-changes`):
      - Use `codebase_search` to identify all affected code paths
-       - Example: `codebase_search` with `query: "Where is [component being refactored] used?"` and `target_directories: []`
      - Use `grep` to find all import statements and references
-       - Example: `grep` with `pattern: "import.*Component"` and `path: "src"`
-     - Verify breaking changes are acceptable
+     - Verify breaking changes are acceptable (they should be - this is a solo project)
      - Confirm that all dependent code can be updated directly
      - Validate that no migration paths are needed
+     - Recommend: "**Refactoring Approach**: Aggressive - Accept breaking changes, update all dependent code directly, remove deprecated code immediately"
    - If plan includes migration paths but aggressive refactoring is appropriate:
-     - Recommend removing migration complexity in analysis findings
+     - **Strongly recommend** removing migration complexity in analysis findings
      - Suggest direct updates instead of compatibility layers
+     - Emphasize: Breaking changes are encouraged, not avoided
      - Use `search_replace` to add recommendation to plan
-       - Example: `search_replace` with `file_path: ".cursor/plans/{plan-name}-{uuid}.plan.md"`, `old_string: "## Analysis Findings"`, `new_string: "## Analysis Findings\n\n### Refactoring Approach Recommendation\n\n[Recommendation content]"`
+       - Example: `search_replace` with `file_path: ".cursor/plans/{plan-name}-{uuid}.plan.md"`, `old_string: "## Analysis Findings"`, `new_string: "## Analysis Findings\n\n### Refactoring Approach Recommendation\n\n**Breaking Changes Encouraged**: This is a solo project. The plan should use aggressive refactoring - accept breaking changes, update all dependent code directly, and remove deprecated code immediately. No migration paths or compatibility layers needed.\n\n[Recommendation content]"`
    - If plan doesn't specify refactoring approach but significant refactoring is needed:
-     - Assess if aggressive refactoring would be more appropriate
-     - Recommend refactoring approach in analysis findings
+     - **Recommend aggressive refactoring** as the default approach
+     - Emphasize that breaking changes are welcome and encouraged
+     - Note that modernization should proceed without hesitation
 
 ### Phase 3: Reporting and Integration
 
@@ -155,25 +139,12 @@ Before executing this command, ensure:
 
 ## Error Handling
 
-- **Plan file not found**: If plan document doesn't exist
-  - Detection: `read_file` fails or file not found
-  - Resolution: Ask user for plan file path or verify plan was created
+See `.cursor/rules/default-error-handling.mdc` for common error patterns.
 
-- **npm script not found**: If referenced npm script doesn't exist
-  - Detection: `run_terminal_cmd` returns error or `read_file` shows script missing from package.json
-  - Resolution: Note missing script in analysis findings, recommend adding script or using alternative
-
-- **Code references not found**: If claimed patterns cannot be found
-  - Detection: `codebase_search` or `grep` returns no results
-  - Resolution: Mark claim as unsubstantiated in analysis, recommend removing or correcting claim
-
-- **Type checking errors**: If `npm run type-check` fails
-  - Detection: `run_terminal_cmd` returns non-zero exit code
-  - Resolution: Note existing type errors in analysis, plan should account for fixing these
-
-- **Plan structure issues**: If plan missing required sections
-  - Detection: `read_file` shows missing sections
-  - Resolution: Add missing sections in analysis findings, integrate into plan
+Command-specific errors:
+- **Plan file not found**: Ask user for plan file path or verify plan was created
+- **Code references not found**: Mark claim as unsubstantiated in analysis, recommend removing or correcting
+- **Plan structure issues**: Add missing sections in analysis findings, integrate into plan
 
 ## Success Criteria
 

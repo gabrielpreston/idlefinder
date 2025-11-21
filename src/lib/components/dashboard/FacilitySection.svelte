@@ -9,12 +9,13 @@
 <div class="facility-section">
 	<h3>Facilities</h3>
 	<div class="overview-grid">
-		<StatCard label="Guild Hall Tier" value={$guildHallTier} />
+		<StatCard label="Guild Hall Tier" value={$guildHallTier} numberType="integer" />
 		
 		{#each Object.entries(counts) as [facilityType, count]}
 			<StatCard 
 				label={facilityType.replace(/([A-Z])/g, ' $1').trim()} 
 				value={count}
+				numberType="integer"
 			/>
 		{/each}
 	</div>

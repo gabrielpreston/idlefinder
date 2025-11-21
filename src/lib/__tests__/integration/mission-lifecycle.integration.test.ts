@@ -7,9 +7,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
 import { registerHandlers } from '../../handlers/index';
 import { createTestGameState, createTestCommand, setupMockLocalStorage, createTestMission } from '../../test-utils';
+import { createTestFacility } from '../../test-utils/testFactories';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
+import type { Facility } from '../../domain/entities/Facility';
+// Import gating module to ensure gates are registered
+import '../../domain/gating';
 
 describe('Mission Lifecycle Integration', () => {
 	let busManager: BusManager;
@@ -21,6 +25,18 @@ describe('Mission Lifecycle Integration', () => {
 		setupMockLocalStorage();
 
 		const initialState = createTestGameState();
+		
+		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+		// This allows recruitment in tests
+		const guildhall = Array.from(initialState.entities.values()).find(
+			(e) =>
+				e.type === 'Facility' &&
+				(e as Facility).attributes.facilityType === 'Guildhall'
+		) as Facility;
+		if (guildhall) {
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+		}
+		
 		// Ensure we have at least one available mission
 		const existingMissions = Array.from(initialState.entities.values()).filter(
 			e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
@@ -142,6 +158,15 @@ describe('Mission Lifecycle Integration', () => {
 		});
 
 		it('should handle multiple missions simultaneously', async () => {
+			// Add Dormitory facility to unlock roster_capacity_2 (capacity = 2)
+			let state = busManager.getState();
+			const dormitory = createTestFacility({ 
+				facilityType: 'Dormitory', 
+				tier: 1 
+			});
+			state.entities.set(dormitory.id, dormitory);
+			busManager.setState(state);
+			
 			// Recruit multiple adventurers
 			await busManager.commandBus.dispatch(
 				createTestCommand('RecruitAdventurer', { name: 'Adv 1', traits: [] })
@@ -150,7 +175,7 @@ describe('Mission Lifecycle Integration', () => {
 				createTestCommand('RecruitAdventurer', { name: 'Adv 2', traits: [] })
 			);
 
-			const state = busManager.getState();
+			state = busManager.getState();
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			// Find recruited adventurers by name
 			const adv1 = adventurers.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Adv 1');
@@ -202,7 +227,12 @@ describe('Mission Lifecycle Integration', () => {
 			// Both missions should be completed
 			const finalState = busManager.getState();
 			const finalMissions = Array.from(finalState.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
-			expect(finalMissions.every(m => m.state === 'Completed')).toBe(true);
+			const startedMission1 = finalMissions.find(m => m.id === mission1Id);
+			const startedMission2 = finalMissions.find(m => m.id === mission2Id);
+			expect(startedMission1).toBeDefined();
+			expect(startedMission2).toBeDefined();
+			expect(startedMission1?.state).toBe('Completed');
+			expect(startedMission2?.state).toBe('Completed');
 		});
 	});
 

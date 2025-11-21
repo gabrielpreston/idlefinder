@@ -27,33 +27,23 @@ Before executing this command, ensure:
 
 1. **Gather problem context**
    - Use `read_file` to read the problem analysis or attached context
-     - Example: `read_file` with `target_file: "analysis-file.md"` or read attached files
    - Use `codebase_search` to understand the problem domain
-     - Example: `codebase_search` with `query: "How does [problem area] work?"` and `target_directories: []`
    - Use `grep` to find related code patterns
-     - Example: `grep` with `pattern: "relevant-pattern"` and `path: "src"`
 
 2. **Investigate npm scripts and project structure**
-   - Use `run_terminal_cmd` to discover available npm scripts
-     - Command: `npm run` with `is_background: false`
+   - Use `run_terminal_cmd` to discover available npm scripts (`npm run`)
    - Use `read_file` to review package.json
-     - Example: `read_file` with `target_file: "package.json"`
    - Use `codebase_search` to find GitHub workflows
-     - Example: `codebase_search` with `query: "GitHub Actions workflows"` and `target_directories: [".github"]`
    - Use `read_file` to review existing documentation
-     - Example: `read_file` with `target_file: ".cursor/rules/default-documentation.mdc"`
 
 3. **Trace data flows and dependencies**
    - Use `codebase_search` to trace data flows
-     - Example: `codebase_search` with `query: "How does data flow through [system]?"` and `target_directories: ["src"]`
    - Use `grep` to find dependency imports
-     - Example: `grep` with `pattern: "import.*from"` and `path: "src"`
 
 ### Phase 2: Plan Creation
 
 1. **Create plan document**
    - Use `run_terminal_cmd` to get current date for plan metadata
-     - Command: `date '+%Y-%m-%d %H:%M'` with `is_background: false`
    - Use `write` to create plan file in `.cursor/plans/` directory
      - File naming: `{plan-name}-{uuid}.plan.md`
      - Structure: HTML comment UUID, plan title, plan metadata, standard sections
@@ -71,24 +61,18 @@ Before executing this command, ensure:
 
 3. **Populate plan with evidence-based content**
    - Use `codebase_search` to find existing patterns
-     - Example: `codebase_search` with `query: "How is [pattern] implemented?"` and `target_directories: ["src"]`
-   - **Identify reusable building blocks**:
+   - **Identify reusable building blocks** (see `.cursor/rules/default-building-blocks.mdc`):
      - Use `codebase_search` to find existing domain primitives
-       - Example: `codebase_search` with `query: "What domain primitives exist for [use case]?"` and `target_directories: ["src/lib/domain/valueObjects"]`
      - Use `grep` to find existing entity patterns
-       - Example: `grep` with `pattern: "export class.*Entity"` and `path: "src/lib/domain/entities"`
      - Use `codebase_search` to find existing systems
-       - Example: `codebase_search` with `query: "What systems handle [functionality]?"` and `target_directories: ["src/lib/domain/systems"]`
      - Use `read_file` to review systems primitives spec
-       - Example: `read_file` with `target_file: "docs/current/08-systems-primitives-spec.md"`
    - **Verify composition over duplication**:
      - Check if solution can compose from existing primitives rather than creating new ones
      - Verify if new entity can extend existing entity pattern
      - Confirm if new system can reuse existing system patterns
-     - Validate solution uses systems primitives vocabulary (Entities → Attributes → Tags → State/Timers → Resources → Requirements → Actions → Effects → Events)
+     - Validate solution uses systems primitives vocabulary
    - Cite specific files and line numbers when claiming to follow patterns
    - Use `read_file` to verify integration points
-     - Example: `read_file` with `target_file: "specific-file.ts"` and `offset: start_line` and `limit: end_line - start_line`
 
 4. **Review for over-engineering and holistic approach**
    - Check for unnecessary complexity
@@ -97,16 +81,19 @@ Before executing this command, ensure:
    - Evaluate predictability and maintainability
 
 5. **Determine refactoring approach**
+   - **Default to aggressive refactoring**: Unless there's a specific reason not to, use aggressive refactoring
    - Assess if aggressive refactoring is appropriate for this plan
    - Use `codebase_search` to understand scope of changes
      - Example: `codebase_search` with `query: "How many files use [component being refactored]?"` and `target_directories: []`
-   - If breaking changes are acceptable and speed is prioritized:
+   - **For modernization and improvements**:
      - Note in plan: "**Refactoring Approach**: Aggressive - Accept breaking changes, update all dependent code directly"
      - Specify: "No migration paths or compatibility layers required"
      - Specify: "Remove deprecated code immediately, do not maintain both versions"
      - Specify: "Update all usages in single pass, do not create adapters"
-   - If migration safety needed, note migration strategy instead
+     - Specify: "Breaking changes are encouraged to keep codebase modern"
+   - If migration safety needed (rare), note migration strategy instead
    - Include refactoring approach in Implementation Plan section
+   - **Emphasize modernization**: When modernizing code, prioritize latest standards over backwards compatibility
 
 6. **Add scorecards and confidence scores**
    - Provide confidence score for each change with supporting arguments
@@ -129,21 +116,12 @@ Before executing this command, ensure:
 
 ## Error Handling
 
-- **Missing problem analysis**: If problem analysis is not provided or unclear
-  - Detection: No attached files or context provided
-  - Resolution: Ask user for problem analysis or clarify the problem to be addressed
+See `.cursor/rules/default-error-handling.mdc` for common error patterns.
 
-- **npm script not found**: If referenced npm script doesn't exist
-  - Detection: `run_terminal_cmd` returns error or `read_file` shows script missing from package.json
-  - Resolution: Either add script to package.json (if permission exists in cli.json) or use alternative validation method
-
-- **Plan file creation failure**: If plan file cannot be created
-  - Detection: `write` operation fails or file not found after creation
-  - Resolution: Check `.cursor/plans/` directory exists, verify write permissions, retry with corrected path
-
-- **Missing code references**: If claimed patterns cannot be found
-  - Detection: `codebase_search` or `grep` returns no results for claimed pattern
-  - Resolution: Verify pattern exists, adjust search query, or remove unsubstantiated claim
+Command-specific errors:
+- **Missing problem analysis**: Ask user for problem analysis or clarify the problem to be addressed
+- **Plan file creation failure**: Check `.cursor/plans/` directory exists, verify write permissions, retry with corrected path
+- **Missing code references**: Verify pattern exists, adjust search query, or remove unsubstantiated claim
 
 ## Success Criteria
 
@@ -174,3 +152,4 @@ Plan document saved to `.cursor/plans/{plan-name}-{uuid}.plan.md` with:
 - Use `read_file` to verify integration points and dependencies
 - Check npm script availability before referencing in plan
 - Follow plan document format specification from template
+- See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns

@@ -12,6 +12,9 @@ import { SimulatedTimeSource } from '../../time/DomainTimeSource';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
 import { GameConfig } from '../../domain/config/GameConfig';
 import { calculateFacilityUpgradeCost } from '../../domain/queries/CostQueries';
+import type { Facility } from '../../domain/entities/Facility';
+// Import gating module to ensure gates are registered
+import '../../domain/gating';
 
 describe('Player Journey Integration', () => {
 	let busManager: BusManager;
@@ -23,6 +26,18 @@ describe('Player Journey Integration', () => {
 		setupMockLocalStorage();
 
 		const initialState = createTestGameState();
+		
+		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+		// This allows recruitment in tests
+		const guildhall = Array.from(initialState.entities.values()).find(
+			(e) =>
+				e.type === 'Facility' &&
+				(e as Facility).attributes.facilityType === 'Guildhall'
+		) as Facility;
+		if (guildhall) {
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+		}
+		
 		// Ensure we have at least one available mission
 		const existingMissions = Array.from(initialState.entities.values()).filter(
 			e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
@@ -244,6 +259,18 @@ describe('Player Journey Integration', () => {
 				fame: 0 
 			});
 			const initialState = createTestGameState({ resources });
+			
+			// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
+			// This allows recruitment in tests
+			const guildhall = Array.from(initialState.entities.values()).find(
+				(e) =>
+					e.type === 'Facility' &&
+					(e as Facility).attributes.facilityType === 'Guildhall'
+			) as Facility;
+			if (guildhall) {
+				guildhall.upgrade(); // Upgrades from tier 0 to tier 1
+			}
+			
 			// Ensure we have at least one available mission
 			const existingMissions = Array.from(initialState.entities.values()).filter(
 				e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'

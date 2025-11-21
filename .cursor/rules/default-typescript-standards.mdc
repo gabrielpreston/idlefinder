@@ -81,65 +81,37 @@ const isUnlocked = unlockedArchetypeIds.has(archetype.id.value);
 
 ### Type Annotation Standards
 
+**Pattern**: Complete type annotations for all functions, classes, and variables.
+
 ```typescript
-// Function signatures with complete types
-function processAudio(
-  audioData: Uint8Array,
-  sampleRate: number,
-  channels: number = 1
-): { samples: Float32Array; duration: number; rms: number } {
+// Function with complete types
+function processAudio(data: Uint8Array, rate: number): AudioResult {
   // Implementation
 }
 
-// Class definitions with typed properties
+// Class with typed properties
 export class Organization {
   constructor(
     public readonly id: OrganizationId,
-    public readonly ownerPlayerId: PlayerId,
-    public readonly createdAt: Timestamp,
     public lastActiveAt: Timestamp,
-    public readonly progressTracks: Map<TrackKey, ProgressTrack>,
-    public readonly economyState: EconomyState,
-    public lastSimulatedAt: Timestamp
+    // ... other properties
   ) {
     this.validate();
   }
-
-  canAfford(cost: ResourceBundle): boolean {
-    return this.economyState.hasResources(cost);
-  }
-
-  advanceTo(now: Timestamp): void {
-    this.lastSimulatedAt = now;
-    this.lastActiveAt = now;
-  }
+  canAfford(cost: ResourceBundle): boolean { /* ... */ }
 }
 
-// Interface definitions
+// Interface
 export interface TaskResolutionResult {
   taskId: TaskInstanceId;
   outcomeCategory: OutcomeCategory;
   rewards: ResourceBundle;
-  agentChanges: AgentChange[];
-  trackChanges: TrackChange[];
 }
 
 // Generic types
 class ObjectPool<T> {
   private pool: T[] = [];
-  private factory: () => T;
-  
-  constructor(factory: () => T) {
-    this.factory = factory;
-  }
-  
-  acquire(): T {
-    return this.pool.pop() ?? this.factory();
-  }
-  
-  release(item: T): void {
-    this.pool.push(item);
-  }
+  acquire(): T { return this.pool.pop() ?? this.factory(); }
 }
 ```
 
@@ -218,8 +190,9 @@ function resolveTasks(
 
 ### Error Handling
 
+**Pattern**: Custom error types with proper error handling.
+
 ```typescript
-// Custom error types
 export class DomainError extends Error {
   constructor(message: string, public readonly entity?: any) {
     super(message);
@@ -227,21 +200,9 @@ export class DomainError extends Error {
   }
 }
 
-// Error handling pattern
-function safeTaskResolution(
-  system: TaskResolutionSystem,
-  tasks: TaskInstance[],
-  agents: Map<AgentId, AgentInstance>,
-  archetypes: Map<TaskArchetypeId, TaskArchetype>,
-  facilities: FacilityInstance[],
-  now: Timestamp
-): TaskResolutionResult[] {
+function safeTaskResolution(system: TaskResolutionSystem, tasks: TaskInstance[], ...): TaskResolutionResult[] {
   try {
-    // Validate timestamp
-    if (!now.isValid()) {
-      throw new DomainError('Invalid timestamp', { now });
-    }
-    
+    if (!now.isValid()) throw new DomainError('Invalid timestamp', { now });
     return system.resolveTasks(tasks, agents, archetypes, facilities, now);
   } catch (error) {
     if (error instanceof DomainError) {
@@ -373,33 +334,21 @@ export class Organization {
 
 ### Memory Management
 
+**Pattern**: Repository caching with TTL.
+
 ```typescript
-// Repository caching pattern
 class CachedTaskRepository implements TaskRepository {
-  private cache: Map<TaskInstanceId, TaskInstance> = new Map();
-  private cacheExpiry: Map<TaskInstanceId, Timestamp> = new Map();
-  private readonly cacheTTL: Duration = Duration.ofMinutes(5);
-  
-  constructor(private delegate: TaskRepository) {}
+  private cache = new Map<TaskInstanceId, TaskInstance>();
+  private cacheExpiry = new Map<TaskInstanceId, Timestamp>();
+  private readonly cacheTTL = Duration.ofMinutes(5);
   
   async getInstanceById(id: TaskInstanceId): Promise<TaskInstance | null> {
     const cached = this.cache.get(id);
-    const expiry = this.cacheExpiry.get(id);
-    
-    if (cached && expiry && Timestamp.now().value < expiry.value) {
-      return cached;
-    }
-    
+    if (cached && this.isValid(cached)) return cached;
     const instance = await this.delegate.getInstanceById(id);
-    if (instance) {
-      this.cache.set(id, instance);
-      this.cacheExpiry.set(id, Timestamp.now().add(this.cacheTTL));
-    }
-    
+    if (instance) this.updateCache(id, instance);
     return instance;
   }
-  
-  async saveInstance(instance: TaskInstance): Promise<void> {
     await this.delegate.saveInstance(instance);
     this.cache.set(instance.id, instance);
     this.cacheExpiry.set(instance.id, Timestamp.now().add(this.cacheTTL));

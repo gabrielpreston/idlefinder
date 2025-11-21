@@ -39,6 +39,11 @@ When working on this project, follow this streamlined workflow optimized for sol
 - ❌ **DON'T**: Skip addressing AI review feedback
 - ❌ **DON'T**: Worry about breaking changes or performance regressions
 - ❌ **DON'T**: Worry about team confusion (solo project)
+- ✅ **DO**: Make breaking changes to modernize and improve code
+- ✅ **DO**: Refactor large portions of codebase when beneficial
+- ✅ **DO**: Update dependencies to latest versions (handle breaking changes)
+- ❌ **DON'T**: Maintain backwards compatibility unnecessarily
+- ❌ **DON'T**: Avoid large refactors due to scope
 
 ### Industry Standards Integration (Solo-Optimized)
 
@@ -49,6 +54,78 @@ When working on this project, follow this streamlined workflow optimized for sol
 - ❌ **DON'T**: Skip security considerations
 - ❌ **DON'T**: Ignore performance regressions
 - ❌ **DON'T**: Skip input validation
+
+## Breaking Changes & Modernization Philosophy
+
+### Explicit Encouragement of Breaking Changes
+
+**CRITICAL**: This is a solo project. Breaking changes and large-scale refactors are not just acceptable—they are **actively encouraged** to keep the codebase modern and maintainable.
+
+### Breaking Changes Are Welcome
+
+- ✅ **DO**: Make breaking changes without hesitation
+- ✅ **DO**: Refactor entire subsystems to use modern patterns
+- ✅ **DO**: Update dependencies to latest versions (even if breaking)
+- ✅ **DO**: Migrate to newer APIs and patterns
+- ✅ **DO**: Remove deprecated code paths immediately
+- ✅ **DO**: Simplify architecture through breaking changes
+- ✅ **DO**: Modernize code to use latest TypeScript/SvelteKit features
+- ✅ **DO**: Replace old patterns with better ones, even if it breaks existing code
+- ❌ **DON'T**: Maintain backwards compatibility for the sake of it
+- ❌ **DON'T**: Keep deprecated code "just in case"
+- ❌ **DON'T**: Avoid refactors because they're "too large"
+- ❌ **DON'T**: Worry about migration paths or gradual rollouts
+
+### Large-Scale Refactoring Philosophy
+
+**Blaze Forward**: When you see an opportunity to modernize or improve the codebase, take it. Don't let concerns about breaking changes hold you back.
+
+**Refactoring Priorities:**
+1. **Modern Standards First**: Always prefer the latest TypeScript, SvelteKit, and framework patterns
+2. **Architectural Improvements**: Large refactors that improve architecture are welcome
+3. **Code Quality**: Breaking changes that improve code quality are encouraged
+4. **Dependency Updates**: Update to latest versions, handle breaking changes as needed
+5. **Pattern Modernization**: Replace old patterns with modern best practices
+
+**Examples of Encouraged Breaking Changes:**
+- Migrating entire subsystems to new patterns
+- Updating all code to use new TypeScript features
+- Refactoring API contracts to be more type-safe
+- Removing legacy code paths entirely
+- Changing data structures to better models
+- Modernizing component architecture
+- Updating to latest SvelteKit patterns
+
+### Refactoring Workflow
+
+When performing large-scale refactors:
+
+1. **Create a feature branch**: `feat/modernize-[system-name]`
+2. **Break everything**: Don't try to maintain compatibility
+3. **Fix everything**: Update all affected code to work with new patterns
+4. **Test thoroughly**: Ensure the game works after refactor
+5. **Merge confidently**: Breaking changes are expected and welcome
+
+### Modernization Checklist
+
+When modernizing code:
+- [ ] Use latest TypeScript features (satisfies, const assertions, etc.)
+- [ ] Use latest SvelteKit patterns
+- [ ] Remove all deprecated code paths
+- [ ] Update to latest dependency versions
+- [ ] Apply modern architectural patterns
+- [ ] Improve type safety throughout
+- [ ] Simplify complex legacy code
+
+### Anti-Patterns: What NOT to Do
+
+- ❌ **Don't**: Create compatibility layers or adapters
+- ❌ **Don't**: Keep old code "for reference"
+- ❌ **Don't**: Maintain multiple code paths for the same feature
+- ❌ **Don't**: Worry about "too many files changed" in a PR
+- ❌ **Don't**: Avoid refactors because they touch many files
+- ❌ **Don't**: Create migration guides (just fix the code)
+- ❌ **Don't**: Maintain deprecated APIs alongside new ones
 
 ## Simplified PDCA for Solo Development
 
@@ -177,7 +254,7 @@ When making claims or assertions, provide evidence:
 - Use `npm run build` to verify production build
 - Use `npm run preview` to test production build locally
 
-## NPM Script Reference
+## NPM Script Reference {#npm-script-reference}
 
 This section provides comprehensive reference for all npm scripts available in the codebase.
 
@@ -268,14 +345,19 @@ if: always() && needs.build.result == 'success'
 - ❌ **Don't**: Over-engineer with complex metrics
 - ❌ **Don't**: Require statistical validation for simple changes
 - ❌ **Don't**: Create extensive test suites for every feature
-- ❌ **Don't**: Worry about breaking changes (solo project)
+- ❌ **Don't**: Worry about breaking changes (solo project) - **BREAKING CHANGES ARE ENCOURAGED**
 - ❌ **Don't**: Worry about performance regressions (solo project)
 - ❌ **Don't**: Worry about team confusion (solo project)
+- ❌ **Don't**: Maintain backwards compatibility unnecessarily
+- ❌ **Don't**: Avoid large refactors due to scope
 - ✅ **Do**: Focus on "does it work" over "is it perfect"
 - ✅ **Do**: Use manual testing for rapid iteration
 - ✅ **Do**: Write tests only when you break something
 - ✅ **Do**: Prioritize type checking and code quality
 - ✅ **Do**: Use npm scripts for all operations
+- ✅ **Do**: Make breaking changes to modernize code
+- ✅ **Do**: Refactor entire subsystems when needed
+- ✅ **Do**: Update to latest standards without hesitation
 
 ## Planning Standards for Solo Development
 
