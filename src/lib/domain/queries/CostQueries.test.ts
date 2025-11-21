@@ -36,34 +36,38 @@ describe('CostQueries', () => {
 	describe('getFacilityUpgradeCost', () => {
 		it('should return ResourceBundle with gold cost', () => {
 			const cost = getFacilityUpgradeCost(3);
-			expect(cost.get('gold')).toBe(300);
+			expect(cost.get('gold')).toBe(GameConfig.costs.facilityUpgrade(3));
 		});
 
 		it('should return correct cost for different tiers', () => {
 			const cost1 = getFacilityUpgradeCost(1);
 			const cost2 = getFacilityUpgradeCost(2);
-			expect(cost1.get('gold')).toBe(100);
-			expect(cost2.get('gold')).toBe(200);
+			expect(cost1.get('gold')).toBe(GameConfig.costs.facilityUpgrade(1));
+			expect(cost2.get('gold')).toBe(GameConfig.costs.facilityUpgrade(2));
 		});
 	});
 
 	describe('canAffordFacilityUpgrade', () => {
 		it('should return true when player has enough gold', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 300)]);
+			const upgradeCost = GameConfig.costs.facilityUpgrade(3);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]);
 			const state = createTestGameState({ resources });
 
 			expect(canAffordFacilityUpgrade(state, 3)).toBe(true);
 		});
 
 		it('should return false when player lacks gold', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 50)]);
+			const upgradeCost = GameConfig.costs.facilityUpgrade(3);
+			// Use less than required cost to test insufficient gold scenario
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost - 50)]);
 			const state = createTestGameState({ resources });
 
 			expect(canAffordFacilityUpgrade(state, 3)).toBe(false);
 		});
 
 		it('should return true when player has exact amount', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]);
 			const state = createTestGameState({ resources });
 
 			expect(canAffordFacilityUpgrade(state, 2)).toBe(true);
@@ -83,8 +87,8 @@ describe('CostQueries', () => {
 			const state = createTestGameState({ entities });
 
 			const cost = getGuildHallUpgradeCost(state);
-			// Current tier is 1, next tier is 2, cost = 2 * 100 = 200
-			expect(cost.get('gold')).toBe(200);
+			// Current tier is 1, next tier is 2
+			expect(cost.get('gold')).toBe(GameConfig.costs.facilityUpgrade(2));
 		});
 
 		it('should calculate cost for tier 0 to tier 1', () => {
@@ -93,15 +97,15 @@ describe('CostQueries', () => {
 			const state = createTestGameState({ entities });
 
 			const cost = getGuildHallUpgradeCost(state);
-			// Current tier is 0, next tier is 1, cost = 1 * 100 = 100
-			expect(cost.get('gold')).toBe(100);
+			// Current tier is 0, next tier is 1
+			expect(cost.get('gold')).toBe(GameConfig.costs.facilityUpgrade(1));
 		});
 
 		it('should return cost for tier 1 when no guildhall exists', () => {
 			const state = createTestGameState();
 			const cost = getGuildHallUpgradeCost(state);
-			// No guildhall means tier 0, next tier is 1, cost = 1 * 100 = 100
-			expect(cost.get('gold')).toBe(100);
+			// No guildhall means tier 0, next tier is 1
+			expect(cost.get('gold')).toBe(GameConfig.costs.facilityUpgrade(1));
 		});
 	});
 
@@ -159,20 +163,21 @@ describe('CostQueries', () => {
 			const entities = new Map<string, Entity>([[guildhall.id, guildhall]]);
 			const state = createTestGameState({ entities });
 
-			// No gold, cannot afford tier 2 upgrade (200 gold)
+			// No gold, cannot afford tier 2 upgrade
 			expect(canUpgradeGuildHall(state)).toBe(false);
 		});
 
 		it('should return true when both conditions met', () => {
 			const guildhall = createTestFacility({ facilityType: 'Guildhall', tier: 1 });
 			const entities = new Map<string, Entity>([[guildhall.id, guildhall]]);
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
 			const resources = ResourceBundle.fromArray([
-				new ResourceUnit('gold', 200),
+				new ResourceUnit('gold', upgradeCost),
 				new ResourceUnit('fame', 100) // Tier 2 requires 100 fame
 			]);
 			const state = createTestGameState({ entities, resources });
 
-			// Tier 2 is allowed (tier 1 -> 2), we have 100 fame and 200 gold
+			// Tier 2 is allowed (tier 1 -> 2), we have 100 fame and sufficient gold
 			expect(canUpgradeGuildHall(state)).toBe(true);
 		});
 

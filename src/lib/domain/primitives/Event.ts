@@ -19,6 +19,7 @@ export type DomainEventType =
 	| 'AdventurerGainedXP'
 	| 'AdventurerLeveledUp'
 	| 'FacilityUpgraded'
+	| 'FacilityConstructed'
 	| 'ResourcesChanged'
 	| 'CommandFailed'
 	| 'ItemCreated'
@@ -32,7 +33,10 @@ export type DomainEventType =
 	| 'MissionAutoSelected'
 	| 'ResourceSlotAssigned'
 	| 'ResourceSlotUnassigned'
-	| 'GateUnlocked';
+	| 'GateUnlocked'
+	| 'MissionExpired'
+	| 'MissionCommandAssigned'
+	| 'MissionCommandUnassigned';
 
 /**
  * Resource Map - used in events
@@ -56,6 +60,7 @@ export type DomainEventPayload =
 	| AdventurerGainedXPEvent
 	| AdventurerLeveledUpEvent
 	| FacilityUpgradedEvent
+	| FacilityConstructedEvent
 	| ResourcesChangedEvent
 	| CommandFailedEvent
 	| ItemCreatedEvent
@@ -69,7 +74,10 @@ export type DomainEventPayload =
 	| MissionAutoSelectedEvent
 	| ResourceSlotAssignedEvent
 	| ResourceSlotUnassignedEvent
-	| GateUnlockedEvent;
+	| GateUnlockedEvent
+	| MissionExpiredEvent
+	| MissionCommandAssignedEvent
+	| MissionCommandUnassignedEvent;
 
 export interface MissionStartedEvent {
 	missionId: string;
@@ -111,6 +119,18 @@ export interface FacilityUpgradedEvent {
 	facilityId: string;
 	facilityType: string;
 	newTier: number;
+	bonusMultipliers: {
+		xp?: number;
+		resourceGen?: number;
+		missionSlots?: number;
+	};
+}
+
+export interface FacilityConstructedEvent {
+	facilityId: string;
+	facilityType: string;
+	tier: number;
+	baseCapacity: number;
 	bonusMultipliers: {
 		xp?: number;
 		resourceGen?: number;
@@ -211,6 +231,20 @@ export interface GateUnlockedEvent {
 	gateId: string;
 	gateType: import('../gating/GateDefinition').GateType;
 	gateName: string;
+}
+
+export interface MissionExpiredEvent {
+	missionId: string;
+}
+
+export interface MissionCommandAssignedEvent {
+	assigneeType: 'player' | 'adventurer';
+	assigneeId: string | null;
+}
+
+export interface MissionCommandUnassignedEvent {
+	assigneeType: 'player' | 'adventurer';
+	assigneeId: string | null;
 }
 
 /**

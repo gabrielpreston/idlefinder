@@ -11,6 +11,7 @@ import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import type { Effect } from '../primitives/Effect';
+import { GameConfig } from '../config/GameConfig';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -24,8 +25,8 @@ function createTestItem(overrides?: {
 			itemType: 'weapon',
 			rarity: 'common',
 			stats: NumericStatMap.fromMap(new Map([['attackBonus', 1]])),
-			durability: overrides?.durability ?? 100,
-			maxDurability: overrides?.maxDurability ?? 100,
+			durability: overrides?.durability ?? GameConfig.items.maxDurability,
+			maxDurability: overrides?.maxDurability ?? GameConfig.items.maxDurability,
 			baseValue: 10
 		},
 		[],

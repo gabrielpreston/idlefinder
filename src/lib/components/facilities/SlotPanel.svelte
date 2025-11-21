@@ -7,6 +7,7 @@
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import type { ResourceSlot } from '$lib/domain/entities/ResourceSlot';
 	import { getSlotEffectiveRate } from '$lib/domain/queries/FacilityEffectQueries';
+	import { getWorkerMultiplier } from '$lib/domain/systems/ResourceRateCalculator';
 	import type { Facility } from '$lib/domain/entities/Facility';
 
 	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
@@ -69,7 +70,14 @@
 	function getEffectiveRate(slot: ResourceSlot): number {
 		if (!$gameState) return 0;
 		
-		// Use centralized query function
+		// For durationModifier slots, return multiplier (1.0 for none, 1.0 for player, 1.5 for adventurer)
+		if (slot.attributes.resourceType === 'durationModifier') {
+			const assigneeType = slot.attributes.assigneeType;
+			if (assigneeType === 'none') return 1.0;
+			return getWorkerMultiplier(assigneeType as 'player' | 'adventurer');
+		}
+		
+		// Use centralized query function for resource slots
 		return getSlotEffectiveRate(slot, slot.attributes.assigneeType as 'player' | 'adventurer', $gameState);
 	}
 
@@ -113,8 +121,12 @@
 					
 					<div class="slot-info">
 						<div class="slot-resource">
-							<span class="resource-type">{slot.attributes.resourceType}</span>
-							<span class="generation-rate">{getEffectiveRate(slot).toFixed(1)} {slot.attributes.resourceType}/min</span>
+							<span class="resource-type">{slot.attributes.resourceType === 'durationModifier' ? 'Mission Generation Speed' : slot.attributes.resourceType}</span>
+							{#if slot.attributes.resourceType === 'durationModifier'}
+								<span class="generation-rate">{getEffectiveRate(slot).toFixed(1)}x speed</span>
+							{:else}
+								<span class="generation-rate">{getEffectiveRate(slot).toFixed(1)} {slot.attributes.resourceType}/min</span>
+							{/if}
 						</div>
 						
 						<div class="slot-assignee">

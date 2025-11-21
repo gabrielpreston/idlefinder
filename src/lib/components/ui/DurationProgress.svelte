@@ -8,15 +8,16 @@
 	export let duration: number;
 	export let label: string = '';
 
-	const start = typeof startTime === 'string'
+	// Make reactive to prop changes
+	$: start = typeof startTime === 'string'
 		? new Date(startTime).getTime()
 		: startTime;
 
-	// Validate inputs to prevent NaN values
-	const isValid = !isNaN(start) && !isNaN(duration) && duration > 0 && start > 0;
+	// Validate inputs to prevent NaN values - reactive to prop changes
+	$: isValid = !isNaN(start) && !isNaN(duration) && duration > 0 && start > 0;
 
-	// Create derived store for duration config
-	const config = derived(gameTime.now, () => {
+	// Create derived store for duration config - reactive to prop changes
+	$: config = derived(gameTime.now, () => {
 		if (!isValid) {
 			// Return a safe default config that shows 0% progress
 			return {
@@ -30,11 +31,12 @@
 		};
 	});
 
-	const {
+	// Make progress stores reactive to config changes
+	$: ({
 		progress,
 		timeRemaining,
 		isNearComplete
-	} = createDurationProgressStore(config, gameTime);
+	} = createDurationProgressStore(config, gameTime));
 </script>
 
 <div class="duration-progress">

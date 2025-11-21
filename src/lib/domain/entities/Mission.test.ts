@@ -158,13 +158,15 @@ describe('Mission', () => {
 
 		it('should store timers as milliseconds', () => {
 			const mission = createMission({ state: 'Available' });
-			const startedAt = Timestamp.from(1000);
-			const endsAt = Timestamp.from(61000);
+			// Use realistic timestamp values (year 2024)
+			const baseTime = new Date('2024-01-01').getTime();
+			const startedAt = Timestamp.from(baseTime);
+			const endsAt = Timestamp.from(baseTime + 60000);
 
 			mission.start(startedAt, endsAt);
 
-			expect(mission.timers['startedAt']).toBe(1000);
-			expect(mission.timers['endsAt']).toBe(61000);
+			expect(mission.timers['startedAt']).toBe(baseTime);
+			expect(mission.timers['endsAt']).toBe(baseTime + 60000);
 			expect(typeof mission.timers['startedAt']).toBe('number');
 			expect(typeof mission.timers['endsAt']).toBe('number');
 		});
@@ -184,14 +186,14 @@ describe('Mission', () => {
 			const startedAt = Timestamp.from(Date.now() + 60000);
 			const endsAt = Timestamp.from(Date.now());
 
-			expect(() => mission.start(startedAt, endsAt)).toThrow('endsAt must be after startedAt');
+			expect(() => mission.start(startedAt, endsAt)).toThrow(/Invalid timer relationship/);
 		});
 
 		it('should throw error if endsAt equals startedAt', () => {
 			const mission = createMission({ state: 'Available' });
 			const timestamp = Timestamp.from(Date.now());
 
-			expect(() => mission.start(timestamp, timestamp)).toThrow('endsAt must be after startedAt');
+			expect(() => mission.start(timestamp, timestamp)).toThrow(/Invalid timer relationship/);
 		});
 	});
 

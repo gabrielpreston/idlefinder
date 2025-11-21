@@ -7,6 +7,17 @@ const config = {
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
+	// Suppress export-let-unused warnings for props intentionally exported for parent use
+	onwarn: (warning, handler) => {
+		// Suppress export-let-unused warnings (props used by parent components)
+		if (warning.code === 'export-let-unused') return;
+		handler(warning);
+	},
+
+	compilerOptions: {
+		// Svelte 5 compiler options
+	},
+
 	kit: {
 		// SPA mode configuration - required for adapter-static
 		adapter: adapter({

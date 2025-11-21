@@ -44,7 +44,8 @@ export function handleFacilityUpgrade(
 				resourceType: 'gold',
 				baseRatePerMinute: GameConfig.resourceGeneration.initialGoldRatePerMinute,
 				assigneeType: 'none',
-				assigneeId: null
+				assigneeId: null,
+				fractionalAccumulator: 0
 			};
 
 			const slot = new ResourceSlot(

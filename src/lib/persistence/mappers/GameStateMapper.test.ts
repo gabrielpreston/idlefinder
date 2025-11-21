@@ -84,7 +84,8 @@ describe('GameStateMapper', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'player',
-					assigneeId: null
+					assigneeId: null,
+					fractionalAccumulator: 0
 				},
 				[],
 				'occupied',
@@ -379,7 +380,8 @@ describe('GameStateMapper', () => {
 					resourceType: 'materials', // Different resource type
 					baseRatePerMinute: 15,
 					assigneeType: 'adventurer', // Different assignee type
-					assigneeId: 'adv-1'
+					assigneeId: 'adv-1',
+					fractionalAccumulator: 0
 				},
 				[],
 				'locked', // Different state

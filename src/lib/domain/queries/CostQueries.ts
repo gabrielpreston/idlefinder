@@ -153,3 +153,37 @@ export function canAffordRefreshRecruitPool(state: GameState): boolean {
 	return currentGold >= cost;
 }
 
+/**
+ * Calculate facility construction cost
+ * 
+ * @param facilityType Facility type to construct
+ * @returns Cost in gold
+ */
+export function calculateFacilityConstructionCost(facilityType: string): number {
+	return GameConfig.costs.facilityConstruction(facilityType);
+}
+
+/**
+ * Get facility construction cost as ResourceBundle
+ * 
+ * @param facilityType Facility type to construct
+ * @returns ResourceBundle with gold cost
+ */
+export function getFacilityConstructionCost(facilityType: string): ResourceBundle {
+	const cost = calculateFacilityConstructionCost(facilityType);
+	return ResourceBundle.fromArray([new ResourceUnit('gold', cost)]);
+}
+
+/**
+ * Check if player can afford facility construction
+ * 
+ * @param state GameState
+ * @param facilityType Facility type to construct
+ * @returns True if player has enough gold
+ */
+export function canAffordFacilityConstruction(state: GameState, facilityType: string): boolean {
+	const cost = calculateFacilityConstructionCost(facilityType);
+	const currentGold = state.resources.get('gold') || 0;
+	return currentGold >= cost;
+}
+

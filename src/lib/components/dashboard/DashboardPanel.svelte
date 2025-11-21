@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { adventurers, missions, resources, guildHallTier, isGuildHallRuinedState, oddJobsAvailable, oddJobsGoldRate } from '$lib/stores/gameState';
+	import { isGuildHallRuinedState, oddJobsAvailable, oddJobsGoldRate, activeTimers } from '$lib/stores/gameState';
+	import ResourceRatesDisplay from './ResourceRatesDisplay.svelte';
+	import ResourceStockpilesDisplay from './ResourceStockpilesDisplay.svelte';
+	import AdventurerStatusDisplay from './AdventurerStatusDisplay.svelte';
+	import TimerList from './TimerList.svelte';
 </script>
 
 <div class="dashboard-panel">
@@ -17,26 +21,24 @@
 		</div>
 	{/if}
 	
-	<div class="stats-grid">
-		<div class="stat-card">
-			<div class="stat-label">Guild Hall Tier</div>
-			<div class="stat-value">{$guildHallTier}</div>
+	<div class="dashboard-grid">
+		<div class="dashboard-section">
+			<ResourceRatesDisplay />
 		</div>
-		<div class="stat-card">
-			<div class="stat-label">Adventurers</div>
-			<div class="stat-value">{$adventurers.length}</div>
+		
+		<div class="dashboard-section">
+			<ResourceStockpilesDisplay />
 		</div>
-		<div class="stat-card">
-			<div class="stat-label">Active Missions</div>
-			<div class="stat-value">{$missions.filter(m => m.state === 'InProgress').length}</div>
+		
+		<div class="dashboard-section">
+			<AdventurerStatusDisplay />
 		</div>
-		<div class="stat-card">
-			<div class="stat-label">Gold</div>
-			<div class="stat-value">{$resources?.get('gold') ?? 0}</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-label">Fame</div>
-			<div class="stat-value">{$resources?.get('fame') ?? 0}</div>
+		
+		<div class="dashboard-section">
+			<div class="active-timers-section">
+				<h3>Active Timers</h3>
+				<TimerList timers={$activeTimers} />
+			</div>
 		</div>
 	</div>
 </div>
@@ -49,31 +51,6 @@
 	.dashboard-panel h2 {
 		margin-bottom: 1.5rem;
 		font-size: 1.5rem;
-	}
-
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1rem;
-	}
-
-	.stat-card {
-		padding: 1rem;
-		background: var(--color-bg-secondary, #f5f5f5);
-		border-radius: 8px;
-		border: 1px solid var(--color-border, #ddd);
-	}
-
-	.stat-label {
-		font-size: 0.9rem;
-		color: var(--color-text-secondary, #666);
-		margin-bottom: 0.5rem;
-	}
-
-	.stat-value {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: var(--color-text-primary, #000);
 	}
 
 	.starting-state-banner {
@@ -100,5 +77,26 @@
 		font-weight: 600;
 		color: var(--color-primary, #0066cc);
 	}
-</style>
 
+	.dashboard-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 1.5rem;
+	}
+
+	.dashboard-section {
+		background: var(--color-bg-primary, #fff);
+		border-radius: 8px;
+		border: 1px solid var(--color-border, #ddd);
+	}
+
+	.active-timers-section {
+		padding: 1rem;
+	}
+
+	.active-timers-section h3 {
+		margin: 0 0 0.75rem 0;
+		font-size: 1rem;
+		color: var(--color-text-secondary, #666);
+	}
+</style>

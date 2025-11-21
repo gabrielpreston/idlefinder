@@ -19,7 +19,8 @@ function createTestSlot(overrides?: {
 			resourceType: 'gold',
 			baseRatePerMinute: 10,
 			assigneeType: overrides?.assigneeType || 'none',
-			assigneeId: overrides?.assigneeId ?? null
+			assigneeId: overrides?.assigneeId ?? null,
+			fractionalAccumulator: 0
 		},
 		[],
 		overrides?.state || 'available',

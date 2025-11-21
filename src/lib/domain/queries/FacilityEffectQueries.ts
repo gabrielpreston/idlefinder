@@ -10,7 +10,7 @@ import type { ResourceSlot } from '../entities/ResourceSlot';
 import type { Facility } from '../entities/Facility';
 import type { Query } from './Query';
 import { EntityQueryBuilder } from './EntityQueryBuilder';
-import { getWorkerMultiplier, getFacilityMultiplier } from '../systems/SlotGenerationSystem';
+import { getWorkerMultiplier, getFacilityMultiplier } from '../systems/ResourceRateCalculator';
 import { getEntityAs, isFacility } from '../primitives/EntityTypeGuards';
 
 /**
@@ -120,17 +120,12 @@ export function getOddJobsGoldRate(state: GameState): number {
 	return playerSlots
 		.filter(slot => slot.attributes.resourceType === 'gold')
 		.reduce((total, slot) => {
-			// Get facility for multiplier calculation
-			const facility = getEntityAs(state.entities, slot.attributes.facilityId, isFacility);
-			if (!facility) {
-				// Skip this slot if facility not found (warning logged at infrastructure layer)
-				return total;
-			}
-
-			// Calculate effective rate using same multipliers as SlotGenerationSystem
-			const workerMultiplier = getWorkerMultiplier(slot.attributes.assigneeType as 'player' | 'adventurer');
-			const facilityMultiplier = getFacilityMultiplier(facility);
-			const effectiveRatePerMinute = slot.attributes.baseRatePerMinute * workerMultiplier * facilityMultiplier;
+			// Calculate effective rate using single source of truth
+			const effectiveRatePerMinute = getSlotEffectiveRate(
+				slot,
+				slot.attributes.assigneeType as 'player' | 'adventurer',
+				state
+			);
 			
 		return total + effectiveRatePerMinute;
 	}, 0);
@@ -165,9 +160,84 @@ export function getSlotEffectiveRate(
 		return 0;
 	}
 
+	// Validate baseRatePerMinute
+	const baseRate = slot.attributes.baseRatePerMinute;
+	if (typeof baseRate !== 'number' || isNaN(baseRate)) {
+		return 0; // Return 0 instead of NaN
+	}
+
 	// Calculate effective rate using same multipliers as SlotGenerationSystem
 	const workerMultiplier = getWorkerMultiplier(assigneeType);
 	const facilityMultiplier = getFacilityMultiplier(facility);
-	return slot.attributes.baseRatePerMinute * workerMultiplier * facilityMultiplier;
+	
+	// Validate multipliers
+	if (typeof workerMultiplier !== 'number' || isNaN(workerMultiplier) ||
+		typeof facilityMultiplier !== 'number' || isNaN(facilityMultiplier)) {
+		return 0; // Return 0 if multipliers are invalid
+	}
+	
+	const effectiveRate = baseRate * workerMultiplier * facilityMultiplier;
+	
+	// Ensure result is valid number
+	return isNaN(effectiveRate) || !isFinite(effectiveRate) ? 0 : effectiveRate;
+}
+
+/**
+ * Get training multiplier from Training Grounds facilities
+ * 
+ * Aggregates trainingMultiplier from all Training Grounds facilities.
+ * Uses sum aggregation (multiple Training Grounds add their multipliers together).
+ * 
+ * @param state GameState
+ * @returns Total training multiplier (1.0 if no Training Grounds exist)
+ */
+export function getTrainingMultiplier(state: GameState): number {
+	const query = aggregateFacilityEffect('TrainingGrounds', 'trainingMultiplier');
+	const total = query(state);
+	// Return 1.0 if no Training Grounds exist (no multiplier)
+	return total > 0 ? total : 1.0;
+}
+
+/**
+ * Get resource generation rates from all assigned slots
+ * 
+ * Calculates effective generation rates per minute for all resource types
+ * from all assigned resource slots (both player and adventurer assigned).
+ * 
+ * @param state GameState
+ * @returns Record mapping resource type to rate per minute
+ */
+export function getResourceGenerationRates(state: GameState): Record<string, number> {
+	const slots = EntityQueryBuilder.byType<ResourceSlot>('ResourceSlot')(state);
+	const rates: Record<string, number> = {};
+	
+	for (const slot of slots) {
+		// Skip unassigned slots
+		if (slot.attributes.assigneeType === 'none') {
+			continue;
+		}
+		
+		const resourceType = slot.attributes.resourceType;
+		
+		// Skip durationModifier slots - they don't generate resources, they modify mission speed
+		if (resourceType === 'durationModifier') {
+			continue;
+		}
+		
+		const assigneeType = slot.attributes.assigneeType as 'player' | 'adventurer';
+		
+		// Calculate effective rate using single source of truth
+		const effectiveRatePerMinute = getSlotEffectiveRate(slot, assigneeType, state);
+		
+		// Skip NaN values
+		if (isNaN(effectiveRatePerMinute)) {
+			continue;
+		}
+		
+		// Add to total for this resource type
+		rates[resourceType] = (rates[resourceType] || 0) + effectiveRatePerMinute;
+	}
+	
+	return rates;
 }
 

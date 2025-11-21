@@ -44,8 +44,9 @@
 	role="dialog"
 	aria-modal="true"
 	aria-labelledby="modal-title"
+	tabindex="-1"
 >
-	<div class="modal-content" onclick={(e) => e.stopPropagation()} role="document">
+	<div class="modal-content" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="document">
 		<div class="modal-header">
 			<h3 id="modal-title">Assign Worker to {slot.metadata.displayName || 'Slot'}</h3>
 			<button class="close-btn" onclick={close} aria-label="Close modal">×</button>

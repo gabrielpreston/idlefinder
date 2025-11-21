@@ -13,6 +13,7 @@ import { NumericStatMap } from '../valueObjects/NumericStatMap';
 import type { ItemAttributes } from '../attributes/ItemAttributes';
 import type { AutoEquipRulesAttributes } from '../attributes/AutoEquipRulesAttributes';
 import type { RoleKey } from '../attributes/RoleKey';
+import { GameConfig } from '../config/GameConfig';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -29,8 +30,8 @@ function createTestItem(overrides?: {
 		itemType: overrides?.itemType || 'weapon',
 		rarity: overrides?.rarity || 'common',
 		stats: NumericStatMap.fromMap(statsMap),
-		durability: overrides?.durability ?? 100,
-		maxDurability: overrides?.maxDurability ?? 100,
+		durability: overrides?.durability ?? GameConfig.items.maxDurability,
+		maxDurability: overrides?.maxDurability ?? GameConfig.items.maxDurability,
 		baseValue: 10
 	};
 	return new Item(id, attributes, [], overrides?.state || 'InArmory', {}, {});
@@ -84,7 +85,7 @@ describe('AutoEquipSystem', () => {
 				id: 'item-1', 
 				itemType: 'weapon',
 				durability: 0,
-				maxDurability: 100
+				maxDurability: GameConfig.items.maxDurability
 			});
 			const rules = createTestAutoEquipRules();
 

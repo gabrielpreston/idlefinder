@@ -7,6 +7,7 @@ import type { BusManager } from '../bus/BusManager';
 import { IdleLoop } from '../domain/systems/IdleLoop';
 import { createStartMissionHandler } from './StartMissionHandler';
 import { createUpgradeFacilityHandler } from './UpgradeFacilityHandler';
+import { createConstructFacilityHandler } from './ConstructFacilityHandler';
 import { createRecruitAdventurerHandler } from './RecruitAdventurerHandler';
 import { createRefreshRecruitPoolHandler } from './RefreshRecruitPoolHandler';
 import { createEquipItemHandler } from './EquipItemHandler';
@@ -90,6 +91,7 @@ export function registerHandlers(busManager: BusManager): void {
 	// Register command handlers using Actions/Entities
 	busManager.commandBus.register('StartMission', createStartMissionHandler());
 	busManager.commandBus.register('UpgradeFacility', createUpgradeFacilityHandler());
+	busManager.commandBus.register('ConstructFacility', createConstructFacilityHandler());
 	busManager.commandBus.register('RecruitAdventurer', createRecruitAdventurerHandler());
 	busManager.commandBus.register('RefreshRecruitPool', createRefreshRecruitPoolHandler());
 	

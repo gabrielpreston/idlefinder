@@ -65,3 +65,21 @@ export function getFacilitiesByType(facilityType: string, state: GameState): Fac
 	return facilities.filter(f => f.attributes.facilityType === facilityType);
 }
 
+/**
+ * Get facility counts by type
+ * 
+ * @param state GameState
+ * @returns Record mapping facility type to count
+ */
+export function getFacilityCounts(state: GameState): Record<string, number> {
+	const facilities = EntityQueryBuilder.byType<Facility>('Facility')(state);
+	const counts: Record<string, number> = {};
+	
+	for (const facility of facilities) {
+		const type = facility.attributes.facilityType;
+		counts[type] = (counts[type] || 0) + 1;
+	}
+	
+	return counts;
+}
+

@@ -5,7 +5,7 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
-		environment: 'node',
+		environment: 'node', // Default for domain tests
 		globals: true,
 		// Speed optimizations
 		pool: 'threads', // Parallel execution (default)
@@ -38,6 +38,12 @@ export default defineConfig({
 				branches: 70,
 				statements: 70
 			}
+		}
+	},
+	// Add environment-specific configs
+	testEnvironmentOptions: {
+		jsdom: {
+			// jsdom-specific options if needed
 		}
 	}
 });

@@ -16,7 +16,7 @@
 </script>
 
 <span class="animated-number" style="font-variant-numeric: tabular-nums;">
-	{format(Math.round($animated))}
+	{format($animated)}
 </span>
 
 <style>

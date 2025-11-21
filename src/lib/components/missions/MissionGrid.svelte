@@ -41,10 +41,21 @@
 		return true;
 	});
 
+	// Helper function to get state priority for sorting
+	function getStatePriority(state: MissionState): number {
+		switch (state) {
+			case 'InProgress': return 0; // Highest priority
+			case 'Available': return 1;
+			case 'Completed': return 2;
+			case 'Expired': return 3;
+			default: return 999;
+		}
+	}
+
 	$: sortedMissions = [...filteredMissions].sort((a, b) => {
 		switch (sortBy) {
 			case 'state':
-				return a.state.localeCompare(b.state);
+				return getStatePriority(a.state) - getStatePriority(b.state);
 			case 'duration': {
 				const aDuration = a.attributes.baseDuration.toMilliseconds();
 				const bDuration = b.attributes.baseDuration.toMilliseconds();
@@ -59,12 +70,37 @@
 				return b.attributes.dc - a.attributes.dc; // Descending (hardest first)
 			}
 			case 'startTime': {
-				const aStart = a.timers['startedAt'];
-				const bStart = b.timers['startedAt'];
-				if (!aStart && !bStart) return 0;
-				if (!aStart) return 1;
-				if (!bStart) return -1;
-				return bStart - aStart; // Descending (most recent first)
+				// Cross-state sorting: maintain state priority first
+				const stateDiff = getStatePriority(a.state) - getStatePriority(b.state);
+				if (stateDiff !== 0) return stateDiff;
+				
+				// Same state - apply state-specific time sorting
+				// For Available: sort by availableAt descending (most recent first)
+				if (a.state === 'Available' && b.state === 'Available') {
+					const aAvailable = a.timers['availableAt'] ?? 0;
+					const bAvailable = b.timers['availableAt'] ?? 0;
+					return bAvailable - aAvailable; // Descending (most recent first)
+				}
+				// For InProgress: sort by time remaining (soonest to complete first)
+				if (a.state === 'InProgress' && b.state === 'InProgress') {
+					const aEnds = a.timers['endsAt'];
+					const bEnds = b.timers['endsAt'];
+					if (!aEnds && !bEnds) return 0;
+					if (!aEnds) return 1;
+					if (!bEnds) return -1;
+					return aEnds - bEnds; // Ascending (soonest first)
+				}
+				// For Completed: sort by completion time (most recent first)
+				if (a.state === 'Completed' && b.state === 'Completed') {
+					const aCompleted = a.timers['completedAt'];
+					const bCompleted = b.timers['completedAt'];
+					if (!aCompleted && !bCompleted) return 0;
+					if (!aCompleted) return 1;
+					if (!bCompleted) return -1;
+					return bCompleted - aCompleted; // Descending (most recent first)
+				}
+				// Fallback (should not reach here if all states handled)
+				return 0;
 			}
 			default:
 				return 0;
@@ -79,7 +115,7 @@
 			<p class="empty-hint">Try adjusting your filters or search query.</p>
 		</div>
 	{:else}
-		{#each sortedMissions as mission}
+		{#each sortedMissions as mission (mission.id)}
 			<MissionCard 
 				{mission}
 				expanded={false}

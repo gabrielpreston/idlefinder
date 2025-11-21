@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getFacilityMultiplier, getWorkerMultiplier, processSlotGeneration } from './SlotGenerationSystem';
+import { processSlotGeneration } from './SlotGenerationSystem';
+import { getFacilityMultiplier, getWorkerMultiplier } from './ResourceRateCalculator';
 import { createTestGameState, createTestFacility } from '../../test-utils/testFactories';
 import { ResourceSlot } from '../entities/ResourceSlot';
 import { Identifier } from '../valueObjects/Identifier';
@@ -11,11 +12,12 @@ import { Timestamp } from '../valueObjects/Timestamp';
 import { setTimer } from '../primitives/TimerHelpers';
 import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
 import type { Entity } from '../primitives/Requirement';
+import { ModifyResourceEffect } from '../primitives/Effect';
 
 function createTestResourceSlot(overrides?: {
 	id?: string;
 	facilityId?: string;
-	resourceType?: 'gold' | 'materials';
+	resourceType?: 'gold' | 'materials' | 'durationModifier';
 	assigneeType?: 'player' | 'adventurer' | 'none';
 	baseRatePerMinute?: number;
 	lastTickAt?: Timestamp;
@@ -26,7 +28,8 @@ function createTestResourceSlot(overrides?: {
 		resourceType: overrides?.resourceType || 'gold',
 		baseRatePerMinute: overrides?.baseRatePerMinute || 6,
 		assigneeType: overrides?.assigneeType || 'none',
-		assigneeId: null
+		assigneeId: null,
+		fractionalAccumulator: 0
 	};
 	const slot = new ResourceSlot(id, attributes, [], 'available', {}, {});
 	if (overrides?.lastTickAt) {
@@ -223,6 +226,33 @@ describe('SlotGenerationSystem', () => {
 		// Should have warning about missing facility
 		expect(result.warnings?.length).toBeGreaterThan(0);
 		expect(result.data?.effects).toHaveLength(0);
+		});
+
+		it('should skip durationModifier slots', () => {
+			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
+			const durationModifierSlot = createTestResourceSlot({
+				facilityId: facility.id,
+				assigneeType: 'player',
+				resourceType: 'durationModifier',
+				baseRatePerMinute: 1.0,
+				lastTickAt: Timestamp.from(Date.now() - 60000) // 1 minute ago
+			});
+			const entities = new Map<string, Entity>([
+				[facility.id, facility],
+				[durationModifierSlot.id, durationModifierSlot]
+			]);
+			const state = createTestGameState({ entities });
+			const now = Timestamp.now();
+
+			const result = processSlotGeneration(state, now);
+			expect(result.success).toBe(true);
+			if (!result.data) throw new Error('Expected data');
+			
+			// Should have no resource generation effects (only timer updates if any)
+			const resourceEffects = result.data.effects.filter(
+				e => e instanceof ModifyResourceEffect
+			);
+			expect(resourceEffects).toHaveLength(0);
 		});
 	});
 });

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { missions } from '$lib/stores/gameState';
 	import { DurationProgress } from './ui';
+	import { getMissionDisplayDuration } from '$lib/domain/queries/MissionStatisticsQueries';
+	import { getTimer } from '$lib/domain/primitives/TimerHelpers';
 	// Note: Store updates automatically via gameState subscription, no need for direct bus access
 </script>
 
@@ -11,10 +13,12 @@
 		<div>No active missions</div>
 	{:else}
 		{#each $missions.filter(m => m.state === 'InProgress') as mission}
-			{@const startedAtMs = mission.timers['startedAt']}
-			{@const endsAtMs = mission.timers['endsAt']}
+			{@const startedAtTimer = getTimer(mission, 'startedAt')}
+			{@const endsAtTimer = getTimer(mission, 'endsAt')}
+			{@const startedAtMs = startedAtTimer?.value}
+			{@const endsAtMs = endsAtTimer?.value}
 			{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id}`}
-			{@const duration = startedAtMs && endsAtMs ? endsAtMs - startedAtMs : mission.attributes.baseDuration.toMilliseconds()}
+			{@const duration = getMissionDisplayDuration(mission)}
 			<div class="mission-item">
 				<div class="mission-name">{missionName}</div>
 				<div class="mission-details">

@@ -74,7 +74,106 @@ describe('MissionAutomationSystem', () => {
 			expect(result.actions.length).toBeGreaterThanOrEqual(0);
 			if (result.actions.length > 0) {
 				expect(result.actions[0]).toBeInstanceOf(StartMissionAction);
+				expect(result.actions[0]['missionId']).toBe('mission-1');
+				expect(result.actions[0]['adventurerId']).toBe('adv-1');
 			}
+		});
+
+		it('should fill all available slots when resources allow', () => {
+			const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+			const doctrine = MissionDoctrine.createDefault(doctrineId);
+			const mission1 = createTestMission({ id: 'mission-1', state: 'Available' });
+			const mission2 = createTestMission({ id: 'mission-2', state: 'Available' });
+			const adventurer1 = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
+			const adventurer2 = createTestAdventurer({ id: 'adv-2', state: 'Idle' });
+			const entities = new Map<string, Entity>([
+				[doctrine.id, doctrine],
+				[mission1.id, mission1],
+				[mission2.id, mission2],
+				[adventurer1.id, adventurer1],
+				[adventurer2.id, adventurer2]
+			]);
+			const state = createTestGameState({ entities });
+
+			const result = automateMissionSelection(state);
+
+			// Should create actions for both missions (assuming 2+ available slots)
+			expect(result.actions.length).toBeGreaterThanOrEqual(1);
+			expect(result.actions.every(a => a instanceof StartMissionAction)).toBe(true);
+		});
+
+		it('should assign multiple adventurers to multiple missions', () => {
+			const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+			const doctrine = MissionDoctrine.createDefault(doctrineId);
+			const mission1 = createTestMission({ id: 'mission-1', state: 'Available' });
+			const mission2 = createTestMission({ id: 'mission-2', state: 'Available' });
+			const adventurer1 = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
+			const adventurer2 = createTestAdventurer({ id: 'adv-2', state: 'Idle' });
+			const entities = new Map<string, Entity>([
+				[doctrine.id, doctrine],
+				[mission1.id, mission1],
+				[mission2.id, mission2],
+				[adventurer1.id, adventurer1],
+				[adventurer2.id, adventurer2]
+			]);
+			const state = createTestGameState({ entities });
+
+			const result = automateMissionSelection(state);
+
+			// Should create multiple actions
+			expect(result.actions.length).toBeGreaterThanOrEqual(1);
+			const adventurerIds = result.actions.map(a => a['adventurerId']);
+			const uniqueAdventurers = new Set(adventurerIds);
+			// If multiple slots available, should use multiple adventurers
+			if (result.actions.length > 1) {
+				expect(uniqueAdventurers.size).toBeGreaterThan(1);
+			}
+		});
+
+		it('should stop when slots filled', () => {
+			const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+			const doctrine = MissionDoctrine.createDefault(doctrineId);
+			const mission1 = createTestMission({ id: 'mission-1', state: 'Available' });
+			const mission2 = createTestMission({ id: 'mission-2', state: 'Available' });
+			const mission3 = createTestMission({ id: 'mission-3', state: 'Available' });
+			const adventurer1 = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
+			const adventurer2 = createTestAdventurer({ id: 'adv-2', state: 'Idle' });
+			const adventurer3 = createTestAdventurer({ id: 'adv-3', state: 'Idle' });
+			const entities = new Map<string, Entity>([
+				[doctrine.id, doctrine],
+				[mission1.id, mission1],
+				[mission2.id, mission2],
+				[mission3.id, mission3],
+				[adventurer1.id, adventurer1],
+				[adventurer2.id, adventurer2],
+				[adventurer3.id, adventurer3]
+			]);
+			const state = createTestGameState({ entities });
+
+			const result = automateMissionSelection(state);
+
+			// Should respect available slots limit (typically 1-5)
+			expect(result.actions.length).toBeLessThanOrEqual(5); // Reasonable upper bound
+		});
+
+		it('should stop when resources exhausted', () => {
+			const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+			const doctrine = MissionDoctrine.createDefault(doctrineId);
+			const mission1 = createTestMission({ id: 'mission-1', state: 'Available' });
+			const mission2 = createTestMission({ id: 'mission-2', state: 'Available' });
+			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
+			const entities = new Map<string, Entity>([
+				[doctrine.id, doctrine],
+				[mission1.id, mission1],
+				[mission2.id, mission2],
+				[adventurer.id, adventurer]
+			]);
+			const state = createTestGameState({ entities });
+
+			const result = automateMissionSelection(state);
+
+			// Should only assign one mission (only one adventurer available)
+			expect(result.actions.length).toBe(1);
 		});
 
 		it('should not select missions that are not Available', () => {

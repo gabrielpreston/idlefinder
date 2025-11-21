@@ -34,6 +34,7 @@ export type {
 	AdventurerGainedXPEvent,
 	AdventurerLeveledUpEvent,
 	FacilityUpgradedEvent,
+	FacilityConstructedEvent,
 	ResourcesChangedEvent,
 	CommandFailedEvent
 } from '../domain/primitives/Event';
@@ -47,6 +48,7 @@ export type CommandType =
 	| 'RecruitAdventurer'
 	| 'RefreshRecruitPool'
 	| 'UpgradeFacility'
+	| 'ConstructFacility'
 	| 'EquipItem'
 	| 'UnequipItem'
 	| 'RepairItem'
@@ -70,6 +72,7 @@ export type CommandPayload =
 	| RecruitAdventurerCommand
 	| RefreshRecruitPoolCommand
 	| UpgradeFacilityCommand
+	| ConstructFacilityCommand
 	| EquipItemCommand
 	| UnequipItemCommand
 	| RepairItemCommand
@@ -104,6 +107,10 @@ export interface RefreshRecruitPoolCommand {
 
 export interface UpgradeFacilityCommand {
 	facility: string; // 'tavern' | 'guildHall' | 'blacksmith'
+}
+
+export interface ConstructFacilityCommand {
+	facilityType: 'Dormitory' | 'MissionCommand' | 'TrainingGrounds' | 'ResourceDepot';
 }
 
 export interface EquipItemCommand {

@@ -64,7 +64,8 @@ export function createInitialGameState(
 		resourceType: 'gold',
 		baseRatePerMinute: GameConfig.resourceGeneration.initialGoldRatePerMinute,
 		assigneeType: 'player',
-		assigneeId: null
+		assigneeId: null,
+		fractionalAccumulator: 0
 	};
 	const goldSlot = new ResourceSlot(
 		goldSlotId,

@@ -5,6 +5,7 @@
 	export let value: number;
 	export let icon: string = '';
 	export let subtitle: string = '';
+	export let format: ((_n: number) => string) | undefined = undefined;
 </script>
 
 <div class="stat-card">
@@ -15,7 +16,7 @@
 		{label}
 	</div>
 	<div class="stat-value">
-		<AnimatedNumber {value} />
+		<AnimatedNumber {value} {format} />
 	</div>
 	{#if subtitle}
 		<div class="stat-subtitle">{subtitle}</div>

@@ -11,7 +11,7 @@ import type { Timestamp } from '../valueObjects/Timestamp';
 import type { NumericStatMap } from '../valueObjects/NumericStatMap';
 import type { Entity } from './Requirement';
 import { getTimer } from './TimerHelpers';
-import { isAdventurer, isFacility, isItem, isMission } from './EntityTypeGuards';
+import { isAdventurer, isFacility, isItem, isMission, isResourceSlot } from './EntityTypeGuards';
 
 /**
  * Result of applying an effect
@@ -184,6 +184,14 @@ export class SetEntityAttributeEffect implements Effect {
 					} catch {
 						// Ignore if readonly
 					}
+				}
+			} else if (isResourceSlot(entity)) {
+				// ResourceSlot attributes can be mutated directly
+				if (attributeName === 'fractionalAccumulator' && typeof this.value === 'number') {
+					entity.attributes.fractionalAccumulator = this.value;
+				} else {
+					// Fallback: direct assignment
+					(entity.attributes as unknown as Record<string, unknown>)[attributeName] = this.value;
 				}
 			} else {
 				// Fallback: direct attribute assignment
@@ -476,6 +484,51 @@ export class CreateItemEffect implements Effect {
 
 	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
 		entities.set(this.item.id, this.item);
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
+ * Effect: Create facility and add to entities
+ */
+export class CreateFacilityEffect implements Effect {
+	constructor(private readonly facility: import('../entities/Facility').Facility) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		entities.set(this.facility.id, this.facility);
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
+ * Effect: Create mission and add to entities
+ */
+export class CreateMissionEffect implements Effect {
+	constructor(private readonly mission: import('../entities/Mission').Mission) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		entities.set(this.mission.id, this.mission);
+		return {
+			entities,
+			resources
+		};
+	}
+}
+
+/**
+ * Effect: Create resource slot and add to entities
+ */
+export class CreateResourceSlotEffect implements Effect {
+	constructor(private readonly slot: import('../entities/ResourceSlot').ResourceSlot) {}
+
+	apply(entities: Map<string, Entity>, resources: ResourceBundle): EffectResult {
+		entities.set(this.slot.id, this.slot);
 		return {
 			entities,
 			resources

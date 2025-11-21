@@ -10,6 +10,7 @@ import type { MissionState } from '../states/MissionState';
 import type { Entity } from '../primitives/Requirement';
 import { validateEntity } from '../primitives/EntityValidation';
 import type { EntityMetadata } from '../primitives/EntityMetadata';
+import { validateTimerRelationship } from '../primitives/TimerValidator';
 
 export type MissionId = Identifier<'MissionId'>;
 
@@ -58,9 +59,13 @@ export class Mission implements Entity {
 		if (this.state !== 'Available') {
 			throw new Error(`Cannot start mission: mission state is ${this.state}`);
 		}
-		if (endsAt.isBefore(startedAt) || endsAt.equals(startedAt)) {
-			throw new Error(`endsAt must be after startedAt`);
+		
+		// Validate timer relationship using TimerValidator
+		const validation = validateTimerRelationship(startedAt, endsAt, 'before');
+		if (!validation.isValid) {
+			throw new Error(`Invalid timer relationship: ${validation.error}`);
 		}
+		
 		this.state = 'InProgress';
 		this.timers['startedAt'] = startedAt.value; // Store as milliseconds
 		this.timers['endsAt'] = endsAt.value; // Store as milliseconds

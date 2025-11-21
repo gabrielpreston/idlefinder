@@ -2,6 +2,9 @@
 	import Card from '../ui/Card.svelte';
 	import Badge from '../ui/Badge.svelte';
 	import DurationProgress from '../ui/DurationProgress.svelte';
+	import { getAssignedAdventurersForMission, getMissionDisplayDuration } from '$lib/domain/queries/MissionStatisticsQueries';
+	import { gameState } from '$lib/stores/gameState';
+	import { getTimer } from '$lib/domain/primitives/TimerHelpers';
 	import type { Mission } from '$lib/domain/entities/Mission';
 
 	export let mission: Mission;
@@ -13,10 +16,22 @@
 	                  mission.state === 'InProgress' ? 'primary' : 
 	                  mission.state === 'Completed' ? 'default' : 'warning';
 	
-	$: startedAtMs = mission.timers['startedAt'];
-	$: endsAtMs = mission.timers['endsAt'];
-	$: duration = startedAtMs && endsAtMs ? endsAtMs - startedAtMs : mission.attributes.baseDuration.toMilliseconds();
+	// Use unified query function for duration
+	$: duration = getMissionDisplayDuration(mission);
+	
+	// Get timers for progress display (using TimerHelpers for consistency)
+	$: startedAtTimer = getTimer(mission, 'startedAt');
+	$: endsAtTimer = getTimer(mission, 'endsAt');
+	$: startedAtMs = startedAtTimer?.value;
+	$: endsAtMs = endsAtTimer?.value;
 	$: showProgress = mission.state === 'InProgress' && startedAtMs && endsAtMs && duration > 0;
+	
+	$: assignedAdventurers = mission.state === 'InProgress' && $gameState
+		? getAssignedAdventurersForMission($gameState, mission.id)
+		: [];
+	
+	$: completedAtMs = mission.timers['completedAt'];
+	$: completedAt = completedAtMs ? new Date(completedAtMs).toLocaleString() : null;
 </script>
 
 <div 
@@ -35,50 +50,86 @@
 	variant={expanded ? 'highlight' : 'default'}
 	padding="medium"
 >
-	<div slot="header" class="card-header">
-		<h4 class="mission-name">{missionName}</h4>
-		<Badge variant={stateVariant} size="small">
-			{mission.state === 'Available' ? 'Available' : 
-			 mission.state === 'InProgress' ? 'In Progress' : 
-			 mission.state}
-		</Badge>
-	</div>
-	
-	<div class="card-body">
-		<div class="mission-info">
-			<div class="mission-type-difficulty">
+	<div class="mission-card-horizontal">
+		<div class="mission-main">
+			<div class="mission-header-row">
+				<h4 class="mission-name">{missionName}</h4>
+				<Badge variant={stateVariant} size="small">
+					{mission.state === 'Available' ? 'Available' : 
+					 mission.state === 'InProgress' ? 'In Progress' : 
+					 mission.state}
+				</Badge>
+			</div>
+			
+			<div class="mission-meta-row">
 				<Badge variant="default" size="small">
 					{mission.attributes.missionType}
 				</Badge>
 				<span class="difficulty">DC {mission.attributes.dc}</span>
+				<span class="separator">•</span>
+				<span class="duration">{Math.floor(duration / 1000)}s</span>
 			</div>
 		</div>
 		
-		<div class="mission-details">
-			<div class="detail-item">
-				<span class="detail-label">Duration:</span>
-				<span class="detail-value">{Math.floor(duration / 1000)}s</span>
-			</div>
-			<div class="detail-item">
-				<span class="detail-label">Rewards:</span>
-				<span class="detail-value">
-					{mission.attributes.baseRewards.gold}g, {mission.attributes.baseRewards.xp} XP
+		<div class="mission-details-horizontal">
+			{#if mission.state === 'Available'}
+				<!-- Available: Emphasize rewards and difficulty -->
+				<div class="rewards-section">
+					<div class="reward-item">
+						<span class="reward-icon">💰</span>
+						<span class="reward-value">{mission.attributes.baseRewards.gold}g</span>
+					</div>
+					<div class="reward-item">
+						<span class="reward-icon">⭐</span>
+						<span class="reward-value">{mission.attributes.baseRewards.xp} XP</span>
+					</div>
 					{#if mission.attributes.baseRewards.fame}
-						, {mission.attributes.baseRewards.fame} Fame
+						<div class="reward-item">
+							<span class="reward-icon">🏆</span>
+							<span class="reward-value">{mission.attributes.baseRewards.fame}</span>
+						</div>
 					{/if}
-				</span>
-			</div>
+				</div>
+			{:else if mission.state === 'InProgress'}
+				<!-- InProgress: Emphasize progress and time remaining -->
+				<div class="progress-section-horizontal">
+					{#if showProgress}
+						<DurationProgress
+							startTime={startedAtMs}
+							duration={duration}
+							label=""
+						/>
+					{/if}
+					{#if assignedAdventurers.length > 0}
+						<div class="assigned-adventurers">
+							<span class="adventurer-label">Assigned:</span>
+							{#each assignedAdventurers as adventurer}
+								<span class="adventurer-name-small">
+									{adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${adventurer.id.slice(0, 8)}`}
+								</span>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{:else if mission.state === 'Completed'}
+				<!-- Completed: Emphasize completion time and rewards -->
+				<div class="completion-section">
+					{#if completedAt}
+						<div class="completion-time">
+							<span class="completion-label">Completed:</span>
+							<span class="completion-value">{completedAt}</span>
+						</div>
+					{/if}
+					<div class="rewards-section">
+						<span class="reward-value">{mission.attributes.baseRewards.gold}g</span>
+						<span class="reward-value">{mission.attributes.baseRewards.xp} XP</span>
+						{#if mission.attributes.baseRewards.fame}
+							<span class="reward-value">{mission.attributes.baseRewards.fame} Fame</span>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		</div>
-		
-		{#if showProgress}
-			<div class="progress-section">
-				<DurationProgress
-					startTime={startedAtMs}
-					duration={duration}
-					label={missionName}
-				/>
-			</div>
-		{/if}
 	</div>
 </Card>
 </div>
@@ -94,11 +145,25 @@
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 	}
 
-	.card-header {
+	.mission-card-horizontal {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 1.5rem;
+		width: 100%;
+	}
+
+	.mission-main {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.mission-header-row {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.75rem;
+		margin-bottom: 0.5rem;
+		gap: 0.75rem;
 	}
 
 	.mission-name {
@@ -106,49 +171,136 @@
 		font-size: 1.1rem;
 		font-weight: 600;
 		color: var(--color-text-primary, #000);
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
-	.mission-info {
-		margin-bottom: 0.75rem;
-	}
-
-	.mission-type-difficulty {
+	.mission-meta-row {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.difficulty {
 		font-size: 0.9rem;
 		color: var(--color-text-secondary, #666);
+		font-weight: 500;
 	}
 
-	.mission-details {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		margin-bottom: 0.75rem;
-	}
-
-	.detail-item {
-		display: flex;
-		justify-content: space-between;
+	.duration {
 		font-size: 0.9rem;
-	}
-
-	.detail-label {
 		color: var(--color-text-secondary, #666);
 	}
 
-	.detail-value {
+	.separator {
+		color: var(--color-text-secondary, #ccc);
+		font-size: 0.9rem;
+	}
+
+	.mission-details-horizontal {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.5rem;
+		min-width: fit-content;
+	}
+
+	.rewards-section {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.reward-item {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.reward-icon {
+		font-size: 1rem;
+	}
+
+	.reward-value {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: var(--color-text-primary, #000);
+		white-space: nowrap;
+	}
+
+	.progress-section-horizontal {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.5rem;
+		min-width: 200px;
+	}
+
+	.assigned-adventurers {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		font-size: 0.85rem;
+	}
+
+	.adventurer-label {
+		color: var(--color-text-secondary, #666);
+		font-size: 0.85rem;
+	}
+
+	.adventurer-name-small {
 		color: var(--color-text-primary, #000);
 		font-weight: 500;
 	}
 
-	.progress-section {
-		margin-top: 0.75rem;
-		padding-top: 0.75rem;
-		border-top: 1px solid var(--color-border, #ddd);
+	.completion-section {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.5rem;
+	}
+
+	.completion-time {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.25rem;
+	}
+
+	.completion-label {
+		font-size: 0.85rem;
+		color: var(--color-text-secondary, #666);
+	}
+
+	.completion-value {
+		font-size: 0.9rem;
+		color: var(--color-text-primary, #000);
+		font-weight: 500;
+	}
+
+	/* Responsive: Stack vertically on mobile */
+	@media (max-width: 768px) {
+		.mission-card-horizontal {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 1rem;
+		}
+
+		.mission-details-horizontal {
+			align-items: flex-start;
+			width: 100%;
+		}
+
+		.progress-section-horizontal {
+			width: 100%;
+			min-width: unset;
+		}
 	}
 </style>
 

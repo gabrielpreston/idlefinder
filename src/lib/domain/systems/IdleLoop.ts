@@ -15,6 +15,7 @@ import { getTimer } from '../primitives/TimerHelpers';
 import { automateMissionSelection } from './MissionAutomationSystem';
 import { processCraftingQueue } from './CraftingSystem';
 import { processSlotGeneration } from './SlotGenerationSystem';
+import { processMissionPool } from './MissionPoolManagementSystem';
 
 /**
  * Idle Loop Result - new state and events from idle progression
@@ -190,11 +191,35 @@ export class IdleLoop {
 				const slotEffectResult = applyEffects(slotGenerationResult.data.effects, entities, resources);
 				resources = slotEffectResult.resources;
 				
-				// Note: Fractional accumulator is updated via SetEntityMetadataEffect
+				// Note: Fractional accumulator is updated via SetEntityAttributeEffect
 				// (effects are applied here, maintaining system purity)
 			}
 
 			events.push(...slotGenerationResult.data.events);
+		}
+
+		// Process mission pool management (after slot generation)
+		const missionPoolResult = processMissionPool(
+			new GameState(previousState.playerId, previousState.lastPlayed, entities, resources),
+			now
+		);
+
+		// Collect warnings and errors from mission pool management
+		if (missionPoolResult.warnings) {
+			allWarnings.push(...missionPoolResult.warnings);
+		}
+		if (missionPoolResult.errors) {
+			allErrors.push(...missionPoolResult.errors);
+		}
+
+		// Apply mission pool effects if successful
+		if (missionPoolResult.success && missionPoolResult.data) {
+			if (missionPoolResult.data.effects.length > 0) {
+				const poolEffectResult = applyEffects(missionPoolResult.data.effects, entities, resources);
+				resources = poolEffectResult.resources;
+			}
+
+			events.push(...missionPoolResult.data.events);
 		}
 
 		// Create new GameState with updated entities and resources

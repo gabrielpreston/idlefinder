@@ -11,6 +11,7 @@ import { Item } from '../domain/entities/Item';
 import { Identifier } from '../domain/valueObjects/Identifier';
 import { NumericStatMap } from '../domain/valueObjects/NumericStatMap';
 import type { Entity } from '../domain/primitives/Requirement';
+import { GameConfig } from '../domain/config/GameConfig';
 
 function createTestItem(id: string, state: 'InArmory' | 'Equipped' = 'InArmory'): Item {
 	const itemId = Identifier.from<'ItemId'>(id);
@@ -20,8 +21,8 @@ function createTestItem(id: string, state: 'InArmory' | 'Equipped' = 'InArmory')
 			itemType: 'weapon',
 			rarity: 'common',
 			stats: NumericStatMap.fromMap(new Map([['attackBonus', 1]])),
-			durability: 100,
-			maxDurability: 100,
+			durability: GameConfig.items.maxDurability,
+			maxDurability: GameConfig.items.maxDurability,
 			baseValue: 10
 		},
 		[],

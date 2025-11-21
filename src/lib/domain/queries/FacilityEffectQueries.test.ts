@@ -11,7 +11,8 @@ import {
 	getPlayerAssignedSlots,
 	hasOddJobsAvailable,
 	getOddJobsGoldRate,
-	getSlotEffectiveRate
+	getSlotEffectiveRate,
+	getResourceGenerationRates
 } from './FacilityEffectQueries';
 import { createTestGameState, createTestFacility } from '../../test-utils/testFactories';
 import { ResourceSlot } from '../entities/ResourceSlot';
@@ -22,7 +23,7 @@ import type { Entity } from '../primitives/Requirement';
 function createTestResourceSlot(overrides?: {
 	id?: string;
 	facilityId?: string;
-	resourceType?: 'gold' | 'materials';
+	resourceType?: 'gold' | 'materials' | 'durationModifier';
 	assigneeType?: 'player' | 'adventurer' | 'none';
 	baseRatePerMinute?: number;
 }): ResourceSlot {
@@ -32,7 +33,8 @@ function createTestResourceSlot(overrides?: {
 		resourceType: overrides?.resourceType || 'gold',
 		baseRatePerMinute: overrides?.baseRatePerMinute || 6,
 		assigneeType: overrides?.assigneeType || 'none',
-		assigneeId: null
+		assigneeId: null,
+		fractionalAccumulator: 0
 	};
 	return new ResourceSlot(id, attributes, [], 'available', {}, {});
 }
@@ -458,6 +460,36 @@ describe('FacilityEffectQueries', () => {
 			// Tier 1: multiplier = 1.0, adventurer multiplier = 1.5
 			// Effective rate = 6 * 1.5 * 1.0 = 9
 			expect(getSlotEffectiveRate(playerSlot, 'adventurer', state)).toBe(9);
+		});
+	});
+
+	describe('getResourceGenerationRates', () => {
+		it('should exclude durationModifier slots from resource generation rates', () => {
+			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
+			const goldSlot = createTestResourceSlot({
+				facilityId: facility.id,
+				assigneeType: 'player',
+				resourceType: 'gold',
+				baseRatePerMinute: 6
+			});
+			const durationModifierSlot = createTestResourceSlot({
+				facilityId: facility.id,
+				assigneeType: 'player',
+				resourceType: 'durationModifier',
+				baseRatePerMinute: 1.0
+			});
+			const entities = new Map<string, Entity>([
+				[facility.id, facility],
+				[goldSlot.id, goldSlot],
+				[durationModifierSlot.id, durationModifierSlot]
+			]);
+			const state = createTestGameState({ entities });
+
+			const rates = getResourceGenerationRates(state);
+			
+			expect(rates).not.toHaveProperty('durationModifier');
+			expect(rates).toHaveProperty('gold');
+			expect(rates.gold).toBe(6); // Only gold slot should contribute
 		});
 	});
 });

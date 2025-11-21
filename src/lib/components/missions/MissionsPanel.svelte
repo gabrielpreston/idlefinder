@@ -2,7 +2,6 @@
 	import { writable } from 'svelte/store';
 	import MissionsOverview from './MissionsOverview.svelte';
 	import MissionToolbar from './MissionToolbar.svelte';
-	import MissionGrid from './MissionGrid.svelte';
 	import MissionList from './MissionList.svelte';
 	import MissionDetailModal from './MissionDetailModal.svelte';
 	import { missions } from '$lib/stores/gameState';
@@ -11,10 +10,8 @@
 	import type { MissionAttributes } from '$lib/domain/attributes/MissionAttributes';
 
 	type ViewLevel = 'overview' | 'collection' | 'detail';
-	type ViewMode = 'grid' | 'list';
 
 	let currentView: ViewLevel = 'overview';
-	let viewMode: ViewMode = 'grid';
 	let selectedMission = writable<Mission | null>(null);
 	let filters = writable<{
 		state: MissionState | 'all';
@@ -41,10 +38,14 @@
 	function handleViewState(state: 'Available' | 'InProgress' | 'Completed') {
 		currentView = 'collection';
 		filters.set({ state, type: 'all', search: '' });
-	}
-
-	function toggleViewMode() {
-		viewMode = viewMode === 'grid' ? 'list' : 'grid';
+		// Set state-aware default sorting
+		if (state === 'InProgress') {
+			sortBy.set('startTime'); // Sort by time remaining (most recent first)
+		} else if (state === 'Completed') {
+			sortBy.set('startTime'); // Sort by completion time (most recent first)
+		} else {
+			sortBy.set('rewards'); // Sort by rewards for Available missions
+		}
 	}
 </script>
 
@@ -53,7 +54,6 @@
 	
 	{#if currentView === 'overview'}
 		<MissionsOverview 
-			onViewAll={handleViewAll}
 			onViewState={handleViewState}
 		/>
 		<div class="view-actions">
@@ -62,9 +62,6 @@
 	{:else if currentView === 'collection'}
 		<div class="collection-header">
 			<button class="btn-back" onclick={() => currentView = 'overview'}>← Back to Overview</button>
-			<button class="btn-toggle-view" onclick={toggleViewMode}>
-				{viewMode === 'grid' ? 'List View' : 'Grid View'}
-			</button>
 		</div>
 		
 		<MissionToolbar 
@@ -74,21 +71,12 @@
 			on:sortChange={(e) => sortBy.set(e.detail)}
 		/>
 		
-		{#if viewMode === 'grid'}
-			<MissionGrid 
-				missions={$missions}
-				filters={$filters}
-				sortBy={$sortBy}
-				onMissionClick={handleMissionClick}
-			/>
-		{:else}
-			<MissionList 
-				missions={$missions}
-				filters={$filters}
-				sortBy={$sortBy}
-				onMissionClick={handleMissionClick}
-			/>
-		{/if}
+		<MissionList 
+			missions={$missions}
+			filters={$filters}
+			sortBy={$sortBy}
+			onMissionClick={handleMissionClick}
+		/>
 	{/if}
 </div>
 
@@ -149,21 +137,6 @@
 	}
 
 	.btn-back:hover {
-		background: var(--color-bg-primary, #fff);
-	}
-
-	.btn-toggle-view {
-		padding: 0.5rem 1rem;
-		background: var(--color-bg-secondary, #f5f5f5);
-		color: var(--color-text-primary, #000);
-		border: 1px solid var(--color-border, #ddd);
-		border-radius: 4px;
-		font-size: 0.9rem;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.btn-toggle-view:hover {
 		background: var(--color-bg-primary, #fff);
 	}
 </style>

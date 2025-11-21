@@ -11,6 +11,7 @@ import type { Adventurer } from '../entities/Adventurer';
 import type { MissionState } from '../states/MissionState';
 import type { MissionAttributes } from '../attributes/MissionAttributes';
 import { EntityQueryBuilder } from './EntityQueryBuilder';
+import { getTimer } from '../primitives/TimerHelpers';
 
 /**
  * Mission statistics interface
@@ -111,5 +112,32 @@ export function getAssignedAdventurersForMission(
 	return adventurers.filter(
 		a => a.state === 'OnMission' && a.metadata.currentMissionId === missionId
 	);
+}
+
+/**
+ * Get display duration for a mission in milliseconds
+ * 
+ * Unified query function that handles the overlap between timer system and duration system:
+ * - For InProgress missions: returns endsAt - startedAt (using TimerHelpers)
+ * - For Available/other states: returns baseDuration (using Duration value object)
+ * 
+ * This provides a single source of truth for mission duration display.
+ * 
+ * @param mission Mission entity
+ * @returns Duration in milliseconds
+ */
+export function getMissionDisplayDuration(mission: Mission): number {
+	if (mission.state === 'InProgress') {
+		const startedAt = getTimer(mission, 'startedAt');
+		const endsAt = getTimer(mission, 'endsAt');
+		
+		// Only use timer-based duration if both timers are valid and endsAt > startedAt
+		if (startedAt && endsAt && endsAt.value > startedAt.value) {
+			return endsAt.value - startedAt.value;
+		}
+	}
+	
+	// Fallback to baseDuration for Available or other states, or if timers are invalid
+	return mission.attributes.baseDuration.toMilliseconds();
 }
 

@@ -30,7 +30,8 @@ describe('UnassignWorkerFromSlotHandler Integration', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'player',
-					assigneeId: null
+					assigneeId: null,
+					fractionalAccumulator: 0
 				},
 				[],
 				'occupied',
@@ -64,7 +65,8 @@ describe('UnassignWorkerFromSlotHandler Integration', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'adventurer',
-					assigneeId: 'adv-1'
+					assigneeId: 'adv-1',
+					fractionalAccumulator: 0
 				},
 				[],
 				'occupied', // Must be 'occupied' for handler to accept
@@ -113,7 +115,8 @@ describe('UnassignWorkerFromSlotHandler Integration', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'none',
-					assigneeId: null
+					assigneeId: null,
+					fractionalAccumulator: 0
 				},
 				[],
 				'available',

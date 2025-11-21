@@ -61,12 +61,13 @@ describe('UnlockQueries', () => {
 		});
 
 		it('should return reason when locked', () => {
-			const requiredGold = 200;
+			// Use a threshold higher than starting gold to ensure the unlock is locked
+			const requiredGold = GameConfig.startingResources.gold + 100;
 			const check = (state: GameState) => state.resources.get('gold') >= requiredGold;
 			const reason = () => `Need ${requiredGold} gold`;
 			const unlockQuery = createUnlockCondition(check, reason);
 
-			// State has default starting gold from GameConfig (150), which is less than 200
+			// State has default starting gold from GameConfig, which is less than requiredGold
 			expect(unlockQuery.getUnlockReason(state)).toBe(`Need ${requiredGold} gold`);
 		});
 

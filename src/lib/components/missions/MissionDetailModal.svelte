@@ -3,8 +3,9 @@
 	import Tabs from '../ui/Tabs.svelte';
 	import Badge from '../ui/Badge.svelte';
 	import DurationProgress from '../ui/DurationProgress.svelte';
-	import { getAssignedAdventurersForMission } from '$lib/domain/queries/MissionStatisticsQueries';
+	import { getAssignedAdventurersForMission, getMissionDisplayDuration } from '$lib/domain/queries/MissionStatisticsQueries';
 	import { gameState } from '$lib/stores/gameState';
+	import { getTimer } from '$lib/domain/primitives/TimerHelpers';
 	import type { Mission } from '$lib/domain/entities/Mission';
 
 	export let mission: Mission | null = null;
@@ -22,9 +23,14 @@
 	                  mission?.state === 'InProgress' ? 'primary' : 
 	                  mission?.state === 'Completed' ? 'default' : 'warning';
 	
-	$: startedAtMs = mission?.timers['startedAt'];
-	$: endsAtMs = mission?.timers['endsAt'];
-	$: duration = startedAtMs && endsAtMs ? endsAtMs - startedAtMs : mission?.attributes.baseDuration.toMilliseconds() ?? 0;
+	// Use unified query function for duration
+	$: duration = mission ? getMissionDisplayDuration(mission) : 0;
+	
+	// Get timers for progress display (using TimerHelpers for consistency)
+	$: startedAtTimer = mission ? getTimer(mission, 'startedAt') : null;
+	$: endsAtTimer = mission ? getTimer(mission, 'endsAt') : null;
+	$: startedAtMs = startedAtTimer?.value;
+	$: endsAtMs = endsAtTimer?.value;
 	$: showProgress = mission?.state === 'InProgress' && startedAtMs && endsAtMs && duration > 0;
 	
 	$: assignedAdventurerDetails = mission && $gameState 
@@ -187,34 +193,59 @@
 
 			{#if activeTab === 'history'}
 			<div class="tab-content">
-				{#if mission.state === 'Completed'}
-					<div class="history-section">
-						<div class="info-row">
-							<span class="info-label">Status:</span>
-							<span class="info-value">Completed</span>
-						</div>
-						{#if mission.timers['completedAt']}
-							<div class="info-row">
-								<span class="info-label">Completed At:</span>
-								<span class="info-value">
-									{new Date(mission.timers['completedAt']).toLocaleString()}
-								</span>
-							</div>
-						{/if}
+				<div class="history-section">
+					<div class="timeline">
 						{#if mission.timers['startedAt']}
-							<div class="info-row">
-								<span class="info-label">Started At:</span>
-								<span class="info-value">
-									{new Date(mission.timers['startedAt']).toLocaleString()}
-								</span>
+							<div class="timeline-item">
+								<div class="timeline-marker started"></div>
+								<div class="timeline-content">
+									<div class="timeline-label">Mission Started</div>
+									<div class="timeline-time">
+										{new Date(mission.timers['startedAt']).toLocaleString()}
+									</div>
+								</div>
+							</div>
+						{/if}
+						
+						{#if mission.state === 'InProgress' && mission.timers['endsAt']}
+							<div class="timeline-item">
+								<div class="timeline-marker in-progress"></div>
+								<div class="timeline-content">
+									<div class="timeline-label">In Progress</div>
+									<div class="timeline-time">
+										Expected completion: {new Date(mission.timers['endsAt']).toLocaleString()}
+									</div>
+								</div>
+							</div>
+						{/if}
+						
+						{#if mission.timers['completedAt']}
+							<div class="timeline-item">
+								<div class="timeline-marker completed"></div>
+								<div class="timeline-content">
+									<div class="timeline-label">Mission Completed</div>
+									<div class="timeline-time">
+										{new Date(mission.timers['completedAt']).toLocaleString()}
+									</div>
+									{#if startedAtMs && mission.timers['completedAt']}
+										{@const completedDuration = mission.timers['completedAt'] - startedAtMs}
+										<div class="timeline-duration">
+											Duration: {Math.floor(completedDuration / 1000)}s
+										</div>
+									{/if}
+								</div>
+							</div>
+						{:else if mission.state === 'Available'}
+							<div class="timeline-item">
+								<div class="timeline-marker available"></div>
+								<div class="timeline-content">
+									<div class="timeline-label">Available</div>
+									<div class="timeline-time">Not yet started</div>
+								</div>
 							</div>
 						{/if}
 					</div>
-				{:else}
-					<div class="empty-state">
-						<p>This mission has not been completed yet.</p>
-					</div>
-				{/if}
+				</div>
 			</div>
 			{/if}
 		</Tabs>
@@ -341,6 +372,115 @@
 
 	.progress-section {
 		padding: 1rem 0;
+	}
+
+	.history-section {
+		padding: 0.5rem 0;
+	}
+
+	.timeline {
+		position: relative;
+		padding-left: 2rem;
+	}
+
+	.timeline-item {
+		position: relative;
+		padding-bottom: 1.5rem;
+	}
+
+	.timeline-item:not(:last-child)::before {
+		content: '';
+		position: absolute;
+		left: -1.75rem;
+		top: 1.5rem;
+		bottom: -0.5rem;
+		width: 2px;
+		background: var(--color-border, #ddd);
+	}
+
+	.timeline-marker {
+		position: absolute;
+		left: -2rem;
+		top: 0.25rem;
+		width: 1rem;
+		height: 1rem;
+		border-radius: 50%;
+		border: 2px solid var(--color-border, #ddd);
+		background: white;
+	}
+
+	.timeline-marker.started {
+		background: var(--color-primary, #0066cc);
+		border-color: var(--color-primary, #0066cc);
+	}
+
+	.timeline-marker.in-progress {
+		background: var(--color-primary, #0066cc);
+		border-color: var(--color-primary, #0066cc);
+		animation: pulse 2s infinite;
+	}
+
+	.timeline-marker.completed {
+		background: var(--color-success, #28a745);
+		border-color: var(--color-success, #28a745);
+	}
+
+	.timeline-marker.available {
+		background: var(--color-text-secondary, #999);
+		border-color: var(--color-text-secondary, #999);
+	}
+
+	@keyframes pulse {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
+	}
+
+	.timeline-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.timeline-label {
+		font-weight: 600;
+		color: var(--color-text-primary, #000);
+		font-size: 0.95rem;
+	}
+
+	.timeline-time {
+		font-size: 0.85rem;
+		color: var(--color-text-secondary, #666);
+	}
+
+	.timeline-duration {
+		font-size: 0.85rem;
+		color: var(--color-text-secondary, #666);
+		font-style: italic;
+	}
+
+	/* Responsive: Better mobile layout */
+	@media (max-width: 768px) {
+		.timeline {
+			padding-left: 1.5rem;
+		}
+
+		.timeline-marker {
+			left: -1.75rem;
+			width: 0.75rem;
+			height: 0.75rem;
+		}
+
+		.timeline-item:not(:last-child)::before {
+			left: -1.5rem;
+		}
+
+		.rewards-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>
 

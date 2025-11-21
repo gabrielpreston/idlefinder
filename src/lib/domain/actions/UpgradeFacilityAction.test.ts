@@ -11,6 +11,7 @@ import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import type { Effect } from '../primitives/Effect';
 import { applyEffects } from '../primitives/Effect';
+import { GameConfig } from '../config/GameConfig';
 
 describe('UpgradeFacilityAction', () => {
 	describe('getRequirements', () => {
@@ -26,7 +27,7 @@ describe('UpgradeFacilityAction', () => {
 	describe('computeEffects', () => {
 		it('should throw error when facility not found', () => {
 			const entities = new Map();
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', GameConfig.costs.facilityUpgrade(2))]);
 			const context: RequirementContext = {
 				entities,
 				resources,
@@ -43,7 +44,8 @@ describe('UpgradeFacilityAction', () => {
 		it('should throw error when insufficient gold', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 50)]); // Not enough for tier 2 (200)
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost - 50)]); // Not enough for tier 2
 			const context: RequirementContext = {
 				entities,
 				resources,
@@ -60,7 +62,8 @@ describe('UpgradeFacilityAction', () => {
 		it('should return effects when facility exists and has enough gold', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
-			const initialResources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]); // Enough for tier 2
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
+			const initialResources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]); // Enough for tier 2
 			const context: RequirementContext = {
 				entities,
 				resources: initialResources,
@@ -79,14 +82,14 @@ describe('UpgradeFacilityAction', () => {
 			expect((updatedFacility as any).attributes.tier).toBe(2);
 			
 			// Verify gold was subtracted (behavioral)
-			expect(result.resources.get('gold')).toBeLessThan(200);
+			expect(result.resources.get('gold')).toBeLessThan(upgradeCost);
 		});
 
 		it('should calculate correct cost for different tiers', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 2 });
 			const entities = new Map([[facility.id, facility]]);
-			// Tier 3 costs 300 (3 * 100)
-			const initialResources = ResourceBundle.fromArray([new ResourceUnit('gold', 300)]);
+			const upgradeCost = GameConfig.costs.facilityUpgrade(3);
+			const initialResources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]);
 			const context: RequirementContext = {
 				entities,
 				resources: initialResources,
@@ -104,7 +107,7 @@ describe('UpgradeFacilityAction', () => {
 			expect(updatedFacility).toBeDefined();
 			expect((updatedFacility as any).attributes.tier).toBe(3);
 			
-			// Verify gold was subtracted by 300 (behavioral)
+			// Verify gold was subtracted by upgrade cost (behavioral)
 			expect(result.resources.get('gold')).toBe(0);
 		});
 	});
@@ -112,7 +115,7 @@ describe('UpgradeFacilityAction', () => {
 	describe('generateEvents', () => {
 		it('should return empty array when facility not found', () => {
 			const entities = new Map();
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', GameConfig.costs.facilityUpgrade(2))]);
 			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('nonexistent-facility');
@@ -124,7 +127,8 @@ describe('UpgradeFacilityAction', () => {
 		it('should return FacilityUpgraded event when facility exists', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]);
 			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('facility-1');
@@ -141,7 +145,7 @@ describe('UpgradeFacilityAction', () => {
 	describe('requirement evaluation', () => {
 		it('should fail requirement when facility not found', () => {
 			const entities = new Map();
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', GameConfig.costs.facilityUpgrade(2))]);
 			const context: RequirementContext = {
 				entities,
 				resources,
@@ -162,7 +166,8 @@ describe('UpgradeFacilityAction', () => {
 		it('should fail requirement when insufficient gold', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 50)]); // Not enough for tier 2 (200)
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost - 50)]); // Not enough for tier 2
 			const context: RequirementContext = {
 				entities,
 				resources,
@@ -180,7 +185,8 @@ describe('UpgradeFacilityAction', () => {
 		it('should pass requirements when facility exists and has enough gold', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]); // Enough for tier 2
+			const upgradeCost = GameConfig.costs.facilityUpgrade(2);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]); // Enough for tier 2
 			const context: RequirementContext = {
 				entities,
 				resources,
@@ -197,7 +203,8 @@ describe('UpgradeFacilityAction', () => {
 		it('should fail requirement when facility tier mismatch', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 2 }); // Tier 2, but we expect tier 1
 			const entities = new Map([[facility.id, facility]]);
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 300)]); // Enough for tier 3
+			const upgradeCost = GameConfig.costs.facilityUpgrade(3);
+			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', upgradeCost)]); // Enough for tier 3
 			const context: RequirementContext = {
 				entities,
 				resources,

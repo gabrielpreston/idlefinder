@@ -5,4 +5,6 @@ export * from './Duration';
 export * from './ResourceUnit';
 export * from './ResourceBundle';
 export * from './NumericStatMap';
+export * from './MissionAssignment';
+export * from './MissionAllocation';
 

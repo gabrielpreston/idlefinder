@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { Item } from './Item';
 import { Identifier } from '../valueObjects/Identifier';
 import { NumericStatMap } from '../valueObjects/NumericStatMap';
+import { GameConfig } from '../config/GameConfig';
 
 function createTestItem(overrides?: {
 	durability?: number;
@@ -19,8 +20,8 @@ function createTestItem(overrides?: {
 			itemType: 'weapon',
 			rarity: 'common',
 			stats: NumericStatMap.fromMap(new Map([['attackBonus', 1]])),
-			durability: overrides?.durability ?? 100,
-			maxDurability: overrides?.maxDurability ?? 100,
+			durability: overrides?.durability ?? GameConfig.items.maxDurability,
+			maxDurability: overrides?.maxDurability ?? GameConfig.items.maxDurability,
 			baseValue: 10
 		},
 		[],
@@ -35,7 +36,7 @@ describe('Item', () => {
 		it('should create valid item', () => {
 			const item = createTestItem();
 			expect(item.type).toBe('Item');
-			expect(item.attributes.durability).toBe(100);
+			expect(item.attributes.durability).toBe(GameConfig.items.maxDurability);
 			expect(item.state).toBe('InArmory');
 		});
 
@@ -102,7 +103,7 @@ describe('Item', () => {
 
 			item.repair();
 
-			expect(item.attributes.durability).toBe(100);
+			expect(item.attributes.durability).toBe(GameConfig.items.maxDurability);
 		});
 
 		it('should transition Broken item to InArmory when repaired', () => {
@@ -110,12 +111,12 @@ describe('Item', () => {
 
 			item.repair();
 
-			expect(item.attributes.durability).toBe(100);
+			expect(item.attributes.durability).toBe(GameConfig.items.maxDurability);
 			expect(item.state).toBe('InArmory');
 		});
 
 		it('should throw error when item is already at full durability', () => {
-			const item = createTestItem({ durability: 100 });
+			const item = createTestItem({ durability: GameConfig.items.maxDurability });
 
 			expect(() => item.repair()).toThrow('Item is already at full durability');
 		});

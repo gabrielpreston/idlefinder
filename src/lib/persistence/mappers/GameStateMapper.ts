@@ -208,10 +208,11 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
 	} else if (dto.type === 'ResourceSlot') {
 		const attributes: ResourceSlotAttributes = {
 			facilityId: (dto.attributes.facilityId as string) || '',
-			resourceType: (dto.attributes.resourceType as 'gold' | 'materials') || 'gold',
+			resourceType: (dto.attributes.resourceType as 'gold' | 'materials' | 'durationModifier') || 'gold',
 			baseRatePerMinute: (dto.attributes.baseRatePerMinute as number) || 6,
 			assigneeType: (dto.attributes.assigneeType as 'player' | 'adventurer' | 'none') || 'none',
-			assigneeId: (dto.attributes.assigneeId as string | null) || null
+			assigneeId: (dto.attributes.assigneeId as string | null) || null,
+			fractionalAccumulator: (dto.attributes.fractionalAccumulator as number) ?? (dto.metadata?.fractionalAccumulator as number) ?? 0
 		};
 		const id = Identifier.from<'SlotId'>(dto.id);
 		const timers = deserializeTimers(dto.timers || {});

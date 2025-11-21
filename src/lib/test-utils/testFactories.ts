@@ -27,6 +27,7 @@ import { AutoEquipRules } from '../domain/entities/AutoEquipRules';
 import { CraftingQueue } from '../domain/entities/CraftingQueue';
 import { ResourceSlot } from '../domain/entities/ResourceSlot';
 import type { ResourceSlotAttributes } from '../domain/attributes/ResourceSlotAttributes';
+import type { ResourceSlotState } from '../domain/states/ResourceSlotState';
 import { GameConfig } from '../domain/config/GameConfig';
 
 // ============================================================================
@@ -76,7 +77,8 @@ export function createEmptyTestGameState(overrides?: {
 			resourceType: 'gold',
 			baseRatePerMinute: GameConfig.resourceGeneration.initialGoldRatePerMinute,
 			assigneeType: 'player',
-			assigneeId: null
+			assigneeId: null,
+			fractionalAccumulator: 0
 		};
 		const goldSlot = new ResourceSlot(
 			goldSlotId,
@@ -255,6 +257,44 @@ export function createTestFacility(overrides?: {
 		'Online',
 		{}, // timers (Record, not Map)
 		{ name: overrides?.name || 'Test Facility' }
+	);
+}
+
+/**
+ * Create test ResourceSlot entity with optional overrides
+ */
+export function createTestResourceSlot(overrides?: {
+	id?: string;
+	facilityId?: string;
+	resourceType?: 'gold' | 'materials' | 'durationModifier';
+	assigneeType?: 'player' | 'adventurer' | 'none';
+	baseRatePerMinute?: number;
+	lastTickAt?: Timestamp;
+}): ResourceSlot {
+	const id = Identifier.from<'SlotId'>(overrides?.id || crypto.randomUUID());
+	const attributes: ResourceSlotAttributes = {
+		facilityId: overrides?.facilityId || 'facility-1',
+		resourceType: overrides?.resourceType || 'gold',
+		baseRatePerMinute: overrides?.baseRatePerMinute ?? 6,
+		assigneeType: overrides?.assigneeType || 'none',
+		assigneeId: null,
+		fractionalAccumulator: 0
+	};
+	
+	const timers: Record<string, number | null> = {};
+	if (overrides?.lastTickAt) {
+		timers.lastTickAt = overrides.lastTickAt.value;
+	}
+	
+	const state: ResourceSlotState = attributes.assigneeType === 'none' ? 'available' : 'occupied';
+	
+	return new ResourceSlot(
+		id,
+		attributes,
+		[],
+		state,
+		timers,
+		{}
 	);
 }
 

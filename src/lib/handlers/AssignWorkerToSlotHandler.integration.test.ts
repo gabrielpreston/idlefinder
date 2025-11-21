@@ -30,7 +30,8 @@ describe('AssignWorkerToSlotHandler Integration', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'none',
-					assigneeId: null
+					assigneeId: null,
+					fractionalAccumulator: 0
 				},
 				[],
 				'available',
@@ -63,7 +64,8 @@ describe('AssignWorkerToSlotHandler Integration', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'none',
-					assigneeId: null
+					assigneeId: null,
+					fractionalAccumulator: 0
 				},
 				[],
 				'available',
@@ -110,7 +112,8 @@ describe('AssignWorkerToSlotHandler Integration', () => {
 					resourceType: 'gold',
 					baseRatePerMinute: 10,
 					assigneeType: 'none',
-					assigneeId: null
+					assigneeId: null,
+					fractionalAccumulator: 0
 				},
 				[],
 				'available',

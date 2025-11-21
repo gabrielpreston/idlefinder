@@ -25,9 +25,10 @@ import {
 	type StatusSummary
 } from '../domain/queries/RosterQueries';
 import type { Capacity } from '../domain/queries/Capacity';
-import { getGuildHallTier, isGuildHallRuined, getGuildHall } from '../domain/queries/FacilityQueries';
+import { getGuildHallTier, isGuildHallRuined, getGuildHall, getFacilityCounts } from '../domain/queries/FacilityQueries';
+import { canBuildFacility } from '../domain/queries/UnlockQueries';
 import { getAdventurerCount, hasAnyAdventurers, isFirstAdventurer } from '../domain/queries/AdventurerQueries';
-import { getPlayerAssignedSlots, hasOddJobsAvailable, getOddJobsGoldRate } from '../domain/queries/FacilityEffectQueries';
+import { getPlayerAssignedSlots, hasOddJobsAvailable, getOddJobsGoldRate, getTrainingMultiplier, getResourceGenerationRates } from '../domain/queries/FacilityEffectQueries';
 import { isAdventurersPanelUnlocked, isMissionsPanelUnlocked, isMissionsPanelFunctional, isFacilitiesPanelUnlocked, isEquipmentPanelUnlocked, isCraftingPanelUnlocked, isDoctrinePanelUnlocked } from '../domain/queries/UIGatingQueries';
 // Ensure gates are registered when store module loads
 import '../domain/gating';
@@ -38,6 +39,8 @@ import { getGateProgress, getGateStatus } from '../domain/gating/GateQueries';
 import { gateRegistry } from '../domain/gating/GateRegistry';
 import type { GateId } from '../domain/gating/GateDefinition';
 import { getMissionStatistics, getRecentCompletions, type MissionStatistics } from '../domain/queries/MissionStatisticsQueries';
+import { getAllActiveTimers } from '../domain/queries/TimerQueries';
+import { gameTime } from './time/timeSource';
 
 /**
  * Game state store - reactive wrapper around runtime's gameState
@@ -49,9 +52,19 @@ function createGameStateStore() {
 	return {
 		subscribe,
 		initialize: (rt: GameRuntime) => {
+			if (!rt) {
+				throw new Error('GameRuntime cannot be null when initializing gameState store');
+			}
+			if (!rt.gameState) {
+				throw new Error('GameRuntime.gameState cannot be null');
+			}
 			runtime = rt;
 			// Use runtime's gameState store
 			const unsubscribe = rt.gameState.subscribe((state: GameState) => {
+				if (!state) {
+					console.warn('gameState store received null state - this should not happen');
+					return;
+				}
 				set(state);
 			});
 			// Store unsubscribe in runtime's destroy (will be called on cleanup)
@@ -62,9 +75,10 @@ function createGameStateStore() {
 			};
 		},
 		refresh: () => {
-			if (runtime) {
-				set(runtime.busManager.getState());
+			if (!runtime) {
+				return; // Gracefully handle null runtime
 			}
+			set(runtime.busManager.getState());
 		}
 	};
 }
@@ -102,6 +116,27 @@ export const facilities: Readable<Facility[]> = derived(
 	($state) => {
 		if (!$state) return [];
 		return EntityQueryBuilder.byType<Facility>('Facility')($state);
+	}
+);
+
+export const missionSlotCapacity: Readable<import('../domain/queries/Capacity').Capacity> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return { current: 0, max: 0, available: 0, utilization: 0 };
+		return getMissionSlotCapacity($state);
+	}
+);
+
+export const availableFacilities: Readable<string[]> = derived(
+	[gameState, facilities],
+	([$state, $facilities]) => {
+		if (!$state) return [];
+		const facilityTypes = ['Dormitory', 'MissionCommand', 'TrainingGrounds', 'ResourceDepot'];
+		return facilityTypes.filter(type => {
+			const exists = $facilities.some(f => f.attributes.facilityType === type);
+			const unlocked = canBuildFacility(type, $state);
+			return unlocked && !exists;
+		});
 	}
 );
 
@@ -402,5 +437,65 @@ export const completedMissionCount: Readable<number> = derived(
 export const availableMissionCount: Readable<number> = derived(
 	missionStatistics,
 	($stats) => $stats?.available ?? 0
+);
+
+// Resource stores - individual resource accessors
+export const gold: Readable<number> = derived(
+	gameState,
+	($state) => $state?.resources?.get('gold') ?? 0
+);
+
+export const fame: Readable<number> = derived(
+	gameState,
+	($state) => $state?.resources?.get('fame') ?? 0
+);
+
+export const materials: Readable<number> = derived(
+	gameState,
+	($state) => $state?.resources?.get('materials') ?? 0
+);
+
+// Facility counts store
+export const facilityCounts: Readable<Record<string, number>> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return {};
+		return getFacilityCounts($state);
+	}
+);
+
+// Training multiplier store
+export const trainingMultiplier: Readable<number> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return 1.0;
+		return getTrainingMultiplier($state);
+	}
+);
+
+// Resource generation rates store
+export const resourceGenerationRates: Readable<Record<string, number>> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return {};
+		const rates = getResourceGenerationRates($state);
+		// Filter out any NaN or invalid values as final safety check
+		const validRates: Record<string, number> = {};
+		for (const [resourceType, rate] of Object.entries(rates)) {
+			if (typeof rate === 'number' && !isNaN(rate) && isFinite(rate) && rate > 0) {
+				validRates[resourceType] = rate;
+			}
+		}
+		return validRates;
+	}
+);
+
+// Active timers for Dashboard
+export const activeTimers: Readable<import('../domain/queries/TimerQueries').TimerInfo[]> = derived(
+	[gameState, gameTime.now],
+	([$state, now]) => {
+		if (!$state) return [];
+		return getAllActiveTimers($state, now);
+	}
 );
 

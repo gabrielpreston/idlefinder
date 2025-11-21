@@ -11,6 +11,7 @@ import type { Mission } from '../entities/Mission';
 import { EntityQueryBuilder } from './EntityQueryBuilder';
 import { CapacityQueryBuilder } from './CapacityQueryBuilder';
 import type { Capacity } from './Capacity';
+import { GameConfig } from '../config/GameConfig';
 
 /**
  * Get maximum mission slots from MissionCommand facilities
@@ -28,10 +29,9 @@ export function getMaxMissionSlots(state: GameState): number {
 	
 	for (const facility of facilities) {
 		if (facility.attributes.facilityType === 'MissionCommand') {
-			const effects = facility.getActiveEffects();
-			if (effects.maxActiveMissions !== undefined) {
-				maxSlots = effects.maxActiveMissions;
-			}
+			// Add tier bonus (not full effect, which includes baseCapacity)
+			// Per comment: "Base capacity is 1 (from Guildhall), plus MissionCommand tier bonuses"
+			maxSlots += GameConfig.facilityScaling.missionCommandSlotBonus(facility.attributes.tier);
 		}
 	}
 	

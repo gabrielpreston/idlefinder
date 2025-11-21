@@ -7,12 +7,28 @@ import type { ResourceMap } from '../primitives/Event';
  */
 export class ResourceBundle {
 	constructor(private resources: Map<string, number>) {
-		// Validate no negative amounts
+		// Validate all amounts are non-negative and finite
 		for (const [resourceType, amount] of resources.entries()) {
 			if (amount < 0) {
 				throw new Error(`Resource amount cannot be negative: ${resourceType} = ${amount}`);
 			}
+			if (!isFinite(amount)) {
+				throw new Error(`Resource amount must be finite: ${resourceType} = ${amount}`);
+			}
 		}
+	}
+
+	/**
+	 * Check if this resource bundle is valid
+	 * All amounts must be non-negative and finite
+	 */
+	isValid(): boolean {
+		for (const amount of this.resources.values()) {
+			if (amount < 0 || !isFinite(amount)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

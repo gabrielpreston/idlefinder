@@ -14,6 +14,7 @@ import type { CraftingJobAttributes } from '../attributes/CraftingJobAttributes'
 import { Item } from '../entities/Item';
 import { applyEffects } from '../primitives/Effect';
 import { NumericStatMap } from '../valueObjects/NumericStatMap';
+import { GameConfig } from '../config/GameConfig';
 
 function createTestCraftingJob(overrides?: {
 	id?: string;
@@ -199,8 +200,8 @@ describe('CompleteCraftingAction', () => {
 					itemType: 'weapon',
 					rarity: 'common',
 					stats: NumericStatMap.fromMap(new Map([['attackBonus', 1]])),
-					durability: 100,
-					maxDurability: 100,
+					durability: GameConfig.items.maxDurability,
+					maxDurability: GameConfig.items.maxDurability,
 					baseValue: 50
 				},
 				['common', 'weapon'],

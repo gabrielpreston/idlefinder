@@ -10,6 +10,7 @@ import { Item } from '../domain/entities/Item';
 import { Identifier } from '../domain/valueObjects/Identifier';
 import { NumericStatMap } from '../domain/valueObjects/NumericStatMap';
 import type { Entity } from '../domain/primitives/Requirement';
+import { GameConfig } from '../domain/config/GameConfig';
 
 function createTestItem(id: string): Item {
 	const itemId = Identifier.from<'ItemId'>(id);
@@ -20,7 +21,7 @@ function createTestItem(id: string): Item {
 			rarity: 'common',
 			stats: NumericStatMap.fromMap(new Map([['attackBonus', 1]])),
 			durability: 0,
-			maxDurability: 100,
+			maxDurability: GameConfig.items.maxDurability,
 			baseValue: 10
 		},
 		[],

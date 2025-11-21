@@ -19,21 +19,34 @@ describe('MissionSlotQueries', () => {
 			expect(getMaxMissionSlots(state)).toBe(1);
 		});
 
-		it('should return capacity from MissionCommand effects', () => {
+		it('should return base capacity plus tier bonus from MissionCommand', () => {
 			const missionCommand = createTestFacility({ facilityType: 'MissionCommand', tier: 1 });
-			missionCommand.getActiveEffects = () => ({ maxActiveMissions: 3 });
 			const entities = new Map<string, Entity>([[missionCommand.id, missionCommand]]);
 			const state = createTestGameState({ entities });
 
-			expect(getMaxMissionSlots(state)).toBe(3);
+			// Base (1) + tier 1 bonus (1) = 2
+			expect(getMaxMissionSlots(state)).toBe(2);
 		});
 
-		it('should use base capacity when MissionCommand has no maxActiveMissions effect', () => {
-			const missionCommand = createTestFacility({ facilityType: 'MissionCommand' });
-			missionCommand.getActiveEffects = () => ({});
+		it('should sum tier bonuses from multiple MissionCommand facilities', () => {
+			const missionCommand1 = createTestFacility({ facilityType: 'MissionCommand', tier: 1 });
+			const missionCommand2 = createTestFacility({ facilityType: 'MissionCommand', tier: 2 });
+			const entities = new Map<string, Entity>([
+				[missionCommand1.id, missionCommand1],
+				[missionCommand2.id, missionCommand2]
+			]);
+			const state = createTestGameState({ entities });
+
+			// Base (1) + tier 1 bonus (1) + tier 2 bonus (2) = 4
+			expect(getMaxMissionSlots(state)).toBe(4);
+		});
+
+		it('should add tier bonus even for tier 0 facilities', () => {
+			const missionCommand = createTestFacility({ facilityType: 'MissionCommand', tier: 0 });
 			const entities = new Map<string, Entity>([[missionCommand.id, missionCommand]]);
 			const state = createTestGameState({ entities });
 
+			// Base (1) + tier 0 bonus (0) = 1
 			expect(getMaxMissionSlots(state)).toBe(1);
 		});
 	});
@@ -74,8 +87,7 @@ describe('MissionSlotQueries', () => {
 		});
 
 		it('should return correct available slots', () => {
-			const missionCommand = createTestFacility({ facilityType: 'MissionCommand' });
-			missionCommand.getActiveEffects = () => ({ maxActiveMissions: 3 });
+			const missionCommand = createTestFacility({ facilityType: 'MissionCommand', tier: 2 });
 			const mission = createTestMission({ id: 'mission-1', state: 'InProgress' });
 			const entities = new Map<string, Entity>([
 				[missionCommand.id, missionCommand],
@@ -83,6 +95,7 @@ describe('MissionSlotQueries', () => {
 			]);
 			const state = createTestGameState({ entities });
 
+			// Base (1) + tier 2 bonus (2) = 3 max, minus 1 active = 2 available
 			expect(getAvailableMissionSlots(state)).toBe(2);
 		});
 
@@ -123,8 +136,7 @@ describe('MissionSlotQueries', () => {
 		});
 
 		it('should return capacity with correct utilization', () => {
-			const missionCommand = createTestFacility({ facilityType: 'MissionCommand' });
-			missionCommand.getActiveEffects = () => ({ maxActiveMissions: 4 });
+			const missionCommand = createTestFacility({ facilityType: 'MissionCommand', tier: 3 });
 			const mission = createTestMission({ id: 'mission-1', state: 'InProgress' });
 			const entities = new Map<string, Entity>([
 				[missionCommand.id, missionCommand],
@@ -134,6 +146,7 @@ describe('MissionSlotQueries', () => {
 
 			const capacity = getMissionSlotCapacity(state);
 
+			// Base (1) + tier 3 bonus (3) = 4 max
 			expect(capacity.current).toBe(1);
 			expect(capacity.max).toBe(4);
 			expect(capacity.available).toBe(3);

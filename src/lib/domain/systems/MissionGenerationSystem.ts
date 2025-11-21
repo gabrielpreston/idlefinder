@@ -6,6 +6,7 @@
 import { Mission } from '../entities/Mission';
 import { Identifier } from '../valueObjects/Identifier';
 import { Duration } from '../valueObjects/Duration';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { MissionAttributes } from '../attributes/MissionAttributes';
 import type { RoleKey } from '../attributes/RoleKey';
 import type { GameState } from '../entities/GameState';
@@ -93,9 +94,10 @@ function generateMissionName(missionType: string, tier: number): string {
  * 
  * @param state GameState to query unlocked tiers
  * @param countPerTier Number of missions to generate per unlocked tier (default: 3)
+ * @param expiresAt Optional expiration timestamp for generated missions
  * @returns Array of Mission entities with state: 'Available'
  */
-export function generateMissionPool(state: GameState, countPerTier: number = 3): Mission[] {
+export function generateMissionPool(state: GameState, countPerTier: number = 3, expiresAt?: Timestamp): Mission[] {
 	const missions: Mission[] = [];
 	
 	// Get unlocked tiers
@@ -152,13 +154,19 @@ export function generateMissionPool(state: GameState, countPerTier: number = 3):
 				maxPartySize: 1
 			};
 			
+			// Create timers object with optional expiresAt
+			const timers: Record<string, number | null> = {};
+			if (expiresAt) {
+				timers['expiresAt'] = expiresAt.value; // Store as milliseconds
+			}
+
 			// Create Mission entity
 			const mission = new Mission(
 				id,
 				attributes,
 				[], // No tags initially
 				'Available', // Available state
-				{}, // No timers (missions start when assigned)
+				timers,
 				{ name: missionName } // Store name in metadata
 			);
 			

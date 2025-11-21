@@ -1,29 +1,26 @@
 /**
- * Doctrine Engine - Pure function for selecting missions based on doctrine
+ * Doctrine Engine - Pure function for allocating missions based on doctrine
  * Per docs/current/09-mission-system.md: Doctrine-driven selection
  */
 
 import type { Mission } from '../entities/Mission';
 import type { MissionDoctrine } from '../entities/MissionDoctrine';
 import type { Adventurer } from '../entities/Adventurer';
-
-export interface MissionSelection {
-	mission: Mission;
-	adventurers: Adventurer[];
-	score: number;
-}
+import { MissionAllocation } from '../valueObjects/MissionAllocation';
+import { MissionAssignment } from '../valueObjects/MissionAssignment';
 
 /**
- * Doctrine Engine - Scores and selects missions based on doctrine
- * Per plan Phase 4.2: Pure function that returns mission selection
+ * Doctrine Engine - Allocates missions based on doctrine using greedy algorithm
+ * Returns optimal allocation of missions to adventurers
  */
-export function selectMissionByDoctrine(
+export function allocateMissionsByDoctrine(
 	availableMissions: Mission[],
 	availableAdventurers: Adventurer[],
-	doctrine: MissionDoctrine
-): MissionSelection | null {
-	if (availableMissions.length === 0 || availableAdventurers.length === 0) {
-		return null;
+	doctrine: MissionDoctrine,
+	maxAssignments: number // Available slots
+): MissionAllocation {
+	if (availableMissions.length === 0 || availableAdventurers.length === 0 || maxAssignments <= 0) {
+		return MissionAllocation.empty();
 	}
 
 	// Filter missions by doctrine preferences
@@ -42,32 +39,70 @@ export function selectMissionByDoctrine(
 	});
 
 	if (filteredMissions.length === 0) {
-		return null;
+		return MissionAllocation.empty();
 	}
 
-	// Score missions based on doctrine
-	const scoredMissions = filteredMissions.map((mission) => ({
-		mission,
-		score: scoreMission(mission, doctrine)
-	}));
-
-	// Sort by score (highest first)
-	scoredMissions.sort((a, b) => b.score - a.score);
-	const bestMission = scoredMissions[0].mission;
-
-	// Select best available adventurer(s) for mission
-	// MVP: Single adventurer per mission
-	const bestAdventurer = selectBestAdventurer(bestMission, availableAdventurers);
-
-	if (!bestAdventurer) {
-		return null;
+	// Filter to idle adventurers only
+	const idleAdventurers = availableAdventurers.filter((a) => a.state === 'Idle');
+	if (idleAdventurers.length === 0) {
+		return MissionAllocation.empty();
 	}
 
-	return {
-		mission: bestMission,
-		adventurers: [bestAdventurer],
-		score: scoredMissions[0].score
-	};
+	// Generate all valid mission-adventurer pairs with combined scores
+	const pairs: Array<{mission: Mission, adventurer: Adventurer, score: number}> = [];
+	
+	for (const mission of filteredMissions) {
+		const missionScore = scoreMission(mission, doctrine);
+		
+		for (const adventurer of idleAdventurers) {
+			const adventurerScore = scoreAdventurerForMission(adventurer, mission);
+			
+			// Skip invalid scores (non-idle adventurers)
+			if (adventurerScore < 0) {
+				continue;
+			}
+			
+			const totalScore = missionScore + adventurerScore;
+			pairs.push({ mission, adventurer, score: totalScore });
+		}
+	}
+
+	// Sort pairs by total score (highest first)
+	pairs.sort((a, b) => b.score - a.score);
+
+	// Greedily assign highest-scoring pairs, avoiding conflicts
+	let allocation = MissionAllocation.empty();
+	const usedMissions = new Set<string>();
+	const usedAdventurers = new Set<string>();
+
+	for (const pair of pairs) {
+		if (allocation.getCount() >= maxAssignments) {
+			break;
+		}
+		
+		// Skip if mission or adventurer already assigned
+		if (usedMissions.has(pair.mission.id) || usedAdventurers.has(pair.adventurer.id)) {
+			continue;
+		}
+		
+		// Create assignment and add to allocation
+		const assignment = MissionAssignment.create(
+			pair.mission.id,
+			pair.adventurer.id,
+			pair.score
+		);
+		
+		// Add assignment (returns new allocation if successful, same if conflict)
+		const newAllocation = allocation.add(assignment);
+		// Check if assignment was actually added (no conflict)
+		if (newAllocation.getCount() > allocation.getCount()) {
+			allocation = newAllocation;
+			usedMissions.add(pair.mission.id);
+			usedAdventurers.add(pair.adventurer.id);
+		}
+	}
+
+	return allocation;
 }
 
 /**
@@ -108,38 +143,26 @@ function scoreMission(mission: Mission, doctrine: MissionDoctrine): number {
 }
 
 /**
- * Select best adventurer for mission
+ * Score adventurer for a specific mission
+ * Extracted from selectBestAdventurer() for reuse in greedy algorithm
  */
-function selectBestAdventurer(
-	mission: Mission,
-	availableAdventurers: Adventurer[]
-): Adventurer | null {
-	if (availableAdventurers.length === 0) {
-		return null;
+function scoreAdventurerForMission(
+	adventurer: Adventurer,
+	mission: Mission
+): number {
+	// Only score idle adventurers
+	if (adventurer.state !== 'Idle') {
+		return -1; // Invalid score for non-idle adventurers
 	}
-
-	// Filter to idle adventurers
-	const idleAdventurers = availableAdventurers.filter((a) => a.state === 'Idle');
-	if (idleAdventurers.length === 0) {
-		return null;
-	}
-
-	// Score adventurers based on mission requirements
-	const scoredAdventurers = idleAdventurers.map((adventurer) => {
-		let score = 0;
-		const primaryAbility = mission.attributes.primaryAbility || 'str';
-		
-		// Score based on primary ability
-		score += adventurer.attributes.abilityMods.get(primaryAbility) || 0;
-		
-		// Score based on level
-		score += adventurer.attributes.level * 10;
-
-		return { adventurer, score };
-	});
-
-	// Sort by score (highest first)
-	scoredAdventurers.sort((a, b) => b.score - a.score);
-	return scoredAdventurers[0].adventurer;
+	
+	let score = 0;
+	const primaryAbility = mission.attributes.primaryAbility || 'str';
+	
+	// Score based on primary ability
+	score += adventurer.attributes.abilityMods.get(primaryAbility) || 0;
+	
+	// Score based on level
+	score += adventurer.attributes.level * 10;
+	
+	return score;
 }
-

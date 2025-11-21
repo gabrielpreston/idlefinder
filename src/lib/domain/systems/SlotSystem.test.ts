@@ -23,7 +23,8 @@ function createTestResourceSlot(overrides?: {
 		resourceType: overrides?.resourceType || 'gold',
 		baseRatePerMinute: 6,
 		assigneeType: 'none',
-		assigneeId: null
+		assigneeId: null,
+		fractionalAccumulator: 0
 	};
 	return new ResourceSlot(id, attributes, [], 'available', {}, {});
 }

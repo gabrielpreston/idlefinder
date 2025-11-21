@@ -28,7 +28,7 @@ export const GameConfig = {
 	 * Reference: GameStateFactory.ts:31-34
 	 */
 	startingResources: {
-		gold: 150,
+		gold: 550,
 		fame: 0,
 		materials: 0
 	},
@@ -82,7 +82,24 @@ export const GameConfig = {
 		 * @param tier Target tier (current tier + 1)
 		 * @returns Cost in gold
 		 */
-		facilityUpgrade: (tier: number): number => tier * 100
+		facilityUpgrade: (tier: number): number => tier * 100,
+		
+		/**
+		 * Facility construction cost by type
+		 * Reference: docs/current/21-facility-data-tables.md (construction costs)
+		 * 
+		 * @param facilityType Facility type to construct
+		 * @returns Cost in gold
+		 */
+		facilityConstruction: (facilityType: string): number => {
+			const costs: Record<string, number> = {
+				Dormitory: 100,
+				MissionCommand: 150,
+				TrainingGrounds: 200,
+				ResourceDepot: 100
+			};
+			return costs[facilityType] || 100;
+		}
 	},
 
 	// ============================================
@@ -242,6 +259,39 @@ export const GameConfig = {
 			if (tier === 0) return 30; // Tier 0 minimum: 30 seconds
 			return 30 * tier;
 		}
+	},
+
+	// ============================================
+	// Mission Pool Management
+	// ============================================
+	/**
+	 * Mission pool management configuration
+	 * Controls periodic generation and expiration of missions
+	 */
+	missionPool: {
+		/**
+		 * Time between generation checks in seconds
+		 * Default: 60 seconds (1 minute)
+		 */
+		generationCadenceSeconds: 60,
+
+		/**
+		 * Target number of available missions per unlocked tier
+		 * Default: 5 missions per tier
+		 */
+		targetPoolSizePerTier: 5,
+
+		/**
+		 * Age in seconds before a mission expires
+		 * Default: 300 seconds (5 minutes)
+		 */
+		expirationAgeSeconds: 300,
+
+		/**
+		 * Maximum number of missions to generate per cycle
+		 * Default: 2 missions per generation cycle
+		 */
+		generationBatchSize: 2
 	},
 
 	// ============================================
