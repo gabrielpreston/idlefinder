@@ -16,6 +16,8 @@ import { CraftingQueue } from './CraftingQueue';
 import { ResourceSlot } from './ResourceSlot';
 import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
 import { GameConfig } from '../config/GameConfig';
+import { generateRecruitPool } from '../systems/RecruitPoolSystem';
+import { generateMissionPool } from '../systems/MissionGenerationSystem';
 
 /**
  * Create initial GameState with default facilities
@@ -88,6 +90,20 @@ export function createInitialGameState(
 	const craftingQueueId = Identifier.generate<'CraftingQueueId'>();
 	const craftingQueue = CraftingQueue.createDefault(craftingQueueId);
 	entities.set(craftingQueue.id, craftingQueue);
+
+	// Generate initial recruit pool (4 preview adventurers)
+	const previewAdventurers = generateRecruitPool(4);
+	for (const previewAdventurer of previewAdventurers) {
+		entities.set(previewAdventurer.id, previewAdventurer);
+	}
+
+	// Generate initial mission pool (3 missions per unlocked tier)
+	// Create temporary GameState to query unlocked tiers
+	const tempState = new GameState(playerId, lastPlayed, entities, resources);
+	const initialMissions = generateMissionPool(tempState, 3);
+	for (const mission of initialMissions) {
+		entities.set(mission.id, mission);
+	}
 
 	return new GameState(playerId, lastPlayed, entities, resources);
 }

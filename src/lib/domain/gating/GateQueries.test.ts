@@ -47,7 +47,9 @@ describe('GateQueries', () => {
 		});
 
 		it('should return null when gate becomes unlocked', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
+			// mission_tier_2 requires 100 fame
+			const missionTier2Threshold = 100;
+			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', missionTier2Threshold)]);
 			const stateWithFame = createTestGameState({ resources });
 
 			const reason = getGateUnlockReason('mission_tier_2', stateWithFame);
@@ -89,18 +91,22 @@ describe('GateQueries', () => {
 		});
 
 		it('should calculate progress correctly with partial fame', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 50)]);
+			// mission_tier_2 requires 100 fame, we have 50, so progress should be 0.5
+			const missionTier2Threshold = 100;
+			const currentFame = 50;
+			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', currentFame)]);
 			const stateWithFame = createTestGameState({ resources });
 
-			// Tier 2 requires 100 fame, we have 50, so progress should be 0.5
 			const progress = getGateProgress('mission_tier_2', stateWithFame);
 			expect(progress).toBeGreaterThan(0);
 			expect(progress).toBeLessThan(1);
-			expect(progress).toBeCloseTo(0.5, 1);
+			expect(progress).toBeCloseTo(currentFame / missionTier2Threshold, 1);
 		});
 
 		it('should return 1.0 when gate becomes unlocked', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
+			// mission_tier_2 requires 100 fame
+			const missionTier2Threshold = 100;
+			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', missionTier2Threshold)]);
 			const stateWithFame = createTestGameState({ resources });
 
 			const progress = getGateProgress('mission_tier_2', stateWithFame);

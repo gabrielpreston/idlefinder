@@ -6,10 +6,12 @@ import { describe, it, expect } from 'vitest';
 import { StartCraftingAction } from './StartCraftingAction';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
-import type { RequirementContext } from '../primitives/Requirement';
+import type { RequirementContext, Entity } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
 import type { Effect } from '../primitives/Effect';
+import { applyEffects } from '../primitives/Effect';
+import { getTimer } from '../primitives/TimerHelpers';
 import { CraftingJob } from '../entities/CraftingJob';
 import { Identifier } from '../valueObjects/Identifier';
 import type { CraftingJobAttributes } from '../attributes/CraftingJobAttributes';
@@ -56,8 +58,15 @@ describe('StartCraftingAction', () => {
 				startedAt: customStartTime
 			});
 
-			// Should have SetTimerEffect with custom start time
-			expect(effects.length).toBeGreaterThan(0);
+			// Apply effects and verify timer was set (behavioral test)
+			const result = applyEffects(effects, entities, resources);
+			const updatedJob = result.entities.get('job-1');
+			expect(updatedJob).toBeDefined();
+			
+			// Verify timer was set using public API
+			const startedAtTimer = getTimer(updatedJob as Entity & { timers: Record<string, number | null> }, 'startedAt');
+			expect(startedAtTimer).toBeDefined();
+			expect(startedAtTimer?.value).toBe(customStartTime.value);
 		});
 
 		it('should use context.currentTime when startedAt not provided', () => {
@@ -77,8 +86,14 @@ describe('StartCraftingAction', () => {
 			const action = new StartCraftingAction('job-1', Duration.ofMinutes(5));
 			const effects = action.computeEffects(context, {});
 
-			// Should have SetTimerEffect with context time
-			expect(effects.length).toBeGreaterThan(0);
+			// Apply effects and verify timer was set (behavioral test)
+			const result = applyEffects(effects, entities, resources);
+			const updatedJob = result.entities.get('job-1');
+			expect(updatedJob).toBeDefined();
+			
+			// Verify timer was set using public API
+			const startedAtTimer = getTimer(updatedJob as Entity & { timers: Record<string, number | null> }, 'startedAt');
+			expect(startedAtTimer).toBeDefined();
 		});
 
 		it('should use provided duration when given', () => {
@@ -101,8 +116,14 @@ describe('StartCraftingAction', () => {
 				duration: customDuration
 			});
 
-			// Should use custom duration
-			expect(effects.length).toBeGreaterThan(0);
+			// Apply effects and verify completeAt timer reflects custom duration (behavioral test)
+			const result = applyEffects(effects, entities, resources);
+			const updatedJob = result.entities.get('job-1');
+			expect(updatedJob).toBeDefined();
+			
+			// Verify completeAt timer was set
+			const completeAtTimer = getTimer(updatedJob as Entity & { timers: Record<string, number | null> }, 'completeAt');
+			expect(completeAtTimer).toBeDefined();
 		});
 
 		it('should use constructor duration when not provided in params', () => {

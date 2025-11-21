@@ -28,7 +28,7 @@ export const GameConfig = {
 	 * Reference: GameStateFactory.ts:31-34
 	 */
 	startingResources: {
-		gold: 15,
+		gold: 150,
 		fame: 0,
 		materials: 0
 	},
@@ -45,7 +45,7 @@ export const GameConfig = {
 		 * Initial gold generation rate per minute
 		 * Reference: GameStateFactory.ts:62, SlotSystem.ts:44
 		 */
-		initialGoldRatePerMinute: 6,
+		initialGoldRatePerMinute: 30,
 		
 		/**
 		 * Initial base capacity for facilities
@@ -67,6 +67,12 @@ export const GameConfig = {
 		 * Reference: RecruitAdventurerHandler.ts:21, CostQueries.ts:119,129
 		 */
 		recruitAdventurer: 50,
+		
+		/**
+		 * Cost to refresh the recruit pool
+		 * Reference: RefreshRecruitPoolHandler.ts, CostQueries.ts
+		 */
+		refreshRecruitPool: 5,
 		
 		/**
 		 * Facility upgrade cost formula
@@ -161,6 +167,81 @@ export const GameConfig = {
 		 * Reference: TaskResolutionSystem.ts:184
 		 */
 		levelMultiplier: 0.1
+	},
+
+	// ============================================
+	// Mission Generation
+	// ============================================
+	/**
+	 * Mission generation configuration
+	 * Reference: MissionGenerationSystem.ts, 18-mission-data-tables.md
+	 */
+	missionGeneration: {
+		/**
+		 * Calculate mission DC based on tier
+		 * Formula: 10 + (tier * 5)
+		 * Tier 0 uses minimum DC 10
+		 * Reference: 18-mission-data-tables.md:33-44
+		 * 
+		 * @param tier Mission tier (0-5)
+		 * @returns Difficulty class (DC)
+		 */
+		calculateDC: (tier: number): number => {
+			if (tier === 0) return 10; // Tier 0 minimum
+			return 10 + (tier * 5);
+		},
+
+		/**
+		 * Calculate base gold reward based on tier
+		 * Formula: 50 * tier (Tier 0 uses minimum 25)
+		 * Reference: 18-mission-data-tables.md:56-59
+		 * 
+		 * @param tier Mission tier (0-5)
+		 * @returns Base gold reward
+		 */
+		calculateGold: (tier: number): number => {
+			if (tier === 0) return 25; // Tier 0 minimum
+			return 50 * tier;
+		},
+
+		/**
+		 * Calculate base XP reward based on tier
+		 * Formula: 100 * tier (Tier 0 uses minimum 50)
+		 * Reference: 18-mission-data-tables.md:61-64
+		 * 
+		 * @param tier Mission tier (0-5)
+		 * @returns Base XP reward
+		 */
+		calculateXP: (tier: number): number => {
+			if (tier === 0) return 50; // Tier 0 minimum
+			return 100 * tier;
+		},
+
+		/**
+		 * Calculate base fame reward based on tier
+		 * Formula: 10 * tier (Tier 0 uses minimum 5)
+		 * Reference: 18-mission-data-tables.md:66-69
+		 * 
+		 * @param tier Mission tier (0-5)
+		 * @returns Base fame reward
+		 */
+		calculateFame: (tier: number): number => {
+			if (tier === 0) return 5; // Tier 0 minimum
+			return 10 * tier;
+		},
+
+		/**
+		 * Calculate base duration in seconds based on tier
+		 * Formula: 30 seconds * tier (Tier 0 uses minimum 30 seconds)
+		 * Reference: 18-mission-data-tables.md:85-96
+		 * 
+		 * @param tier Mission tier (0-5)
+		 * @returns Base duration in seconds
+		 */
+		calculateDurationSeconds: (tier: number): number => {
+			if (tier === 0) return 30; // Tier 0 minimum: 30 seconds
+			return 30 * tier;
+		}
 	},
 
 	// ============================================

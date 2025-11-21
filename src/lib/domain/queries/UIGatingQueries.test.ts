@@ -11,7 +11,7 @@ import {
 	isFacilitiesPanelUnlocked,
 	getPanelUnlockReason
 } from './UIGatingQueries';
-import { createTestGameState, createTestAdventurer } from '../../test-utils/testFactories';
+import { createTestGameState, createTestAdventurer, createEmptyTestGameState } from '../../test-utils/testFactories';
 import type { GameState } from '../entities/GameState';
 import type { Facility } from '../entities/Facility';
 import type { Entity } from '../primitives/Requirement';
@@ -61,7 +61,8 @@ describe('UIGatingQueries', () => {
 
 	describe('isMissionsPanelFunctional', () => {
 		it('should return false when no adventurers exist', () => {
-			expect(isMissionsPanelFunctional(state)).toBe(false);
+			const emptyState = createEmptyTestGameState();
+			expect(isMissionsPanelFunctional(emptyState)).toBe(false);
 		});
 
 		it('should return true when at least one adventurer exists', () => {
@@ -129,14 +130,15 @@ describe('UIGatingQueries', () => {
 		});
 
 		it('should return functional reason for missions panel when unlocked but no adventurers', () => {
-			const guildhall = Array.from(state.entities.values()).find(
+			const emptyState = createEmptyTestGameState();
+			const guildhall = Array.from(emptyState.entities.values()).find(
 				e => e.type === 'Facility' && (e as import('../entities/Facility').Facility).attributes.facilityType === 'Guildhall'
 			) as import('../entities/Facility').Facility;
 			if (guildhall) {
 				guildhall.upgrade(); // Tier 0 -> 1
 			}
 
-			const reason = getPanelUnlockReason(PANEL_IDS.MISSIONS, state);
+			const reason = getPanelUnlockReason(PANEL_IDS.MISSIONS, emptyState);
 			expect(reason).toBe('Recruit your first adventurer to activate');
 		});
 

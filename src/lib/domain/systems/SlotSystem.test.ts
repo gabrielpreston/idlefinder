@@ -10,6 +10,7 @@ import type { FacilityUpgradedEvent } from '../primitives/Event';
 import { ResourceSlot } from '../entities/ResourceSlot';
 import { Identifier } from '../valueObjects/Identifier';
 import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
+import { GameConfig } from '../config/GameConfig';
 
 function createTestResourceSlot(overrides?: {
 	id?: string;
@@ -79,7 +80,7 @@ describe('SlotSystem', () => {
 			expect(slots).toHaveLength(1);
 			expect(slots[0].attributes.facilityId).toBe(guildhall.id);
 			expect(slots[0].attributes.resourceType).toBe('gold');
-			expect(slots[0].attributes.baseRatePerMinute).toBe(6);
+			expect(slots[0].attributes.baseRatePerMinute).toBe(GameConfig.resourceGeneration.initialGoldRatePerMinute);
 			expect(slots[0].attributes.assigneeType).toBe('none');
 		});
 

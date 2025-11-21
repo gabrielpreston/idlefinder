@@ -1,13 +1,102 @@
 <script lang="ts">
-	import TaskBoard from '../TaskBoard.svelte';
-	import ActiveTasks from '../ActiveTasks.svelte';
+	import { writable } from 'svelte/store';
+	import MissionsOverview from './MissionsOverview.svelte';
+	import MissionToolbar from './MissionToolbar.svelte';
+	import MissionGrid from './MissionGrid.svelte';
+	import MissionList from './MissionList.svelte';
+	import MissionDetailModal from './MissionDetailModal.svelte';
+	import { missions } from '$lib/stores/gameState';
+	import type { Mission } from '$lib/domain/entities/Mission';
+	import type { MissionState } from '$lib/domain/states/MissionState';
+	import type { MissionAttributes } from '$lib/domain/attributes/MissionAttributes';
+
+	type ViewLevel = 'overview' | 'collection' | 'detail';
+	type ViewMode = 'grid' | 'list';
+
+	let currentView: ViewLevel = 'overview';
+	let viewMode: ViewMode = 'grid';
+	let selectedMission = writable<Mission | null>(null);
+	let filters = writable<{
+		state: MissionState | 'all';
+		type: MissionAttributes['missionType'] | 'all';
+		search: string;
+	}>({ state: 'all', type: 'all', search: '' });
+	let sortBy = writable<'state' | 'duration' | 'rewards' | 'difficulty' | 'startTime'>('state');
+
+	function handleMissionClick(mission: Mission) {
+		selectedMission.set(mission);
+		currentView = 'detail';
+	}
+
+	function handleModalClose() {
+		selectedMission.set(null);
+		currentView = 'collection';
+	}
+
+	function handleViewAll() {
+		currentView = 'collection';
+		filters.set({ state: 'all', type: 'all', search: '' });
+	}
+
+	function handleViewState(state: 'Available' | 'InProgress' | 'Completed') {
+		currentView = 'collection';
+		filters.set({ state, type: 'all', search: '' });
+	}
+
+	function toggleViewMode() {
+		viewMode = viewMode === 'grid' ? 'list' : 'grid';
+	}
 </script>
 
 <div class="missions-panel">
 	<h2>Missions</h2>
-	<TaskBoard />
-	<ActiveTasks />
+	
+	{#if currentView === 'overview'}
+		<MissionsOverview 
+			onViewAll={handleViewAll}
+			onViewState={handleViewState}
+		/>
+		<div class="view-actions">
+			<button class="btn-primary" onclick={handleViewAll}>View All Missions</button>
+		</div>
+	{:else if currentView === 'collection'}
+		<div class="collection-header">
+			<button class="btn-back" onclick={() => currentView = 'overview'}>← Back to Overview</button>
+			<button class="btn-toggle-view" onclick={toggleViewMode}>
+				{viewMode === 'grid' ? 'List View' : 'Grid View'}
+			</button>
+		</div>
+		
+		<MissionToolbar 
+			filters={$filters}
+			sortBy={$sortBy}
+			on:filterChange={(e) => filters.set(e.detail)}
+			on:sortChange={(e) => sortBy.set(e.detail)}
+		/>
+		
+		{#if viewMode === 'grid'}
+			<MissionGrid 
+				missions={$missions}
+				filters={$filters}
+				sortBy={$sortBy}
+				onMissionClick={handleMissionClick}
+			/>
+		{:else}
+			<MissionList 
+				missions={$missions}
+				filters={$filters}
+				sortBy={$sortBy}
+				onMissionClick={handleMissionClick}
+			/>
+		{/if}
+	{/if}
 </div>
+
+<MissionDetailModal 
+	mission={$selectedMission}
+	open={$selectedMission !== null}
+	onClose={handleModalClose}
+/>
 
 <style>
 	.missions-panel {
@@ -18,5 +107,63 @@
 		margin-bottom: 1.5rem;
 		font-size: 1.5rem;
 	}
-</style>
 
+	.view-actions {
+		margin-top: 1.5rem;
+		display: flex;
+		justify-content: center;
+	}
+
+	.btn-primary {
+		padding: 0.75rem 1.5rem;
+		background: var(--color-primary, #0066cc);
+		color: white;
+		border: none;
+		border-radius: 4px;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.btn-primary:hover {
+		background: var(--color-primary-dark, #0052a3);
+	}
+
+	.collection-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+	}
+
+	.btn-back {
+		padding: 0.5rem 1rem;
+		background: var(--color-bg-secondary, #f5f5f5);
+		color: var(--color-text-primary, #000);
+		border: 1px solid var(--color-border, #ddd);
+		border-radius: 4px;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.btn-back:hover {
+		background: var(--color-bg-primary, #fff);
+	}
+
+	.btn-toggle-view {
+		padding: 0.5rem 1rem;
+		background: var(--color-bg-secondary, #f5f5f5);
+		color: var(--color-text-primary, #000);
+		border: 1px solid var(--color-border, #ddd);
+		border-radius: 4px;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.btn-toggle-view:hover {
+		background: var(--color-bg-primary, #fff);
+	}
+</style>

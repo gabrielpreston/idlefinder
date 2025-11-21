@@ -60,12 +60,9 @@ Before implementing changes, identify and reuse existing building blocks:
 ### Domain Entities (Compose, Don't Duplicate)
 
 **Core Entities** (from `src/lib/domain/entities/`):
-- **Organization**: Core player entity with progress tracks and economy state
-- **TaskInstance**: Task execution instances (compose from TaskArchetype)
-- **AgentInstance**: Agent entities (compose from AgentTemplate)
-- **ProgressTrack**: Progression tracking (reuse for all track types)
-- **TaskArchetype**: Task templates (reuse pattern for all task types)
-- **FacilityInstance**: Facility entities (compose from FacilityTemplate)
+- **Adventurer**: Core adventurer entity with attributes and state
+- **Mission**: Mission execution instances with duration and rewards
+- **Facility**: Facility entities with bonuses and effects
 
 **Entity Pattern Rules**:
 - Constructor-based initialization (not `Partial<T>` spreads)
@@ -76,11 +73,9 @@ Before implementing changes, identify and reuse existing building blocks:
 ### Domain Systems (Use Existing)
 
 **Core Systems** (from `src/lib/domain/systems/`):
-- **TaskResolutionSystem**: Task completion logic (pure function, no side effects)
-- **EconomySystem**: Resource management (apply costs/rewards)
-- **ProgressionSystem**: Track progression and unlocks
-- **OfferSystem**: Task offer generation
-- **RosterSystem**: Agent management and recovery
+- **MissionDurationModifiers**: Mission duration calculation (pure function, no side effects)
+- **CraftingSystem**: Crafting queue processing
+- **SlotGenerationSystem**: Slot generation logic
 
 **System Pattern Rules**:
 - Pure functions: given inputs, produce outputs (no side effects)

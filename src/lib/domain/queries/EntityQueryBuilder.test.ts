@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { EntityQueryBuilder } from './EntityQueryBuilder';
-import { createTestGameState, createTestAdventurer, createTestMission, createTestFacility } from '../../test-utils/testFactories';
+import { createTestGameState, createTestAdventurer, createTestMission, createTestFacility, createEmptyTestGameState } from '../../test-utils/testFactories';
 import type { Entity } from '../primitives/Requirement';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Mission } from '../entities/Mission';
@@ -32,7 +32,7 @@ describe('EntityQueryBuilder', () => {
 		});
 
 		it('should return empty array when no entities of type exist', () => {
-			const state = createTestGameState();
+			const state = createEmptyTestGameState();
 			const query = EntityQueryBuilder.byType<Adventurer>('Adventurer');
 			const result = query(state);
 

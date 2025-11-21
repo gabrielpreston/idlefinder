@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialGameState } from './GameStateFactory';
 import { Timestamp } from '../valueObjects/Timestamp';
+import { GameConfig } from '../config/GameConfig';
 
 describe('GameStateFactory', () => {
 	describe('createInitialGameState', () => {
@@ -20,8 +21,8 @@ describe('GameStateFactory', () => {
 			const now = Timestamp.now();
 			const state = createInitialGameState('player-1', now);
 
-			expect(state.resources.get('gold')).toBe(15);
-			expect(state.resources.get('fame')).toBe(0);
+			expect(state.resources.get('gold')).toBe(GameConfig.startingResources.gold);
+			expect(state.resources.get('fame')).toBe(GameConfig.startingResources.fame);
 		});
 
 		it('should create Guildhall facility', () => {

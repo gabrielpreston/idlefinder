@@ -10,6 +10,7 @@ import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import type { Effect } from '../primitives/Effect';
+import { applyEffects } from '../primitives/Effect';
 
 describe('UpgradeFacilityAction', () => {
 	describe('getRequirements', () => {
@@ -59,35 +60,52 @@ describe('UpgradeFacilityAction', () => {
 		it('should return effects when facility exists and has enough gold', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 1 });
 			const entities = new Map([[facility.id, facility]]);
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]); // Enough for tier 2
+			const initialResources = ResourceBundle.fromArray([new ResourceUnit('gold', 200)]); // Enough for tier 2
 			const context: RequirementContext = {
 				entities,
-				resources,
+				resources: initialResources,
 				currentTime: Timestamp.now()
 			};
 
 			const action = new UpgradeFacilityAction('facility-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(2);
-			// Should have SetEntityAttributeEffect and ModifyResourceEffect
+			// Apply effects and verify behavior
+			const result = applyEffects(effects, entities, initialResources);
+			
+			// Verify facility tier increased (behavioral)
+			const updatedFacility = result.entities.get('facility-1');
+			expect(updatedFacility).toBeDefined();
+			expect((updatedFacility as any).attributes.tier).toBe(2);
+			
+			// Verify gold was subtracted (behavioral)
+			expect(result.resources.get('gold')).toBeLessThan(200);
 		});
 
 		it('should calculate correct cost for different tiers', () => {
 			const facility = createTestFacility({ id: 'facility-1', tier: 2 });
 			const entities = new Map([[facility.id, facility]]);
 			// Tier 3 costs 300 (3 * 100)
-			const resources = ResourceBundle.fromArray([new ResourceUnit('gold', 300)]);
+			const initialResources = ResourceBundle.fromArray([new ResourceUnit('gold', 300)]);
 			const context: RequirementContext = {
 				entities,
-				resources,
+				resources: initialResources,
 				currentTime: Timestamp.now()
 			};
 
 			const action = new UpgradeFacilityAction('facility-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(2);
+			// Apply effects and verify behavior
+			const result = applyEffects(effects, entities, initialResources);
+			
+			// Verify facility tier increased to 3 (behavioral)
+			const updatedFacility = result.entities.get('facility-1');
+			expect(updatedFacility).toBeDefined();
+			expect((updatedFacility as any).attributes.tier).toBe(3);
+			
+			// Verify gold was subtracted by 300 (behavioral)
+			expect(result.resources.get('gold')).toBe(0);
 		});
 	});
 

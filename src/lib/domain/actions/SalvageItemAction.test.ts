@@ -12,6 +12,7 @@ import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import type { Effect } from '../primitives/Effect';
+import { applyEffects } from '../primitives/Effect';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -56,33 +57,45 @@ describe('SalvageItemAction', () => {
 		it('should calculate yields for common item', () => {
 			const item = createTestItem({ id: 'item-1', rarity: 'common', baseValue: 100 });
 			const entities = new Map([[item.id, item]]);
+			const initialResources = new ResourceBundle(new Map());
 			const context: RequirementContext = {
 				entities,
-				resources: new ResourceBundle(new Map()),
+				resources: initialResources,
 				currentTime: Timestamp.now()
 			};
 
 			const action = new SalvageItemAction('item-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(1);
-			// Common items: 50% materials
+			// Apply effects and verify materials were added (behavioral test)
+			// Common items: 50% materials = 50
+			const result = applyEffects(effects, entities, initialResources);
+			expect(result.resources.get('materials')).toBe(50);
+			
+			// Verify item was removed
+			expect(result.entities.has('item-1')).toBe(false);
 		});
 
 		it('should calculate yields for rare item', () => {
 			const item = createTestItem({ id: 'item-1', rarity: 'rare', baseValue: 100 });
 			const entities = new Map([[item.id, item]]);
+			const initialResources = new ResourceBundle(new Map());
 			const context: RequirementContext = {
 				entities,
-				resources: new ResourceBundle(new Map()),
+				resources: initialResources,
 				currentTime: Timestamp.now()
 			};
 
 			const action = new SalvageItemAction('item-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(1);
-			// Rare items: 60% materials
+			// Apply effects and verify materials were added (behavioral test)
+			// Rare items: 60% materials = 60
+			const result = applyEffects(effects, entities, initialResources);
+			expect(result.resources.get('materials')).toBe(60);
+			
+			// Verify item was removed
+			expect(result.entities.has('item-1')).toBe(false);
 		});
 
 		it('should use provided yields when specified', () => {
@@ -94,28 +107,35 @@ describe('SalvageItemAction', () => {
 				currentTime: Timestamp.now()
 			};
 
-		const action = new SalvageItemAction('item-1', 50);
-		// When materialsAmount is provided in params, it uses that
-		const effects = action.computeEffects(context, {
-			materialsAmount: 50
-		});
+			const action = new SalvageItemAction('item-1', 50);
+			// When materialsAmount is provided in params, it uses that
+			const effects = action.computeEffects(context, {
+				materialsAmount: 50
+			});
 
-			expect(effects.length).toBe(1);
+			// Apply effects and verify materials were added (behavioral test)
+			const initialResources = new ResourceBundle(new Map());
+			const result = applyEffects(effects, entities, initialResources);
+			expect(result.resources.get('materials')).toBe(50);
 		});
 
 		it('should calculate yields when not provided', () => {
 			const item = createTestItem({ id: 'item-1', baseValue: 100 });
 			const entities = new Map([[item.id, item]]);
+			const initialResources = new ResourceBundle(new Map());
 			const context: RequirementContext = {
 				entities,
-				resources: new ResourceBundle(new Map()),
+				resources: initialResources,
 				currentTime: Timestamp.now()
 			};
 
 			const action = new SalvageItemAction('item-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(1);
+			// Apply effects and verify materials were added (behavioral test)
+			// Common item (default): 50% materials = 5 (baseValue 10 * 0.5)
+			const result = applyEffects(effects, entities, initialResources);
+			expect(result.resources.get('materials')).toBeGreaterThan(0);
 		});
 	});
 

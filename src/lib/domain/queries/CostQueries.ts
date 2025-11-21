@@ -132,3 +132,24 @@ export function canAffordRecruitAdventurer(state: GameState): boolean {
 	return currentGold >= cost;
 }
 
+/**
+ * Get recruit pool refresh cost
+ * 
+ * @returns ResourceBundle with gold cost for refreshing the recruit pool
+ */
+export function getRefreshRecruitPoolCost(): ResourceBundle {
+	return ResourceBundle.fromArray([new ResourceUnit('gold', GameConfig.costs.refreshRecruitPool)]);
+}
+
+/**
+ * Check if player can afford to refresh the recruit pool
+ * 
+ * @param state GameState
+ * @returns True if player has enough gold
+ */
+export function canAffordRefreshRecruitPool(state: GameState): boolean {
+	const cost = GameConfig.costs.refreshRecruitPool;
+	const currentGold = state.resources.get('gold') || 0;
+	return currentGold >= cost;
+}
+

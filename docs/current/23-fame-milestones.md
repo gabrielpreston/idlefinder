@@ -68,11 +68,11 @@ FameMilestone = {
 
 | Fame Threshold | Mission Tiers Unlocked |
 |----------------|------------------------|
-| 0              | Tier 1                 |
-| 100            | Tier 2                 |
-| 500            | Tier 3                 |
-| 2000           | Tier 4                 |
-| 10000          | Tier 5                 |
+| 0              | Tier 0                 |
+| 100            | Tier 1                 |
+| 500            | Tier 2                 |
+| 2000           | Tier 3                 |
+| 10000          | Tier 4, Tier 5         |
 
 ### Facility Tier Unlocks
 

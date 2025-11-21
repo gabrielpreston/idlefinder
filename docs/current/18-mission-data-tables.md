@@ -22,10 +22,11 @@ This document provides data tables for mission types, DC scaling, reward scaling
 
 Missions are organized into tiers based on fame thresholds:
 
-* **Tier 1**: Starter missions (fame 0+)
-* **Tier 2**: Early game (fame 100+)
-* **Tier 3**: Mid game (fame 500+)
-* **Tier 4**: Late game (fame 2000+)
+* **Tier 0**: Starter missions (fame 0+)
+* **Tier 1**: Early game (fame 100+)
+* **Tier 2**: Mid game (fame 500+)
+* **Tier 3**: Late game (fame 2000+)
+* **Tier 4**: End game (fame 10000+)
 * **Tier 5**: End game (fame 10000+)
 
 ## DC Scaling
@@ -37,6 +38,7 @@ baseDC = 10 + (tier * 5)
 ```
 
 Examples:
+* Tier 0: DC 10 (minimum)
 * Tier 1: DC 15
 * Tier 2: DC 20
 * Tier 3: DC 25
@@ -55,17 +57,17 @@ Rewards scale with tier and outcome band:
 
 **Gold:**
 ```
-baseGold = 50 * tier
+baseGold = 50 * tier (Tier 0: minimum 25)
 ```
 
 **XP:**
 ```
-baseXP = 100 * tier
+baseXP = 100 * tier (Tier 0: minimum 50)
 ```
 
 **Fame:**
 ```
-baseFame = 10 * tier
+baseFame = 10 * tier (Tier 0: minimum 5)
 ```
 
 **Materials:**
@@ -85,10 +87,11 @@ baseMaterials = 5 * tier (resource missions only)
 Mission duration scales with tier:
 
 ```
-baseDuration = 5 minutes * tier
+baseDuration = 5 minutes * tier (Tier 0: minimum 3 minutes)
 ```
 
 Examples:
+* Tier 0: 3 minutes (minimum)
 * Tier 1: 5 minutes
 * Tier 2: 10 minutes
 * Tier 3: 15 minutes
@@ -120,7 +123,14 @@ Most missions require 1 slot, but complex missions may require more:
 
 ## MVP Values
 
-### Tier 1 Missions (Starter)
+### Tier 0 Missions (Starter)
+
+* **DC**: 10
+* **Base Rewards**: 25 gold, 50 XP, 5 fame
+* **Duration**: 3 minutes
+* **Slot Requirement**: 1
+
+### Tier 1 Missions (Early Game)
 
 * **DC**: 15
 * **Base Rewards**: 50 gold, 100 XP, 10 fame

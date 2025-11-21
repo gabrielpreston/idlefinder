@@ -40,9 +40,12 @@ describe('UnlockQueries', () => {
 			const stateWithGold = createTestGameState({
 				resources: ResourceBundle.fromArray([new ResourceUnit('gold', 100)])
 			});
+			const stateWithLowGold = createTestGameState({
+				resources: ResourceBundle.fromArray([new ResourceUnit('gold', 50)])
+			});
 
 			expect(unlockQuery.isUnlocked(stateWithGold)).toBe(true);
-			expect(unlockQuery.isUnlocked(state)).toBe(false);
+			expect(unlockQuery.isUnlocked(stateWithLowGold)).toBe(false);
 		});
 
 		it('should return null reason when unlocked', () => {
@@ -58,12 +61,12 @@ describe('UnlockQueries', () => {
 		});
 
 		it('should return reason when locked', () => {
-			const requiredGold = 50;
+			const requiredGold = 200;
 			const check = (state: GameState) => state.resources.get('gold') >= requiredGold;
 			const reason = () => `Need ${requiredGold} gold`;
 			const unlockQuery = createUnlockCondition(check, reason);
 
-			// State should have default starting gold (15), which is less than 50
+			// State has default starting gold from GameConfig (150), which is less than 200
 			expect(unlockQuery.getUnlockReason(state)).toBe(`Need ${requiredGold} gold`);
 		});
 
@@ -165,7 +168,9 @@ describe('UnlockQueries', () => {
 		});
 
 		it('should return true for tier 2 with sufficient fame', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
+			// Tier 2 requires 100 fame (mission_tier_2 gate threshold)
+			const tier2Threshold = 100;
+			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', tier2Threshold)]);
 			const stateWithFame = createTestGameState({ resources });
 
 			expect(isMissionTierUnlocked(2, stateWithFame)).toBe(true);
@@ -187,7 +192,9 @@ describe('UnlockQueries', () => {
 		});
 
 		it('should return true for tier 2 with sufficient fame', () => {
-			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', 100)]);
+			// Guildhall tier 2 requires 100 fame (guildhall_tier_2 gate threshold)
+			const guildhallTier2Threshold = 100;
+			const resources = ResourceBundle.fromArray([new ResourceUnit('fame', guildhallTier2Threshold)]);
 			const stateWithFame = createTestGameState({ resources });
 
 			expect(canUpgradeFacilityToTier('Guildhall', 2, stateWithFame)).toBe(true);

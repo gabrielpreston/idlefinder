@@ -39,38 +39,10 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 		const adventurerId = payload.adventurerIds[0];
 		const now = context.currentTime;
 
-		// Parse template ID from mission ID (format: templateId-timestamp-random)
-		// Template IDs can contain hyphens (e.g., "explore-forest"), so we need to extract
-		// everything except the last two parts (timestamp and random)
-		let templateId = payload.missionId;
-		if (payload.missionId.includes('-')) {
-			const parts = payload.missionId.split('-');
-			// Format is: templateId-timestamp-random
-			// So templateId is everything except the last 2 parts
-			if (parts.length >= 3) {
-				templateId = parts.slice(0, -2).join('-');
-			} else {
-				// Fallback: if format doesn't match, use first part
-				templateId = parts[0];
-			}
-		}
-
-		// Mission template configuration (MVP: simple lookup)
-		const missionTemplates: Record<string, { name: string; duration: number; rewards: { gold: number; xp: number } }> = {
-			'explore-forest': { name: 'Explore Forest', duration: 60, rewards: { gold: 50, xp: 10 } },
-			'clear-cave': { name: 'Clear Cave', duration: 120, rewards: { gold: 100, xp: 20 } },
-			'rescue-villagers': { name: 'Rescue Villagers', duration: 180, rewards: { gold: 150, xp: 30 } }
-		};
-
-		const template = missionTemplates[templateId] || {
-			name: `Mission ${templateId}`,
-			duration: 60,
-			rewards: { gold: 50, xp: 10 }
-		};
-
-		// Always create a new mission instance (unique IDs prevent duplicates)
-		// Check if mission already exists (shouldn't happen with unique IDs, but safety check)
-		if (state.entities.has(payload.missionId)) {
+		// Mission must already exist in the mission pool
+		// Mission pool system provides all Available missions
+		const existingMission = state.entities.get(payload.missionId);
+		if (!existingMission || existingMission.type !== 'Mission') {
 			return {
 				newState: state,
 				events: [
@@ -78,7 +50,7 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'StartMission',
-							reason: `Mission ${payload.missionId} already exists`
+							reason: `Mission ${payload.missionId} not found in mission pool`
 						},
 						timestamp: new Date().toISOString()
 					}
@@ -86,38 +58,8 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 			};
 		}
 
-		// Create mission entity from template
-		const { Mission } = await import('../domain/entities/Mission');
-		const { Identifier } = await import('../domain/valueObjects/Identifier');
-		const { Duration } = await import('../domain/valueObjects/Duration');
-		
-		const missionId = Identifier.from<'MissionId'>(payload.missionId);
-		const mission = new Mission(
-			missionId,
-			{
-				missionType: 'combat', // Default mission type
-				primaryAbility: 'str',
-				dc: 10, // Easy difficulty DC
-				difficultyTier: 'Easy',
-				preferredRole: undefined, // No role preference by default
-				baseDuration: Duration.ofSeconds(template.duration),
-				baseRewards: template.rewards,
-				maxPartySize: 1
-			},
-			[],
-			'Available',
-			{}, // timers (Record, not Map)
-			{ name: template.name, templateId, missionId: payload.missionId }
-		);
-		
-		const newEntities = new Map(state.entities);
-		newEntities.set(mission.id, mission);
-		const workingState = new GameState(
-			state.playerId,
-			state.lastPlayed,
-			newEntities,
-			state.resources
-		);
+		// Use existing mission from pool
+		const workingState = state;
 
 		// Create requirement context
 		const requirementContext: RequirementContext = {

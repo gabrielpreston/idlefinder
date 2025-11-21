@@ -7,4 +7,5 @@ export * from './testFactories';
 export * from './mockLocalStorage';
 export * from './mockBusManager';
 export * from './integrationTestHelpers';
+export * from './actionTestHelpers';
 

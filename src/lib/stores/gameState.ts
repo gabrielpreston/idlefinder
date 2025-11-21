@@ -16,7 +16,14 @@ import type { ResourceSlot } from '../domain/entities/ResourceSlot';
 import { EntityQueryBuilder } from '../domain/queries/EntityQueryBuilder';
 import { getMissionPoolAdventurers, getAssignedAdventurers } from '../domain/queries/MissionPoolQueries';
 import { getMissionSlotCapacity } from '../domain/queries/MissionSlotQueries';
-import { getRosterCapacity } from '../domain/queries/RosterQueries';
+import { 
+	getRosterCapacity,
+	getRosterRoleDistribution,
+	getRosterStatusSummary,
+	getRosterAverageLevel,
+	type RoleDistribution,
+	type StatusSummary
+} from '../domain/queries/RosterQueries';
 import type { Capacity } from '../domain/queries/Capacity';
 import { getGuildHallTier, isGuildHallRuined, getGuildHall } from '../domain/queries/FacilityQueries';
 import { getAdventurerCount, hasAnyAdventurers, isFirstAdventurer } from '../domain/queries/AdventurerQueries';
@@ -24,11 +31,13 @@ import { getPlayerAssignedSlots, hasOddJobsAvailable, getOddJobsGoldRate } from 
 import { isAdventurersPanelUnlocked, isMissionsPanelUnlocked, isMissionsPanelFunctional, isFacilitiesPanelUnlocked, isEquipmentPanelUnlocked, isCraftingPanelUnlocked, isDoctrinePanelUnlocked } from '../domain/queries/UIGatingQueries';
 // Ensure gates are registered when store module loads
 import '../domain/gating';
-import { getGuildHallUpgradeCost, canUpgradeGuildHall, getRecruitAdventurerCost, canAffordRecruitAdventurer } from '../domain/queries/CostQueries';
+import { getGuildHallUpgradeCost, canUpgradeGuildHall, getRecruitAdventurerCost, canAffordRecruitAdventurer, getRefreshRecruitPoolCost, canAffordRefreshRecruitPool } from '../domain/queries/CostQueries';
+import { getRecruitPool } from '../domain/queries/RecruitPoolQueries';
 import type { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 import { getGateProgress, getGateStatus } from '../domain/gating/GateQueries';
 import { gateRegistry } from '../domain/gating/GateRegistry';
 import type { GateId } from '../domain/gating/GateDefinition';
+import { getMissionStatistics, getRecentCompletions, type MissionStatistics } from '../domain/queries/MissionStatisticsQueries';
 
 /**
  * Game state store - reactive wrapper around runtime's gameState
@@ -75,7 +84,8 @@ export const adventurers: Readable<Adventurer[]> = derived(
 	gameState,
 	($state) => {
 		if (!$state) return [];
-		return EntityQueryBuilder.byType<Adventurer>('Adventurer')($state);
+		return EntityQueryBuilder.byType<Adventurer>('Adventurer')($state)
+			.filter(a => a.state !== 'Preview'); // Exclude Preview entities from roster
 	}
 );
 
@@ -177,6 +187,31 @@ export const rosterCapacity: Readable<Capacity | null> = derived(
 	($state) => {
 		if (!$state) return null;
 		return getRosterCapacity($state);
+	}
+);
+
+// Roster analytics
+export const rosterRoleDistribution: Readable<RoleDistribution> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return {};
+		return getRosterRoleDistribution($state);
+	}
+);
+
+export const rosterStatusSummary: Readable<StatusSummary> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return {};
+		return getRosterStatusSummary($state);
+	}
+);
+
+export const rosterAverageLevel: Readable<number> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return 0;
+		return getRosterAverageLevel($state);
 	}
 );
 
@@ -286,6 +321,23 @@ export const canAffordRecruitAdventurerState: Readable<boolean> = derived(
 	($state) => $state ? canAffordRecruitAdventurer($state) : false
 );
 
+// Recruit pool queries
+export const recruitPool: Readable<Adventurer[]> = derived(
+	gameState,
+	($state) => $state ? getRecruitPool($state) : []
+);
+
+// Refresh recruit pool cost queries
+export const refreshRecruitPoolCost: Readable<ResourceBundle | null> = derived(
+	gameState,
+	($state) => $state ? getRefreshRecruitPoolCost() : null
+);
+
+export const canAffordRefreshRecruitPoolState: Readable<boolean> = derived(
+	gameState,
+	($state) => $state ? canAffordRefreshRecruitPool($state) : false
+);
+
 // Gate progress tracking stores
 export const gateProgress: Readable<Record<GateId, number>> = derived(
 	gameState,
@@ -318,4 +370,37 @@ export const nextUnlockThreshold: Readable<
 	}
 	return thresholds;
 });
+
+// Mission statistics queries
+export const missionStatistics: Readable<MissionStatistics | null> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return null;
+		return getMissionStatistics($state);
+	}
+);
+
+export const recentCompletions: Readable<Mission[]> = derived(
+	gameState,
+	($state) => {
+		if (!$state) return [];
+		return getRecentCompletions($state, 10);
+	}
+);
+
+// Mission count stores (for convenience)
+export const activeMissionCount: Readable<number> = derived(
+	missionStatistics,
+	($stats) => $stats?.inProgress ?? 0
+);
+
+export const completedMissionCount: Readable<number> = derived(
+	missionStatistics,
+	($stats) => $stats?.completed ?? 0
+);
+
+export const availableMissionCount: Readable<number> = derived(
+	missionStatistics,
+	($stats) => $stats?.available ?? 0
+);
 

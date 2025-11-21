@@ -14,13 +14,34 @@ describe('StartMissionHandler Integration', () => {
 	let publishedEvents: DomainEvent[];
 
 	beforeEach(() => {
+		// Create initial state with missions for testing
+		const initialState = createTestGameState();
+		// Ensure we have at least one available mission
+		const existingMissions = Array.from(initialState.entities.values()).filter(
+			e => e.type === 'Mission' && (e as import('../domain/entities/Mission').Mission).state === 'Available'
+		);
+		if (existingMissions.length === 0) {
+			// Add a test mission if none exist
+			const testMission = createTestMission({ id: 'test-mission-1', state: 'Available' });
+			initialState.entities.set(testMission.id, testMission);
+		}
+		
 		({ busManager, publishedEvents } = setupIntegrationTest({
+			initialState,
 			eventTypes: ['MissionStarted', 'CommandFailed']
 		}));
 	});
 
 	describe('StartMission command', () => {
 		it('should start mission with available adventurer', async () => {
+			// Get an available mission from the initial state (before recruiting)
+			const initialState = busManager.getState();
+			const initialMissions = Array.from(initialState.entities.values()).filter(
+				e => e.type === 'Mission' && (e as import('../domain/entities/Mission').Mission).state === 'Available'
+			) as import('../domain/entities/Mission').Mission[];
+			expect(initialMissions.length).toBeGreaterThan(0);
+			const missionId = initialMissions[0].id;
+
 			// First recruit an adventurer
 			const recruitCommand = createTestCommand('RecruitAdventurer', {
 				name: 'Test Adventurer',
@@ -30,15 +51,12 @@ describe('StartMissionHandler Integration', () => {
 
 			const state = busManager.getState();
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			const adventurerId = adventurers[0].id;
+			// Find the recruited adventurer by name
+			const recruitedAdventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer');
+			expect(recruitedAdventurer).toBeDefined();
+			const adventurerId = recruitedAdventurer!.id;
 
-			// Handler creates missions from templates, so use a template-based mission ID
-			// Format: templateId-timestamp-random (e.g., "explore-forest-1234567890-abc123")
-			const timestamp = Date.now();
-			const random = Math.random().toString(36).substring(7);
-			const missionId = `explore-forest-${timestamp}-${random}`;
-
-			// Start mission (handler will create the mission from template)
+			// Start mission using existing mission from pool
 			const startCommand = createTestCommand('StartMission', {
 				missionId: missionId,
 				adventurerIds: [adventurerId]

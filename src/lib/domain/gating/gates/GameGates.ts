@@ -14,8 +14,16 @@ import {
 
 /**
  * Register all game gates
+ * In development, clear registry first to handle HMR reloads
  */
 export function registerGameGates(): void {
+	// In development with HMR, gates may already be registered
+	// Clear registry first to allow re-registration
+	const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
+	if (isDev) {
+		gateRegistry.clear();
+	}
+	
 	const gates: GateDefinition[] = [
 		// UI Panel Gates
 		{
@@ -129,6 +137,13 @@ export function registerGameGates(): void {
 		},
 
 		// Mission Tier Gates
+		{
+			id: 'mission_tier_0',
+			type: 'mission_tier',
+			name: 'Mission Tier 0',
+			description: 'Unlock Tier 0 missions (starter missions)',
+			conditions: [fameMilestoneCondition(0, 'Fame 0+')],
+		},
 		{
 			id: 'mission_tier_1',
 			type: 'mission_tier',

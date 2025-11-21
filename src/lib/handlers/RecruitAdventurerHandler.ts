@@ -68,41 +68,85 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 		const adventurerId = crypto.randomUUID();
 		const id = Identifier.from<'AdventurerId'>(adventurerId);
 
-		// Create default attributes for new adventurer (level 1, 0 XP)
-		// Assign random Pathfinder class and ancestry
-		const classKey = getRandomPathfinderClassKey();
-		const ancestryKey = getRandomPathfinderAncestryKey();
-		const attributes: AdventurerAttributes = {
-			level: 1,
-			xp: 0,
-			abilityMods: NumericStatMap.fromMap(new Map([
-				['str', 0],
-				['dex', 0],
-				['con', 0],
-				['int', 0],
-				['wis', 0],
-				['cha', 0]
-			])),
-			classKey,
-			ancestryKey,
-			traitTags: payload.traits || [], // Use traits as traitTags
-			roleKey: deriveRoleKey(classKey), // Derive from classKey
-			baseHP: 10,
-			assignedSlotId: null
-		};
+		// Create new entities map (will be updated below)
+		const newEntities = new Map(state.entities);
+
+		// Determine attributes: use preview if provided, otherwise generate random
+		let attributes: AdventurerAttributes;
+		let traits: string[];
+
+		if (payload.previewAdventurerId) {
+			// Use preview adventurer's attributes
+			const previewAdventurer = state.entities.get(payload.previewAdventurerId) as Adventurer | undefined;
+			
+			if (!previewAdventurer || previewAdventurer.type !== 'Adventurer' || previewAdventurer.state !== 'Preview') {
+				return {
+					newState: state,
+					events: [
+						{
+							type: 'CommandFailed',
+							payload: {
+								commandType: 'RecruitAdventurer',
+								reason: `Preview adventurer ${payload.previewAdventurerId} not found or invalid`
+							},
+							timestamp: new Date().toISOString()
+						}
+					]
+				};
+			}
+
+			// Copy attributes from preview
+			attributes = {
+				level: previewAdventurer.attributes.level,
+				xp: previewAdventurer.attributes.xp,
+				abilityMods: previewAdventurer.attributes.abilityMods,
+				classKey: previewAdventurer.attributes.classKey,
+				ancestryKey: previewAdventurer.attributes.ancestryKey,
+				traitTags: payload.traits.length > 0 ? payload.traits : previewAdventurer.attributes.traitTags,
+				roleKey: previewAdventurer.attributes.roleKey,
+				baseHP: previewAdventurer.attributes.baseHP,
+				assignedSlotId: null
+			};
+			traits = payload.traits.length > 0 ? payload.traits : [...previewAdventurer.tags];
+
+			// Remove preview entity from entities map
+			newEntities.delete(payload.previewAdventurerId);
+		} else {
+			// Generate random attributes (backward compatible)
+			const classKey = getRandomPathfinderClassKey();
+			const ancestryKey = getRandomPathfinderAncestryKey();
+			attributes = {
+				level: 1,
+				xp: 0,
+				abilityMods: NumericStatMap.fromMap(new Map([
+					['str', 0],
+					['dex', 0],
+					['con', 0],
+					['int', 0],
+					['wis', 0],
+					['cha', 0]
+				])),
+				classKey,
+				ancestryKey,
+				traitTags: payload.traits || [],
+				roleKey: deriveRoleKey(classKey),
+				baseHP: 10,
+				assignedSlotId: null
+			};
+			traits = payload.traits || [];
+		}
 
 		// Create new Adventurer entity
 		const adventurer = new Adventurer(
 			id,
 			attributes,
-			payload.traits || [],
+			traits,
 			'Idle', // Initial state
 			{}, // No timers initially (Record, not Map)
 			{ name: payload.name } // Store name in metadata
 		);
 
 		// Add adventurer to entities map
-		const newEntities = new Map(state.entities);
 		newEntities.set(adventurer.id, adventurer);
 
 		// Deduct recruitment cost from resources

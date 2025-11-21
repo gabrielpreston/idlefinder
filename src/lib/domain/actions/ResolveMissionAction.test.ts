@@ -12,7 +12,7 @@ import type { MissionAttributes } from '../attributes/MissionAttributes';
 import { setTimer } from '../primitives/TimerHelpers';
 import type { RequirementContext } from '../primitives/Requirement';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
-import { ModifyResourceEffect, type Effect } from '../primitives/Effect';
+import { ModifyResourceEffect, type Effect, applyEffects } from '../primitives/Effect';
 
 describe('ResolveMissionAction', () => {
 	const createAdventurer = (overrides?: {
@@ -442,24 +442,31 @@ describe('ResolveMissionAction', () => {
 		it('should use provided resolvedAt timestamp when given', () => {
 			const mission = createMission({ dc: 15 });
 			const adventurer = createAdventurer();
+			// Set mission to InProgress and adventurer to OnMission for computeEffects
+			mission.state = 'InProgress';
+			adventurer.state = 'OnMission';
 			const entities = new Map<string, import('../primitives/Requirement').Entity>([
 				['mission-1', mission],
 				['adv-1', adventurer]
 			]);
-			const resources = new ResourceBundle(new Map());
-			const effects: Effect[] = [];
+			const context: RequirementContext = {
+				entities,
+				resources: new ResourceBundle(new Map()),
+				currentTime: Timestamp.from(Date.now())
+			};
 			const customResolvedAt = Timestamp.now();
 
 			const action = new ResolveMissionAction('mission-1');
-			// Set outcome and rewards first
-			 
-			(action as any).outcome = 'Success';
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
-			 
-			(action as any).adventurerId = 'adv-1';
+			// Call computeEffects to set outcome, rewards, and adventurerId (proper flow)
+			const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.75); // d20 = 16, total = 16 + 2 = 18 >= 15 (Success)
+			const effects = action.computeEffects(context, {});
+			mockRandom.mockRestore();
 
-			const events = action.generateEvents(entities, resources, effects, {
+			// Apply effects to get updated entities
+			const result = applyEffects(effects, entities, new ResourceBundle(new Map()));
+
+			// Now generate events with the resolvedAt parameter
+			const events = action.generateEvents(result.entities, result.resources, effects, {
 				resolvedAt: customResolvedAt
 			});
 
@@ -472,83 +479,30 @@ describe('ResolveMissionAction', () => {
 		it('should use current time when resolvedAt not provided', () => {
 			const mission = createMission({ dc: 15 });
 			const adventurer = createAdventurer();
+			// Set mission to InProgress and adventurer to OnMission for computeEffects
+			mission.state = 'InProgress';
+			adventurer.state = 'OnMission';
 			const entities = new Map<string, import('../primitives/Requirement').Entity>([
 				['mission-1', mission],
 				['adv-1', adventurer]
 			]);
-			const resources = new ResourceBundle(new Map());
-			const effects: Effect[] = [];
+			const context: RequirementContext = {
+				entities,
+				resources: new ResourceBundle(new Map()),
+				currentTime: Timestamp.from(Date.now())
+			};
 
 			const action = new ResolveMissionAction('mission-1');
-			// Set outcome and rewards first
-			 
-			(action as any).outcome = 'Success';
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
-			 
-			(action as any).adventurerId = 'adv-1';
+			// Call computeEffects to set outcome, rewards, and adventurerId (proper flow)
+			const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.75); // d20 = 16, total = 16 + 2 = 18 >= 15 (Success)
+			const effects = action.computeEffects(context, {});
+			mockRandom.mockRestore();
 
-			const events = action.generateEvents(entities, resources, effects, {
-				// resolvedAt not provided
-			});
+			// Apply effects to get updated entities
+			const result = applyEffects(effects, entities, new ResourceBundle(new Map()));
 
-			expect(events.length).toBe(1);
-			if (events[0]?.type === 'MissionCompleted') {
-				// Should use new Date().toISOString()
-				expect(events[0].timestamp).toBeDefined();
-			}
-		});
-
-		it('should use provided resolvedAt timestamp when given', () => {
-			const mission = createMission({ dc: 15 });
-			const adventurer = createAdventurer();
-			const entities = new Map<string, import('../primitives/Requirement').Entity>([
-				['mission-1', mission],
-				['adv-1', adventurer]
-			]);
-			const resources = new ResourceBundle(new Map());
-			const effects: Effect[] = [];
-			const customResolvedAt = Timestamp.now();
-
-			const action = new ResolveMissionAction('mission-1');
-			// Set outcome and rewards first
-			 
-			(action as any).outcome = 'Success';
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
-			 
-			(action as any).adventurerId = 'adv-1';
-
-			const events = action.generateEvents(entities, resources, effects, {
-				resolvedAt: customResolvedAt
-			});
-
-			expect(events.length).toBe(1);
-			if (events[0]?.type === 'MissionCompleted') {
-				expect(events[0].timestamp).toBe(customResolvedAt.value.toString());
-			}
-		});
-
-		it('should use current time when resolvedAt not provided', () => {
-			const mission = createMission({ dc: 15 });
-			const adventurer = createAdventurer();
-			const entities = new Map<string, import('../primitives/Requirement').Entity>([
-				['mission-1', mission],
-				['adv-1', adventurer]
-			]);
-			const resources = new ResourceBundle(new Map());
-			const effects: Effect[] = [];
-
-			const action = new ResolveMissionAction('mission-1');
-			// Set outcome and rewards first
-			 
-			(action as any).outcome = 'Success';
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
-			 
-			(action as any).adventurerId = 'adv-1';
-
-			const events = action.generateEvents(entities, resources, effects, {
+			// Now generate events without resolvedAt parameter
+			const events = action.generateEvents(result.entities, result.resources, effects, {
 				// resolvedAt not provided
 			});
 
@@ -568,11 +522,7 @@ describe('ResolveMissionAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
-			// Don't set outcome
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
-			 
-			(action as any).adventurerId = 'adv-1';
+			// Don't call computeEffects - verify generateEvents returns empty when state not set
 
 			const events = action.generateEvents(entities, resources, effects, {});
 
@@ -588,11 +538,7 @@ describe('ResolveMissionAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
-			 
-			(action as any).outcome = 'Success';
-			// Don't set rewards
-			 
-			(action as any).adventurerId = 'adv-1';
+			// Don't call computeEffects - verify generateEvents returns empty when state not set
 
 			const events = action.generateEvents(entities, resources, effects, {});
 
@@ -608,11 +554,7 @@ describe('ResolveMissionAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new ResolveMissionAction('mission-1');
-			 
-			(action as any).outcome = 'Success';
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 0, materials: 0 };
-			// Don't set adventurerId
+			// Don't call computeEffects - verify generateEvents returns empty when state not set
 
 			const events = action.generateEvents(entities, resources, effects, {});
 
@@ -622,8 +564,14 @@ describe('ResolveMissionAction', () => {
 
 	describe('computeEffects - reward branches', () => {
 		it('should include fame in rewards when fame > 0', () => {
+			// Create mission with fame in baseRewards
 			const mission = createMission({ dc: 15 });
-			const adventurer = createAdventurer();
+			// Verify mission has fame in baseRewards
+			expect(mission.attributes.baseRewards.fame).toBeDefined();
+			expect(mission.attributes.baseRewards.fame).toBeGreaterThan(0);
+			
+			// Create adventurer with high ability mod
+			const adventurer = createAdventurer({ abilityMods: new Map([['str', 10], ['dex', 0], ['con', 0], ['int', 0], ['wis', 0], ['cha', 0]]) });
 			const entities = new Map<string, import('../primitives/Requirement').Entity>([
 				['mission-1', mission],
 				['adv-1', adventurer]
@@ -634,20 +582,31 @@ describe('ResolveMissionAction', () => {
 				currentTime: Timestamp.from(Date.now())
 			};
 
-			const action = new ResolveMissionAction('mission-1');
-			// Set outcome and rewards with fame
-			 
-			(action as any).outcome = 'Success';
-			 
-			(action as any).rewards = { gold: 100, xp: 20, fame: 10, materials: 0 };
-			 
-			(action as any).adventurerId = 'adv-1';
+			// Mock Math.random() to return a value that guarantees CriticalSuccess (roll >= DC + 10)
+			// With abilityMod = 10 and DC = 15, we need d20 >= 15, so return 0.75 (d20 = 15)
+			const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.75); // d20 = 15, total = 15 + 10 = 25 >= 25 (CriticalSuccess)
 
+			const action = new ResolveMissionAction('mission-1');
+			// Let computeEffects calculate outcome and rewards from mission baseRewards
 			const effects = action.computeEffects(context, {});
 
-			// Should have ModifyResourceEffect with fame
-			const resourceEffect = effects.find(e => e instanceof ModifyResourceEffect);
-			expect(resourceEffect).toBeDefined();
+			randomSpy.mockRestore();
+
+			// Apply effects and verify through public API (behavioral test)
+			const initialResources = new ResourceBundle(new Map());
+			const result = applyEffects(effects, entities, initialResources);
+			
+			// Verify fame was actually added (observable behavior)
+			expect(result.resources.get('fame')).toBeGreaterThan(0);
+			expect(result.resources.get('gold')).toBeGreaterThan(0);
+			
+			// Verify outcome through events (public API)
+			const events = action.generateEvents(result.entities, result.resources, effects, {});
+			if (events[0]?.type === 'MissionCompleted') {
+				const payload = events[0].payload as { outcome: string; rewards: { fame?: number } };
+				expect(payload.outcome).toBe('CriticalSuccess');
+				expect(payload.rewards.fame).toBeGreaterThan(0);
+			}
 		});
 
 		it('should include materials in rewards when materials > 0', () => {

@@ -1,10 +1,18 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
-	import { adventurers, recruitAdventurerCost, canAffordRecruitAdventurerState, resources } from '$lib/stores/gameState';
-	import { dispatchCommand } from '$lib/bus/commandDispatcher';
+	import { adventurers } from '$lib/stores/gameState';
 	import type { CommandFailedEvent } from '$lib/bus/types';
 	import type { GameRuntime } from '$lib/runtime/startGame';
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
+	import RosterOverview from './RosterOverview.svelte';
+	import RosterToolbar from './RosterToolbar.svelte';
+	import AdventurerGrid from './AdventurerGrid.svelte';
+	import AdventurerDetailModal from './AdventurerDetailModal.svelte';
+	import RecruitPool from './RecruitPool.svelte';
+	import type { Adventurer } from '$lib/domain/entities/Adventurer';
+	import type { AdventurerState } from '$lib/domain/states/AdventurerState';
+	import type { RoleKey } from '$lib/domain/attributes/RoleKey';
+	import { writable } from 'svelte/store';
 
 	// Get runtime from context
 	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
@@ -12,15 +20,20 @@
 		throw new Error('GameRuntime not found in context. Ensure component is within +layout.svelte');
 	}
 
-	let name = '';
-	let traits: string[] = [];
 	let error: string | null = null;
+	let selectedAdventurer = writable<Adventurer | null>(null);
+	let filters = writable<{
+		state: AdventurerState | 'all';
+		role: RoleKey | 'all';
+		search: string;
+	}>({ state: 'all', role: 'all', search: '' });
+	let sortBy = writable<'level' | 'xp' | 'name' | 'state'>('level');
 
 	// Subscribe to command failures
 	onMount(() => {
 		const unsubscribe = runtime.busManager.domainEventBus.subscribe('CommandFailed', (payload) => {
 			const failed = payload as CommandFailedEvent;
-			if (failed.commandType === 'RecruitAdventurer') {
+			if (failed.commandType === 'RecruitAdventurer' || failed.commandType === 'RefreshRecruitPool') {
 				error = failed.reason;
 			}
 		});
@@ -28,22 +41,14 @@
 		return unsubscribe;
 	});
 
-	async function recruit() {
-		if (!name.trim()) {
-			error = 'Please enter a name';
-			return;
-		}
-
-		error = null;
-		await dispatchCommand(runtime, 'RecruitAdventurer', {
-			name: name.trim(),
-			traits: traits.filter((t) => t.trim().length > 0)
-		});
-
-		// Clear form
-		name = '';
-		traits = [];
+	function handleAdventurerClick(adventurer: Adventurer) {
+		selectedAdventurer.set(adventurer);
 	}
+
+	function handleModalClose() {
+		selectedAdventurer.set(null);
+	}
+
 </script>
 
 <div class="roster-panel">
@@ -53,57 +58,30 @@
 		<div class="error">{error}</div>
 	{/if}
 
-	<div class="recruit-form">
-		<h3>Recruit New Adventurer</h3>
-		<div class="recruit-inputs">
-			<input type="text" bind:value={name} placeholder="Adventurer name" />
-			<button 
-				onclick={recruit} 
-				disabled={!$canAffordRecruitAdventurerState || !name.trim()}
-			>
-				Recruit
-			</button>
-		</div>
-		{#if $recruitAdventurerCost}
-			<div class="recruit-cost">
-				Cost: {$recruitAdventurerCost.get('gold')} gold
-				{#if !$canAffordRecruitAdventurerState}
-					<span class="insufficient-funds">
-						(You have {$resources?.get('gold') ?? 0} gold)
-					</span>
-				{/if}
-			</div>
-		{/if}
-	</div>
+	<RecruitPool />
+
+	<RosterOverview />
 	
-	<div class="adventurer-grid">
-		{#if $adventurers.length === 0}
-			<div class="empty-state">
-				<p>No adventurers recruited yet. Recruit your first adventurer above to get started!</p>
-			</div>
-		{:else}
-			{#each $adventurers as adventurer}
-				<div class="adventurer-card">
-					<div class="adventurer-header">
-						<h3>{adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${adventurer.id.slice(0, 8)}`}</h3>
-						<span class="level-badge">Level {adventurer.attributes.level}</span>
-					</div>
-					<div class="adventurer-stats">
-						<div>XP: {adventurer.attributes.xp}</div>
-						<div>State: {adventurer.state === 'Idle' ? 'Available' : adventurer.state === 'OnMission' ? 'On Mission' : adventurer.state}</div>
-						<div>Role: {adventurer.attributes.roleKey}</div>
-					</div>
-					{#if adventurer.attributes.equipment}
-						<div class="equipment-preview">
-							<div>Weapon: {adventurer.attributes.equipment.weaponId ? 'Equipped' : 'None'}</div>
-							<div>Armor: {adventurer.attributes.equipment.armorId ? 'Equipped' : 'None'}</div>
-						</div>
-					{/if}
-				</div>
-			{/each}
-		{/if}
-	</div>
+	<RosterToolbar 
+		filters={$filters}
+		sortBy={$sortBy}
+		on:filterChange={(e) => filters.set(e.detail)}
+		on:sortChange={(e) => sortBy.set(e.detail)}
+	/>
+	
+	<AdventurerGrid 
+		adventurers={$adventurers}
+		filters={$filters}
+		sortBy={$sortBy}
+		onAdventurerClick={handleAdventurerClick}
+	/>
 </div>
+
+<AdventurerDetailModal 
+	adventurer={$selectedAdventurer}
+	open={$selectedAdventurer !== null}
+	onClose={handleModalClose}
+/>
 
 <style>
 	.roster-panel {
@@ -180,65 +158,4 @@
 		color: #d00;
 		font-weight: 600;
 	}
-
-	.adventurer-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		gap: 1rem;
-	}
-
-	.empty-state {
-		grid-column: 1 / -1;
-		padding: 2rem;
-		text-align: center;
-		color: var(--color-text-secondary, #666);
-		background: var(--color-bg-secondary, #f9f9f9);
-		border-radius: 8px;
-		border: 1px dashed var(--color-border, #ddd);
-	}
-
-	.adventurer-card {
-		padding: 1rem;
-		background: var(--color-bg-secondary, #f5f5f5);
-		border-radius: 8px;
-		border: 1px solid var(--color-border, #ddd);
-	}
-
-	.adventurer-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.75rem;
-	}
-
-	.adventurer-header h3 {
-		margin: 0;
-		font-size: 1.1rem;
-	}
-
-	.level-badge {
-		padding: 0.25rem 0.5rem;
-		background: var(--color-primary, #0066cc);
-		color: white;
-		border-radius: 4px;
-		font-size: 0.85rem;
-		font-weight: 600;
-	}
-
-	.adventurer-stats {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		font-size: 0.9rem;
-		color: var(--color-text-secondary, #666);
-		margin-bottom: 0.75rem;
-	}
-
-	.equipment-preview {
-		padding-top: 0.75rem;
-		border-top: 1px solid var(--color-border, #ddd);
-		font-size: 0.85rem;
-		color: var(--color-text-secondary, #666);
-	}
 </style>
-

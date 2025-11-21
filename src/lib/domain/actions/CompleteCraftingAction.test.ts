@@ -12,7 +12,7 @@ import { CraftingJob } from '../entities/CraftingJob';
 import { Identifier } from '../valueObjects/Identifier';
 import type { CraftingJobAttributes } from '../attributes/CraftingJobAttributes';
 import { Item } from '../entities/Item';
-import { CreateItemEffect, SetEntityAttributeEffect } from '../primitives/Effect';
+import { applyEffects } from '../primitives/Effect';
 import { NumericStatMap } from '../valueObjects/NumericStatMap';
 
 function createTestCraftingJob(overrides?: {
@@ -122,10 +122,7 @@ describe('CompleteCraftingAction', () => {
 			const action = new CompleteCraftingAction('job-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(2);
-			expect(effects[0]).toBeInstanceOf(CreateItemEffect);
-			
-			// Apply the effect to verify item is created correctly
+			// Apply effects and verify item is created correctly (behavioral test)
 			const testEntities = new Map(entities);
 			const testResources = new ResourceBundle(new Map());
 			const result = effects[0].apply(testEntities, testResources);
@@ -157,12 +154,11 @@ describe('CompleteCraftingAction', () => {
 			const action = new CompleteCraftingAction('job-1');
 			const effects = action.computeEffects(context, {});
 
-			expect(effects.length).toBe(2);
-			// Second effect should be SetEntityAttributeEffect for job completion
-			expect(effects[1]).toBeInstanceOf(SetEntityAttributeEffect);
-			const setAttrEffect = effects[1] as SetEntityAttributeEffect;
-			expect(setAttrEffect['attributePath']).toBe('attributes.status');
-			expect(setAttrEffect['value']).toBe('completed');
+			// Apply effects and verify job status changed (behavioral test)
+			const result = applyEffects(effects, entities, new ResourceBundle(new Map()));
+			const updatedJob = result.entities.get('job-1');
+			expect(updatedJob).toBeDefined();
+			expect((updatedJob as CraftingJob).attributes.status).toBe('completed');
 		});
 	});
 

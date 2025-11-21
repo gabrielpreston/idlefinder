@@ -12,6 +12,8 @@ import { getDefaultCraftingRecipes } from '../data/crafting/recipes';
 import type { DomainEvent } from '../primitives/Event';
 import { CompleteCraftingAction } from '../actions/CompleteCraftingAction';
 import { StartCraftingAction } from '../actions/StartCraftingAction';
+import { calculateEffectiveCraftingDuration } from './CraftingDurationModifiers';
+import { getFacilitiesByType } from '../queries/FacilityQueries';
 
 export interface CraftingResult {
 	actions: Array<CompleteCraftingAction | StartCraftingAction>;
@@ -73,7 +75,15 @@ export function processCraftingQueue(
 				// Start this job
 				const recipe = recipes.find((r) => r.id === job.attributes.recipeId);
 				if (recipe) {
-					actions.push(new StartCraftingAction(jobId, recipe.duration));
+					// Query for crafting-related facilities (future: Armory/Blacksmith)
+					// Note: Current facility types don't include crafting facilities (documented as future)
+					// Reference: src/lib/domain/attributes/FacilityAttributes.ts:7
+					const craftingFacilities = getFacilitiesByType('Armory', state);
+					const facility = craftingFacilities.length > 0 ? craftingFacilities[0] : undefined;
+
+					// Calculate effective duration with modifiers
+					const effectiveDuration = calculateEffectiveCraftingDuration(recipe, facility, state);
+					actions.push(new StartCraftingAction(jobId, effectiveDuration));
 				}
 				break; // Only start one job at a time
 			}

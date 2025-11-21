@@ -12,9 +12,9 @@ description: SvelteKit idle game architecture patterns, domain-driven design, Ty
 **Main Components:**
 - `src/routes/` - SvelteKit routes and pages
 - `src/lib/domain/` - Pure domain logic (no framework dependencies)
-  - `entities/` - Domain entities (Organization, Agent, Task, Facility, etc.)
+  - `entities/` - Domain entities (Adventurer, Mission, Facility, etc.)
   - `valueObjects/` - Value objects (Identifier, Timestamp, Duration, ResourceBundle, etc.)
-  - `systems/` - Simulation systems (TaskResolutionSystem, OfferSystem, EconomySystem, etc.)
+  - `systems/` - Simulation systems (MissionDurationModifiers, CraftingSystem, etc.)
 - `src/lib/app/` - Application services (use-case orchestration)
 - `src/lib/repos/` - Repository interfaces and Prisma implementations
 - `src/lib/stores/` - Svelte stores for client state management
@@ -25,18 +25,10 @@ description: SvelteKit idle game architecture patterns, domain-driven design, Ty
 ```
 src/lib/domain/
 ├── entities/
-│   ├── Organization.ts
-│   ├── AgentTemplate.ts
-│   ├── AgentInstance.ts
-│   ├── TaskArchetype.ts
-│   ├── TaskOffer.ts
-│   ├── TaskInstance.ts
-│   ├── FacilityTemplate.ts
-│   ├── FacilityInstance.ts
-│   ├── ItemTemplate.ts
-│   ├── ItemInstance.ts
-│   ├── ProgressTrack.ts
-│   └── UnlockRule.ts
+│   ├── Adventurer.ts
+│   ├── Mission.ts
+│   ├── Facility.ts
+│   └── GameState.ts
 ├── valueObjects/
 │   ├── Identifier.ts
 │   ├── Timestamp.ts
@@ -45,503 +37,45 @@ src/lib/domain/
 │   ├── ResourceBundle.ts
 │   └── NumericStatMap.ts
 └── systems/
-    ├── TaskResolutionSystem.ts
-    ├── OfferSystem.ts
-    ├── EconomySystem.ts
-    ├── ProgressionSystem.ts
-    ├── RosterSystem.ts
-    └── WorldAdvance.ts
+    ├── MissionDurationModifiers.ts
+    ├── CraftingSystem.ts
+    └── SlotGenerationSystem.ts
 ```
 
 ### Domain Entity Pattern
 
 ```typescript
-// src/lib/domain/entities/Organization.ts
-export class Organization {
+// src/lib/domain/entities/Adventurer.ts
+export class Adventurer {
   constructor(
-    public readonly id: OrganizationId,
-    public readonly ownerPlayerId: PlayerId,
-    public readonly createdAt: Timestamp,
-    public lastActiveAt: Timestamp,
-    public readonly progressTracks: Map<TrackKey, ProgressTrack>,
-    public readonly economyState: EconomyState,
-    public lastSimulatedAt: Timestamp
+    public readonly id: AdventurerId,
+    public readonly name: string,
+    public readonly attributes: AdventurerAttributes,
+    public state: AdventurerState
   ) {}
 
   // Domain logic methods
-  canAfford(cost: ResourceBundle): boolean {
-    return this.economyState.hasResources(cost);
-  }
-
-  advanceTo(now: Timestamp): void {
-    this.lastSimulatedAt = now;
-    this.lastActiveAt = now;
-  }
-}
-
-// src/lib/domain/entities/TaskInstance.ts
-export class TaskInstance {
-  constructor(
-    public readonly id: TaskInstanceId,
-    public readonly organizationId: OrganizationId,
-    public readonly taskArchetypeId: TaskArchetypeId,
-    public readonly assignedAgentIds: AgentId[],
-    public readonly startedAt: Timestamp,
-    public readonly expectedCompletionAt: Timestamp,
-    public status: TaskStatus,
-    public outcomeCategory?: OutcomeCategory,
-    public outcomeDetails?: TaskOutcome
-  ) {}
-
-  isReadyForResolution(now: Timestamp): boolean {
-    return (
-      this.status === 'IN_PROGRESS' &&
-      now >= this.expectedCompletionAt
-    );
+  canStartMission(): boolean {
+    return this.state.status === 'idle';
   }
 }
 ```
 
 ### Domain System Pattern
 
-```typescript
-// src/lib/domain/systems/TaskResolutionSystem.ts
-export class TaskResolutionSystem {
-  resolveTasks(
-    tasks: TaskInstance[],
-    agents: Map<AgentId, AgentInstance>,
-    archetypes: Map<TaskArchetypeId, TaskArchetype>,
-    facilities: FacilityInstance[],
-    now: Timestamp
-  ): TaskResolutionResult[] {
-    const readyTasks = tasks.filter(t => t.isReadyForResolution(now));
-    const results: TaskResolutionResult[] = [];
-
-    for (const task of readyTasks) {
-      const archetype = archetypes.get(task.taskArchetypeId);
-      if (!archetype) continue;
-
-      const assignedAgents = task.assignedAgentIds
-        .map(id => agents.get(id))
-        .filter((a): a is AgentInstance => a !== undefined);
-
-      // Compute effective task score
-      const score = this.computeTaskScore(
-        archetype,
-        assignedAgents,
-        facilities
-      );
-
-      // Map score to outcome
-      const outcome = this.determineOutcome(score, archetype);
-
-      // Generate rewards and state changes
-      const result: TaskResolutionResult = {
-        taskId: task.id,
-        outcomeCategory: outcome.category,
-        rewards: outcome.rewards,
-        agentChanges: outcome.agentChanges,
-        trackChanges: outcome.trackChanges
-      };
-
-      results.push(result);
-    }
-
-    return results;
-  }
-
-  private computeTaskScore(
-    archetype: TaskArchetype,
-    agents: AgentInstance[],
-    facilities: FacilityInstance[]
-  ): number {
-    // Pure computation based on agent stats, facility effects, etc.
-    let score = 0;
-    
-    for (const agent of agents) {
-      const relevantStat = agent.effectiveStats.get(archetype.primaryStatKey) || 0;
-      score += relevantStat;
-    }
-
-    // Apply facility effects
-    for (const facility of facilities) {
-      const effects = this.getFacilityEffects(facility);
-      score = this.applyEffects(score, effects, archetype.category);
-    }
-
-    return score;
-  }
-}
-```
-
-### Application Service Pattern
+### Domain System Pattern
 
 ```typescript
-// src/lib/app/StartTaskService.ts
-export class StartTaskService {
-  constructor(
-    private organizationRepo: OrganizationRepository,
-    private taskRepo: TaskRepository,
-    private agentRepo: AgentRepository,
-    private economySystem: EconomySystem
-  ) {}
-
-  async execute(
-    organizationId: OrganizationId,
-    offerId: TaskOfferId,
-    agentIds: AgentId[]
-  ): Promise<StartTaskResult> {
-    // Load entities
-    const org = await this.organizationRepo.getById(organizationId);
-    const offer = await this.taskRepo.getOfferById(offerId);
-    const agents = await Promise.all(
-      agentIds.map(id => this.agentRepo.getById(id))
-    );
-
-    // Validate business rules
-    if (!offer || offer.organizationId !== organizationId) {
-      return { success: false, error: 'Invalid offer' };
-    }
-
-    if (offer.isTaken) {
-      return { success: false, error: 'Offer already taken' };
-    }
-
-    const archetype = await this.taskRepo.getArchetypeById(offer.taskArchetypeId);
-    if (!archetype) {
-      return { success: false, error: 'Invalid archetype' };
-    }
-
-    // Check costs
-    if (!this.economySystem.canAfford(org, archetype.entryCost)) {
-      return { success: false, error: 'Insufficient resources' };
-    }
-
-    // Create task instance
-    const now = Timestamp.now();
-    const task = new TaskInstance(
-      TaskInstanceId.generate(),
-      organizationId,
-      offer.taskArchetypeId,
-      agentIds,
-      now,
-      now.add(archetype.baseDuration),
-      'IN_PROGRESS'
-    );
-
-    // Apply costs
-    this.economySystem.applyCost(org, archetype.entryCost);
-
-    // Mark offer as taken
-    offer.isTaken = true;
-    offer.assignedTaskInstanceId = task.id;
-
-    // Persist changes
-    await this.organizationRepo.save(org);
-    await this.taskRepo.saveOffer(offer);
-    await this.taskRepo.saveInstance(task);
-
-    return { success: true, taskId: task.id };
-  }
-}
-```
-
-### Repository Pattern
-
-```typescript
-// src/lib/repos/contracts/TaskRepository.ts
-export interface TaskRepository {
-  getArchetypeById(id: TaskArchetypeId): Promise<TaskArchetype | null>;
-  getOfferById(id: TaskOfferId): Promise<TaskOffer | null>;
-  getInstanceById(id: TaskInstanceId): Promise<TaskInstance | null>;
-  
-  findOffersForOrganization(orgId: OrganizationId): Promise<TaskOffer[]>;
-  findPendingTasksReadyForResolution(now: Timestamp): Promise<TaskInstance[]>;
-  findActiveTasksForOrganization(orgId: OrganizationId): Promise<TaskInstance[]>;
-  
-  saveOffer(offer: TaskOffer): Promise<void>;
-  saveInstance(instance: TaskInstance): Promise<void>;
-}
-
-// src/lib/repos/prisma/PrismaTaskRepository.ts
-export class PrismaTaskRepository implements TaskRepository {
-  constructor(private prisma: PrismaClient) {}
-
-  async getArchetypeById(id: TaskArchetypeId): Promise<TaskArchetype | null> {
-    const data = await this.prisma.taskArchetype.findUnique({
-      where: { id: id.value }
-    });
-    
-    return data ? this.toDomainEntity(data) : null;
-  }
-
-  async findPendingTasksReadyForResolution(
-    now: Timestamp
-  ): Promise<TaskInstance[]> {
-    const data = await this.prisma.taskInstance.findMany({
-      where: {
-        status: 'IN_PROGRESS',
-        expectedCompletionAt: { lte: now.value }
-      },
-      include: { archetype: true, agents: true }
-    });
-
-    return data.map(d => this.toDomainEntity(d));
-  }
-
-  private toDomainEntity(data: any): TaskInstance {
-    return new TaskInstance(
-      TaskInstanceId.from(data.id),
-      OrganizationId.from(data.organizationId),
-      TaskArchetypeId.from(data.taskArchetypeId),
-      data.assignedAgentIds.map((id: string) => AgentId.from(id)),
-      Timestamp.from(data.startedAt),
-      Timestamp.from(data.expectedCompletionAt),
-      data.status as TaskStatus,
-      data.outcomeCategory as OutcomeCategory | undefined,
-      data.outcomeDetails ? JSON.parse(data.outcomeDetails) : undefined
-    );
-  }
-}
-```
-
-### SvelteKit Server Route Pattern
-
-```typescript
-// src/routes/api/tasks/start/+server.ts
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { StartTaskService } from '$lib/app/StartTaskService';
-import { PrismaClient } from '@prisma/client';
-import { PrismaOrganizationRepository } from '$lib/repos/prisma/PrismaOrganizationRepository';
-import { PrismaTaskRepository } from '$lib/repos/prisma/PrismaTaskRepository';
-import { PrismaAgentRepository } from '$lib/repos/prisma/PrismaAgentRepository';
-import { EconomySystem } from '$lib/domain/systems/EconomySystem';
-
-const prisma = new PrismaClient();
-
-export const POST: RequestHandler = async ({ request }) => {
-  const { organizationId, offerId, agentIds } = await request.json();
-
-  // Wire up dependencies
-  const orgRepo = new PrismaOrganizationRepository(prisma);
-  const taskRepo = new PrismaTaskRepository(prisma);
-  const agentRepo = new PrismaAgentRepository(prisma);
-  const economySystem = new EconomySystem();
-
-  const service = new StartTaskService(
-    orgRepo,
-    taskRepo,
-    agentRepo,
-    economySystem
-  );
-
-  const result = await service.execute(
-    OrganizationId.from(organizationId),
-    TaskOfferId.from(offerId),
-    agentIds.map((id: string) => AgentId.from(id))
-  );
-
-  if (!result.success) {
-    return json({ error: result.error }, { status: 400 });
-  }
-
-  return json({ taskId: result.taskId });
-};
-```
-
-### World Advancement Pattern
-
-```typescript
-// src/lib/app/AdvanceWorldService.ts
-export class AdvanceWorldService {
-  constructor(
-    private organizationRepo: OrganizationRepository,
-    private taskRepo: TaskRepository,
-    private agentRepo: AgentRepository,
-    private facilityRepo: FacilityRepository,
-    private taskResolutionSystem: TaskResolutionSystem,
-    private rosterSystem: RosterSystem,
-    private offerSystem: OfferSystem,
-    private progressionSystem: ProgressionSystem
-  ) {}
-
-  async advance(organizationId: OrganizationId, now: Timestamp): Promise<AdvanceResult> {
-    // Load organization and related state
-    const org = await this.organizationRepo.getById(organizationId);
-    if (!org) {
-      throw new Error('Organization not found');
-    }
-
-    // Compute time delta
-    const delta = Duration.between(org.lastSimulatedAt, now);
-
-    // Load related entities
-    const tasks = await this.taskRepo.findActiveTasksForOrganization(organizationId);
-    const agents = await this.agentRepo.findByOrganization(organizationId);
-    const facilities = await this.facilityRepo.findByOrganization(organizationId);
-    const archetypes = await this.taskRepo.getAllArchetypes();
-
-    // Resolve completed tasks
-    const readyTasks = tasks.filter(t => t.isReadyForResolution(now));
-    const archetypeMap = new Map(archetypes.map(a => [a.id, a]));
-    const agentMap = new Map(agents.map(a => [a.id, a]));
-
-    const resolutionResults = this.taskResolutionSystem.resolveTasks(
-      readyTasks,
-      agentMap,
-      archetypeMap,
-      facilities,
-      now
-    );
-
-    // Apply resolution results
-    for (const result of resolutionResults) {
-      const task = tasks.find(t => t.id === result.taskId);
-      if (task) {
-        task.status = 'COMPLETED';
-        task.outcomeCategory = result.outcomeCategory;
-        task.outcomeDetails = result.outcomeDetails;
-
-        // Apply rewards and changes
-        this.economySystem.applyReward(org, result.rewards);
-        this.progressionSystem.applyTrackChanges(org, result.trackChanges);
-        
-        // Update agents
-        for (const change of result.agentChanges) {
-          const agent = agentMap.get(change.agentId);
-          if (agent) {
-            agent.applyChange(change);
-          }
-        }
-      }
-    }
-
-    // Update agent recovery/availability
-    this.rosterSystem.updateAgents(agents, delta, now);
-
-    // Generate new offers
-    const newOffers = await this.offerSystem.generateOffers(
-      org,
-      archetypes,
-      now
-    );
-    for (const offer of newOffers) {
-      await this.taskRepo.saveOffer(offer);
-    }
-
-    // Process unlocks
-    this.progressionSystem.processUnlocks(org);
-
-    // Update organization timestamp
-    org.advanceTo(now);
-
-    // Persist all changes
-    await this.organizationRepo.save(org);
-    for (const task of readyTasks) {
-      await this.taskRepo.saveInstance(task);
-    }
-    for (const agent of agents) {
-      await this.agentRepo.save(agent);
-    }
-
-    return {
-      completedTasks: resolutionResults.length,
-      newOffers: newOffers.length,
-      updatedAt: now
-    };
-  }
-}
-```
-
-### Svelte Store Pattern for Client State
-
-```typescript
-// src/lib/stores/organization.ts
-import { writable } from 'svelte/store';
-import type { OrganizationSnapshot } from '$lib/types';
-
-export const organizationStore = writable<OrganizationSnapshot | null>(null);
-export const serverTimeBaseline = writable<number>(Date.now());
-
-// Update store from server response
-export function updateOrganizationFromServer(
-  snapshot: OrganizationSnapshot,
-  serverTime: number
-): void {
-  organizationStore.set(snapshot);
-  serverTimeBaseline.set(serverTime);
-}
-
-// Client-side visual tick
-export function computeVisualProgress(
-  taskStartedAt: number,
-  expectedCompletionAt: number,
-  serverTimeBaseline: number
-): number {
-  const now = Date.now();
-  const elapsed = now - serverTimeBaseline;
-  const actualStartedAt = taskStartedAt + elapsed;
-  const actualExpectedAt = expectedCompletionAt + elapsed;
-  
-  if (now >= actualExpectedAt) return 1.0;
-  if (now < actualStartedAt) return 0.0;
-  
-  return (now - actualStartedAt) / (actualExpectedAt - actualStartedAt);
-}
-```
-
-### Prisma Schema Pattern
-
-```prisma
-// prisma/schema.prisma
-model Organization {
-  id            String   @id @default(uuid())
-  ownerPlayerId String
-  createdAt     DateTime @default(now())
-  lastActiveAt  DateTime @default(now())
-  lastSimulatedAt DateTime @default(now())
-  
-  progressTracks ProgressTrack[]
-  agents         AgentInstance[]
-  tasks          TaskInstance[]
-  facilities     FacilityInstance[]
-  items          ItemInstance[]
-  
-  @@index([ownerPlayerId])
-}
-
-model TaskInstance {
-  id                  String   @id @default(uuid())
-  organizationId      String
-  taskArchetypeId     String
-  assignedAgentIds    String[]
-  startedAt           DateTime
-  expectedCompletionAt DateTime
-  completedAt         DateTime?
-  status              String   // IN_PROGRESS, COMPLETED, CANCELLED
-  outcomeCategory      String?
-  outcomeDetails       String?  // JSON
-  
-  organization        Organization @relation(fields: [organizationId], references: [id])
-  archetype           TaskArchetype @relation(fields: [taskArchetypeId], references: [id])
-  
-  @@index([organizationId])
-  @@index([status, expectedCompletionAt])
-}
-
-model TaskArchetype {
-  id              String   @id @default(uuid())
-  category        String
-  baseDurationMs  Int
-  minAgents       Int
-  maxAgents       Int
-  primaryStatKey  String
-  entryCost       String   // JSON ResourceBundle
-  baseReward      String   // JSON ResourceBundle
-  
-  instances       TaskInstance[]
-  offers          TaskOffer[]
+// src/lib/domain/systems/MissionDurationModifiers.ts
+export function calculateEffectiveDuration(
+  mission: Mission,
+  adventurer: Adventurer | undefined,
+  state: GameState
+): Duration {
+  const baseDuration = mission.attributes.baseDuration;
+  const modifiers: DurationModifier[] = [];
+  // Collect modifiers from adventurer abilities, facility bonuses, etc.
+  return calculateEffectiveDurationBase(baseDuration, modifiers);
 }
 ```
 
@@ -553,17 +87,7 @@ model TaskArchetype {
 src/
 ├── routes/
 │   ├── +page.svelte
-│   ├── api/
-│   │   ├── organization/
-│   │   │   ├── bootstrap/
-│   │   │   │   └── +server.ts
-│   │   │   └── heartbeat/
-│   │   │       └── +server.ts
-│   │   └── tasks/
-│   │       ├── start/
-│   │       │   └── +server.ts
-│   │       └── collect/
-│   │           └── +server.ts
+│   └── api/
 ├── lib/
 │   ├── domain/
 │   │   ├── entities/
@@ -571,8 +95,6 @@ src/
 │   │   └── systems/
 │   ├── app/
 │   ├── repos/
-│   │   ├── contracts/
-│   │   └── prisma/
 │   └── stores/
 └── app.html
 ```
@@ -583,22 +105,14 @@ src/
 // 1. External dependencies
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { PrismaClient } from '@prisma/client';
 
 // 2. Domain entities and value objects
-import { OrganizationId, TaskOfferId, AgentId } from '$lib/domain/valueObjects/Identifier';
-import { TaskInstance } from '$lib/domain/entities/TaskInstance';
+import { AdventurerId, MissionId } from '$lib/domain/valueObjects/Identifier';
+import { Mission } from '$lib/domain/entities/Mission';
 import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
 
 // 3. Domain systems
-import { EconomySystem } from '$lib/domain/systems/EconomySystem';
-
-// 4. Application services
-import { StartTaskService } from '$lib/app/StartTaskService';
-
-// 5. Repository interfaces and implementations
-import type { TaskRepository } from '$lib/repos/contracts/TaskRepository';
-import { PrismaTaskRepository } from '$lib/repos/prisma/PrismaTaskRepository';
+import { calculateEffectiveDuration } from '$lib/domain/systems/MissionDurationModifiers';
 ```
 
 ### Error Handling Patterns
@@ -606,21 +120,13 @@ import { PrismaTaskRepository } from '$lib/repos/prisma/PrismaTaskRepository';
 #### Domain Validation
 
 ```typescript
-// src/lib/domain/entities/Organization.ts
-export class Organization {
-  canAfford(cost: ResourceBundle): boolean {
-    if (!cost.isValid()) {
-      throw new DomainError('Invalid resource bundle');
+// src/lib/domain/entities/Adventurer.ts
+export class Adventurer {
+  canStartMission(): boolean {
+    if (this.state.status !== 'idle') {
+      throw new DomainError('Adventurer is not available');
     }
-    return this.economyState.hasResources(cost);
-  }
-
-  advanceTo(now: Timestamp): void {
-    if (now.value < this.lastSimulatedAt.value) {
-      throw new DomainError('Cannot advance to past timestamp');
-    }
-    this.lastSimulatedAt = now;
-    this.lastActiveAt = now;
+    return true;
   }
 }
 ```
@@ -654,18 +160,14 @@ export class StartTaskService {
 
 ```typescript
 // All domain systems are pure functions
-export class TaskResolutionSystem {
-  resolveTasks(
-    tasks: TaskInstance[],
-    agents: Map<AgentId, AgentInstance>,
-    archetypes: Map<TaskArchetypeId, TaskArchetype>,
-    facilities: FacilityInstance[],
-    now: Timestamp
-  ): TaskResolutionResult[] {
-    // Given the same inputs, always produces the same outputs
-    // No side effects, no external dependencies
-    // Uses deterministic random if needed (seeded)
-  }
+export function calculateEffectiveDuration(
+  mission: Mission,
+  adventurer: Adventurer | undefined,
+  state: GameState
+): Duration {
+  // Given the same inputs, always produces the same outputs
+  // No side effects, no external dependencies
+  // Uses deterministic random if needed (seeded)
 }
 ```
 

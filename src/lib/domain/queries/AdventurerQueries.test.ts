@@ -8,13 +8,13 @@ import {
 	hasAnyAdventurers,
 	isFirstAdventurer
 } from './AdventurerQueries';
-import { createTestGameState, createTestAdventurer } from '../../test-utils/testFactories';
+import { createTestGameState, createTestAdventurer, createEmptyTestGameState } from '../../test-utils/testFactories';
 import type { Entity } from '../primitives/Requirement';
 
 describe('AdventurerQueries', () => {
 	describe('getAdventurerCount', () => {
 		it('should return 0 when no adventurers exist', () => {
-			const state = createTestGameState();
+			const state = createEmptyTestGameState();
 			expect(getAdventurerCount(state)).toBe(0);
 		});
 
@@ -52,7 +52,7 @@ describe('AdventurerQueries', () => {
 
 	describe('hasAnyAdventurers', () => {
 		it('should return false when no adventurers exist', () => {
-			const state = createTestGameState();
+			const state = createEmptyTestGameState();
 			expect(hasAnyAdventurers(state)).toBe(false);
 		});
 
@@ -79,7 +79,7 @@ describe('AdventurerQueries', () => {
 
 	describe('isFirstAdventurer', () => {
 		it('should return false when no adventurers exist', () => {
-			const state = createTestGameState();
+			const state = createEmptyTestGameState();
 			expect(isFirstAdventurer(state)).toBe(false);
 		});
 

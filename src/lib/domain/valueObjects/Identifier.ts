@@ -39,16 +39,6 @@ export class Identifier<T extends string = string> {
 }
 
 // Type aliases for different identifier types
-export type OrganizationId = Identifier<'OrganizationId'>;
-export type AgentId = Identifier<'AgentId'>;
-export type TaskInstanceId = Identifier<'TaskInstanceId'>;
-export type TaskOfferId = Identifier<'TaskOfferId'>;
-export type TaskArchetypeId = Identifier<'TaskArchetypeId'>;
-export type FacilityInstanceId = Identifier<'FacilityInstanceId'>;
-export type FacilityTemplateId = Identifier<'FacilityTemplateId'>;
-export type ProgressTrackId = Identifier<'ProgressTrackId'>;
-export type PlayerId = Identifier<'PlayerId'>;
-export type AgentTemplateId = Identifier<'AgentTemplateId'>;
 export type AdventurerId = Identifier<'AdventurerId'>;
 export type MissionId = Identifier<'MissionId'>;
 export type FacilityId = Identifier<'FacilityId'>;

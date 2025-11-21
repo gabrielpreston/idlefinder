@@ -25,6 +25,8 @@ import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { getTimer } from '../primitives/TimerHelpers';
+import { calculateEffectiveDuration } from '../systems/MissionDurationModifiers';
+import { GameState } from '../entities/GameState';
 
 export interface StartMissionParams {
 	missionId: string;
@@ -69,8 +71,22 @@ export class StartMissionAction extends Action {
 			throw new Error(`Mission ${this.missionId} not found`);
 		}
 
-		// Calculate endsAt: now + baseDuration
-		const endsAt = startedAt.add(mission.attributes.baseDuration);
+		// Get adventurer for modifier calculation
+		const adventurer = context.entities.get(this.adventurerId) as Adventurer | undefined;
+
+		// Create GameState for modifier calculation
+		const gameState = new GameState(
+			'', // playerId not needed for modifier calculation
+			context.currentTime,
+			context.entities,
+			context.resources
+		);
+
+		// Calculate effective duration with modifiers
+		const effectiveDuration = calculateEffectiveDuration(mission, adventurer, gameState);
+
+		// Calculate endsAt: now + effectiveDuration
+		const endsAt = startedAt.add(effectiveDuration);
 
 		// Return effects - Effects will call entity methods
 		return [

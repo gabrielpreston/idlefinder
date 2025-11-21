@@ -21,14 +21,101 @@ import type { MissionAttributes } from '../domain/attributes/MissionAttributes';
 import type { FacilityAttributes } from '../domain/attributes/FacilityAttributes';
 import { setTimer } from '../domain/primitives/TimerHelpers';
 import { deriveRoleKey } from '../domain/attributes/RoleKey';
+import { Facility } from '../domain/entities/Facility';
+import { MissionDoctrine } from '../domain/entities/MissionDoctrine';
+import { AutoEquipRules } from '../domain/entities/AutoEquipRules';
+import { CraftingQueue } from '../domain/entities/CraftingQueue';
+import { ResourceSlot } from '../domain/entities/ResourceSlot';
+import type { ResourceSlotAttributes } from '../domain/attributes/ResourceSlotAttributes';
+import { GameConfig } from '../domain/config/GameConfig';
 
 // ============================================================================
 // GameState Factories
 // ============================================================================
 
 /**
+ * Create empty test GameState with only essential entities (no preview adventurers or missions)
+ * Use this when tests need a truly empty state
+ */
+export function createEmptyTestGameState(overrides?: {
+	playerId?: string;
+	entities?: Map<string, import('../domain/primitives/Requirement').Entity>;
+	resources?: ResourceBundle;
+}): GameState {
+	const playerId = overrides?.playerId || 'test-player';
+	const now = Timestamp.now();
+	
+	// Create minimal entities map with only essential entities (Guildhall, MissionDoctrine, etc.)
+	// but NO preview adventurers or missions
+	const entities = overrides?.entities || new Map<string, import('../domain/primitives/Requirement').Entity>();
+	
+	// If entities not provided, create essential entities only
+	if (!overrides?.entities) {
+		// Guildhall (Tier 0)
+		const guildhallId = Identifier.from<'FacilityId'>('facility-guildhall-1');
+		const guildhallAttributes: FacilityAttributes = {
+			facilityType: 'Guildhall',
+			tier: 0,
+			baseCapacity: GameConfig.resourceGeneration.initialBaseCapacity,
+			bonusMultipliers: {}
+		};
+		const guildhall = new Facility(
+			guildhallId,
+			guildhallAttributes,
+			['mission-control'],
+			'Online',
+			{},
+			{ name: 'Guildhall' }
+		);
+		entities.set(guildhall.id, guildhall);
+
+		// Gold Slot #1
+		const goldSlotId = Identifier.from<'SlotId'>('slot-gold-1');
+		const goldSlotAttributes: ResourceSlotAttributes = {
+			facilityId: guildhall.id,
+			resourceType: 'gold',
+			baseRatePerMinute: GameConfig.resourceGeneration.initialGoldRatePerMinute,
+			assigneeType: 'player',
+			assigneeId: null
+		};
+		const goldSlot = new ResourceSlot(
+			goldSlotId,
+			goldSlotAttributes,
+			['slot:resource', 'slot:gold', 'facility:guildhall'],
+			'occupied',
+			{ lastTickAt: now.value },
+			{ displayName: 'Gold Generation Slot #1' }
+		);
+		entities.set(goldSlot.id, goldSlot);
+
+		// Mission Doctrine
+		const doctrineId = Identifier.generate<'MissionDoctrineId'>();
+		const doctrine = MissionDoctrine.createDefault(doctrineId);
+		entities.set(doctrine.id, doctrine);
+
+		// Auto-Equip Rules
+		const autoEquipRulesId = Identifier.generate<'AutoEquipRulesId'>();
+		const autoEquipRules = AutoEquipRules.createDefault(autoEquipRulesId);
+		entities.set(autoEquipRules.id, autoEquipRules);
+
+		// Crafting Queue
+		const craftingQueueId = Identifier.generate<'CraftingQueueId'>();
+		const craftingQueue = CraftingQueue.createDefault(craftingQueueId);
+		entities.set(craftingQueue.id, craftingQueue);
+	}
+	
+	// Default resources with enough gold for testing
+	const resources = overrides?.resources ?? createTestResourceBundle({ gold: 1000 });
+	
+	return new GameStateImpl(playerId, now, entities, resources);
+}
+
+/**
  * Create test GameState with optional overrides
  * Fast: Instant creation, no I/O
+ * 
+ * NOTE: This includes initial game state entities (4 preview adventurers, missions, etc.)
+ * Use createEmptyTestGameState() if you need a truly empty state
  */
 export function createTestGameState(overrides?: {
 	playerId?: string;

@@ -61,6 +61,9 @@ export function startGame(
 		busManager.domainEventBus.subscribe('AdventurerRecruited', () => {
 			set(busManager.getState());
 		}),
+		busManager.domainEventBus.subscribe('RecruitPoolRefreshed', () => {
+			set(busManager.getState());
+		}),
 		busManager.domainEventBus.subscribe('FacilityUpgraded', (payload) => {
 			// Handle slot creation on facility upgrade
 			const event = payload as import('../domain/primitives/Event').FacilityUpgradedEvent;

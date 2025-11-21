@@ -8,6 +8,7 @@ import { IdleLoop } from '../domain/systems/IdleLoop';
 import { createStartMissionHandler } from './StartMissionHandler';
 import { createUpgradeFacilityHandler } from './UpgradeFacilityHandler';
 import { createRecruitAdventurerHandler } from './RecruitAdventurerHandler';
+import { createRefreshRecruitPoolHandler } from './RefreshRecruitPoolHandler';
 import { createEquipItemHandler } from './EquipItemHandler';
 import { createUnequipItemHandler } from './UnequipItemHandler';
 import { createRepairItemHandler } from './RepairItemHandler';
@@ -90,6 +91,7 @@ export function registerHandlers(busManager: BusManager): void {
 	busManager.commandBus.register('StartMission', createStartMissionHandler());
 	busManager.commandBus.register('UpgradeFacility', createUpgradeFacilityHandler());
 	busManager.commandBus.register('RecruitAdventurer', createRecruitAdventurerHandler());
+	busManager.commandBus.register('RefreshRecruitPool', createRefreshRecruitPoolHandler());
 	
 	// Register item command handlers
 	busManager.commandBus.register('EquipItem', createEquipItemHandler());

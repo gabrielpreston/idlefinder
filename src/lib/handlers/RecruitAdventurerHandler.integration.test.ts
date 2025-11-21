@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupIntegrationTest, createTestCommand, createTestGameState, createTestResourceBundle } from '../test-utils';
+import { setupIntegrationTest, createTestCommand, createTestGameState, createTestResourceBundle, createEmptyTestGameState } from '../test-utils';
 import type { BusManager } from '../bus/BusManager';
 import type { DomainEvent } from '../bus/types';
 
@@ -36,13 +36,15 @@ describe('RecruitAdventurerHandler Integration', () => {
 			const payload = publishedEvents[0].payload as { name: string; adventurerId: string; traits: string[] };
 			expect(payload.name).toBe('Test Adventurer');
 
-			// Verify state updated
+			// Verify state updated - find the recruited adventurer by name
 			const state = busManager.getState();
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			expect(adventurers).toHaveLength(1);
-			const adventurer = adventurers[0] as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer.metadata.name).toBe('Test Adventurer');
-			expect(adventurer.state).toBe('Idle');
+			// Initial state has 4 preview adventurers, so we should have 5 total
+			expect(adventurers.length).toBeGreaterThanOrEqual(5);
+			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer') as import('../domain/entities/Adventurer').Adventurer;
+			expect(adventurer).toBeDefined();
+			expect(adventurer?.metadata.name).toBe('Test Adventurer');
+			expect(adventurer?.state).toBe('Idle');
 		});
 
 		it('should recruit adventurer with traits', async () => {
@@ -55,9 +57,10 @@ describe('RecruitAdventurerHandler Integration', () => {
 
 			const state = busManager.getState();
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			const adventurer = adventurers[0] as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer.attributes.traitTags).toContain('brave');
-			expect(adventurer.attributes.traitTags).toContain('combat');
+			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Brave Fighter') as import('../domain/entities/Adventurer').Adventurer;
+			expect(adventurer).toBeDefined();
+			expect(adventurer?.attributes.traitTags).toContain('brave');
+			expect(adventurer?.attributes.traitTags).toContain('combat');
 		});
 
 		it('should fail when name is empty', async () => {
@@ -120,13 +123,15 @@ describe('RecruitAdventurerHandler Integration', () => {
 			expect(state.resources.get('gold')).toBe(50);
 			
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			expect(adventurers).toHaveLength(1);
-			const adventurer = adventurers[0] as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer.metadata.name).toBe('Test Adventurer');
+			// Initial state has 4 preview adventurers, so we should have 5 total
+			expect(adventurers.length).toBeGreaterThanOrEqual(5);
+			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer') as import('../domain/entities/Adventurer').Adventurer;
+			expect(adventurer).toBeDefined();
+			expect(adventurer?.metadata.name).toBe('Test Adventurer');
 		});
 
 		it('should fail when insufficient gold', async () => {
-			const initialState = createTestGameState({ 
+			const initialState = createEmptyTestGameState({ 
 				resources: createTestResourceBundle({ gold: 25 }) 
 			});
 			const { busManager: testBusManager, publishedEvents } = setupIntegrationTest({
@@ -152,7 +157,7 @@ describe('RecruitAdventurerHandler Integration', () => {
 			const state = testBusManager.getState();
 			expect(state.resources.get('gold')).toBe(25);
 
-			// Verify no adventurer created
+			// Verify no adventurer created (using empty state, so should be 0)
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			expect(adventurers).toHaveLength(0);
 		});

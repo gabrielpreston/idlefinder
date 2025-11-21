@@ -14,6 +14,7 @@ export type DomainEventType =
 	| 'MissionCompleted'
 	| 'MissionFailed'
 	| 'AdventurerRecruited'
+	| 'RecruitPoolRefreshed'
 	| 'AdventurerAssigned'
 	| 'AdventurerGainedXP'
 	| 'AdventurerLeveledUp'
@@ -50,6 +51,7 @@ export type DomainEventPayload =
 	| MissionCompletedEvent
 	| MissionFailedEvent
 	| AdventurerRecruitedEvent
+	| RecruitPoolRefreshedEvent
 	| AdventurerAssignedEvent
 	| AdventurerGainedXPEvent
 	| AdventurerLeveledUpEvent
@@ -98,6 +100,11 @@ export interface AdventurerRecruitedEvent {
 	adventurerId: string;
 	name: string;
 	traits: string[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RecruitPoolRefreshedEvent {
+	// Empty payload - indicates pool was refreshed
 }
 
 export interface FacilityUpgradedEvent {

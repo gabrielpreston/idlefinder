@@ -172,17 +172,17 @@ describe('Gating Integration', () => {
 		});
 
 		it('should return correct unlocked mission tiers', () => {
-			// Initial state has 0 fame - only tier 1 unlocked
+			// Initial state has 0 fame - tiers 0 and 1 unlocked (both unlock at 0 fame)
 			const unlocked = getUnlockedMissionTiers(state);
-			expect(unlocked).toEqual([1]);
+			expect(unlocked).toEqual([0, 1]);
 
-			// Add 100 fame - tiers 1 and 2 unlocked
+			// Add 100 fame - tiers 0, 1, and 2 unlocked
 			const resources = ResourceBundle.fromArray([
 				new ResourceUnit('fame', 100),
 			]);
 			const stateWithFame = createTestGameState({ resources });
 			const unlockedWithFame = getUnlockedMissionTiers(stateWithFame);
-			expect(unlockedWithFame).toEqual([1, 2]);
+			expect(unlockedWithFame).toEqual([0, 1, 2]);
 		});
 
 		it('should return correct max facility tier', () => {
@@ -249,7 +249,7 @@ describe('Gating Integration', () => {
 			);
 
 			const missionTierGates = getGatesByType('mission_tier', state);
-			expect(missionTierGates.length).toBe(5); // Tiers 1-5
+			expect(missionTierGates.length).toBe(6); // Tiers 0-5
 		});
 	});
 
@@ -263,7 +263,7 @@ describe('Gating Integration', () => {
 			expect(uiPanels.length).toBe(6); // adventurers, missions, facilities, equipment, crafting, doctrine
 
 			const missionTiers = gateRegistry.getByType('mission_tier');
-			expect(missionTiers.length).toBe(5);
+			expect(missionTiers.length).toBe(6); // Tiers 0-5
 
 			const facilityTiers = gateRegistry.getByType('facility_tier');
 			expect(facilityTiers.length).toBe(25); // 5 facilities × 5 tiers

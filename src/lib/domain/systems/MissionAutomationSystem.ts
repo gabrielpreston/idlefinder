@@ -9,6 +9,7 @@ import { StartMissionAction } from '../actions/StartMissionAction';
 import type { MissionDoctrine } from '../entities/MissionDoctrine';
 import type { Mission } from '../entities/Mission';
 import type { Adventurer } from '../entities/Adventurer';
+import { getAvailableMissionSlots } from '../queries/MissionSlotQueries';
 
 export interface AutomationResult {
 	actions: StartMissionAction[];
@@ -36,6 +37,13 @@ export function automateMissionSelection(
 		return { actions };
 	}
 
+	// Check available mission slots (capacity check)
+	const availableSlots = getAvailableMissionSlots(state);
+	if (availableSlots <= 0) {
+		// No available mission slots, cannot start new missions
+		return { actions };
+	}
+
 	// Get available missions (Available state)
 	const availableMissions = Array.from(state.entities.values())
 		.filter((e) => e.type === 'Mission' && (e as Mission).state === 'Available')
@@ -58,13 +66,19 @@ export function automateMissionSelection(
 	);
 
 	if (selection && selection.adventurers.length > 0) {
-		// Create StartMissionAction (MVP: single adventurer per mission)
-		actions.push(
-			new StartMissionAction(
-				selection.mission.id,
-				selection.adventurers[0].id
-			)
-		);
+		// Only start missions if we have available slots
+		// Limit to available slots (in case multiple missions were selected)
+		const missionsToStart = Math.min(availableSlots, 1); // MVP: 1 mission at a time
+		
+		if (missionsToStart > 0) {
+			// Create StartMissionAction (MVP: single adventurer per mission)
+			actions.push(
+				new StartMissionAction(
+					selection.mission.id,
+					selection.adventurers[0].id
+				)
+			);
+		}
 	}
 
 	return { actions };

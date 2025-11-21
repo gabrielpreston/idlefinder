@@ -9,7 +9,9 @@ import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import type { RequirementContext, Entity } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
-import { SetTimerEffect, type Effect } from '../primitives/Effect';
+import type { Effect } from '../primitives/Effect';
+import { applyEffects } from '../primitives/Effect';
+import { getTimer } from '../primitives/TimerHelpers';
 
 describe('StartMissionAction', () => {
 	describe('computeEffects', () => {
@@ -30,12 +32,15 @@ describe('StartMissionAction', () => {
 				startedAt: customStartTime
 			});
 
-			// Should have SetTimerEffect with custom start time
-			const startTimerEffect = effects.find(e => {
-				 
-				return e instanceof SetTimerEffect && (e as any).entityId === 'mission-1' && (e as any).timerKey === 'startedAt';
-			});
-			expect(startTimerEffect).toBeDefined();
+			// Apply effects and verify timer was set (behavioral test)
+			const result = applyEffects(effects, entities, resources);
+			const updatedMission = result.entities.get('mission-1');
+			expect(updatedMission).toBeDefined();
+			
+			// Verify timer was set using public API
+			const startedAtTimer = getTimer(updatedMission as Entity & { timers: Record<string, number | null> }, 'startedAt');
+			expect(startedAtTimer).toBeDefined();
+			expect(startedAtTimer?.value).toBe(customStartTime.value);
 		});
 
 		it('should use context.currentTime when startedAt not provided', () => {
@@ -100,7 +105,7 @@ describe('StartMissionAction', () => {
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
 			const startedAt = Timestamp.now();
-			const endsAt = startedAt.add(Duration.ofMinutes(10));
+			const endsAt = startedAt.add(Duration.ofSeconds(600));
 			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'adv-1');
@@ -137,7 +142,7 @@ describe('StartMissionAction', () => {
 			const mission = createTestMission({ id: 'mission-1', state: 'Available' });
 			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
 			const startedAt = Timestamp.now();
-			const endsAt = startedAt.add(Duration.ofMinutes(10));
+			const endsAt = startedAt.add(Duration.ofSeconds(600));
 			// Set endsAt timer on mission
 			 
 			(mission as any).timers = { endsAt: endsAt.value };
@@ -183,7 +188,7 @@ describe('StartMissionAction', () => {
 		it('should use mission baseDuration when startedAt is not provided', () => {
 			const mission = createTestMission({ id: 'mission-1', state: 'Available' });
 			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
-			const endsAt = Timestamp.now().add(Duration.ofMinutes(10));
+			const endsAt = Timestamp.now().add(Duration.ofSeconds(600));
 			// Set endsAt timer but not startedAt
 			 
 			(mission as any).timers = { endsAt: endsAt.value };

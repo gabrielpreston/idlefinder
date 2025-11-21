@@ -45,6 +45,7 @@ export type CommandType =
 	| 'StartMission'
 	| 'CompleteMission'
 	| 'RecruitAdventurer'
+	| 'RefreshRecruitPool'
 	| 'UpgradeFacility'
 	| 'EquipItem'
 	| 'UnequipItem'
@@ -67,6 +68,7 @@ export type CommandPayload =
 	| StartMissionCommand
 	| CompleteMissionCommand
 	| RecruitAdventurerCommand
+	| RefreshRecruitPoolCommand
 	| UpgradeFacilityCommand
 	| EquipItemCommand
 	| UnequipItemCommand
@@ -92,6 +94,12 @@ export interface CompleteMissionCommand {
 export interface RecruitAdventurerCommand {
 	name: string;
 	traits: string[];
+	previewAdventurerId?: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RefreshRecruitPoolCommand {
+	// Empty payload - uses current state
 }
 
 export interface UpgradeFacilityCommand {

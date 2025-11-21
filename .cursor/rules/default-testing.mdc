@@ -689,3 +689,158 @@ npm test -- src/lib/app
 - [ ] Repository tests pass
 - [ ] Integration tests pass
 - [ ] Tests are deterministic (pure functions)
+
+## Action Testing Patterns
+
+### Behavioral Testing Principles
+
+**Core Principle**: Test observable behavior through public APIs, not internal structure
+
+**Guidelines**:
+- ✅ **DO**: Apply effects and verify outcomes through public APIs
+- ✅ **DO**: Test observable behavior, not internal structure
+- ✅ **DO**: Use `applyEffects()` to verify effect behavior
+- ✅ **DO**: Verify through events when testing `generateEvents()`
+- ❌ **DON'T**: Access private fields (`resourceUnits`, `entityId`, etc.)
+- ❌ **DON'T**: Access private action state (`(action as any).outcome`)
+- ❌ **DON'T**: Test structure without verifying behavior
+
+### Standard Test Structure
+
+Follow this 4-step pattern for Action tests:
+
+1. **Setup**: Create entities and context
+2. **Execute**: Call `computeEffects()` or `generateEvents()`
+3. **Apply & Verify**: Use `applyEffects()` and check outcomes
+4. **Cleanup**: Restore mocks
+
+**Example**:
+
+```typescript
+it('should include fame in rewards when fame > 0', () => {
+  // 1. Setup
+  const mission = createMission({ dc: 15 });
+  const adventurer = createAdventurer({ abilityMods: new Map([['str', 10]]) });
+  const entities = new Map([['mission-1', mission], ['adv-1', adventurer]]);
+  const context: RequirementContext = {
+    entities,
+    resources: new ResourceBundle(new Map()),
+    currentTime: Timestamp.from(Date.now())
+  };
+
+  // Mock if needed
+  const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.75);
+  
+  try {
+    // 2. Execute
+    const action = new ResolveMissionAction('mission-1');
+    const effects = action.computeEffects(context, {});
+    
+    // 3. Apply & Verify (behavioral)
+    const initialResources = new ResourceBundle(new Map());
+    const result = applyEffects(effects, entities, initialResources);
+    
+    // Verify observable outcomes
+    expect(result.resources.get('fame')).toBeGreaterThan(0);
+    expect(result.resources.get('gold')).toBeGreaterThan(0);
+  } finally {
+    // 4. Cleanup
+    mockRandom.mockRestore();
+  }
+});
+```
+
+### Test Helper Usage
+
+Use helper functions from `actionTestHelpers` for common patterns:
+
+**Resource Verification**:
+
+```typescript
+import { expectResourceChange } from '../../test-utils/actionTestHelpers';
+
+expectResourceChange(effects, initialResources, entities, {
+  gold: { min: 100 },
+  fame: { exact: 5 },
+  materials: { max: 10 }
+});
+```
+
+**Entity State Verification**:
+
+```typescript
+import { expectEntityStateChange } from '../../test-utils/actionTestHelpers';
+
+expectEntityStateChange(effects, entities, 'entity-id', {
+  state: 'Completed',
+  attributePath: 'attributes.xp',
+  attributeValue: 100
+});
+```
+
+**Entity Creation Verification**:
+
+```typescript
+import { expectEntityCreated } from '../../test-utils/actionTestHelpers';
+
+const { result, created } = expectEntityCreated(effects, entities, 'Item', {
+  count: 1,
+  predicate: (item) => item.attributes.itemType === 'weapon'
+});
+```
+
+### Anti-Patterns
+
+**❌ BAD: Private Field Access**
+
+```typescript
+// Don't access private fields
+const resourceEffect = effects.find(e => e instanceof ModifyResourceEffect);
+const fameUnit = resourceEffect.resourceUnits.find(u => u.type === 'fame'); // ❌
+```
+
+**✅ GOOD: Behavioral Verification**
+
+```typescript
+// Apply effects and verify through public API
+const result = applyEffects(effects, entities, new ResourceBundle(new Map()));
+expect(result.resources.get('fame')).toBeGreaterThan(0); // ✅
+```
+
+**❌ BAD: Private State Access**
+
+```typescript
+// Don't access private action state
+expect((action as any).outcome).toBe('CriticalSuccess'); // ❌
+```
+
+**✅ GOOD: Verify Through Events**
+
+```typescript
+// Verify through events (public API)
+const events = action.generateEvents(entities, resources, effects, {});
+const payload = events[0].payload as { outcome: string };
+expect(payload.outcome).toBe('CriticalSuccess'); // ✅
+```
+
+**❌ BAD: Structure Testing**
+
+```typescript
+// Don't just check structure
+expect(effects.length).toBeGreaterThan(0); // ❌
+expect(effects[0]).toBeInstanceOf(ModifyResourceEffect); // ❌
+```
+
+**✅ GOOD: Behavior Verification**
+
+```typescript
+// Verify effect actually works
+const result = applyEffects(effects, entities, initialResources);
+expect(result.resources.get('gold')).toBeGreaterThan(0); // ✅
+```
+
+### References
+
+- Good behavioral examples: `src/lib/domain/primitives/Effect.test.ts:30-50`
+- Helper utilities: `src/lib/test-utils/actionTestHelpers.ts`
+- Effect application: `src/lib/domain/primitives/Effect.ts:489-507`
