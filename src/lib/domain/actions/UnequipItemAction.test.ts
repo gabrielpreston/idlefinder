@@ -103,7 +103,7 @@ describe('UnequipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new UnequipItemAction('nonexistent-item', 'adv-1', 'weapon');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -115,7 +115,7 @@ describe('UnequipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new UnequipItemAction('item-1', 'nonexistent-adv', 'weapon');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -131,7 +131,7 @@ describe('UnequipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new UnequipItemAction('item-1', 'adv-1', 'weapon');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			expect(events[0]?.type).toBe('ItemUnequipped');

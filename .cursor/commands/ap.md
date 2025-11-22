@@ -29,6 +29,7 @@ See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns.
 ### Phase 1: Context Gathering
 
 1. **Mark plan status as Being Analyzed**
+   - See `.cursor/rules/default-tool-usage.mdc#plan-status-updates` for pattern
    - Use `run_terminal_cmd` to get current date
    - Use `read_file` to read plan document
    - Use `search_replace` to update plan status
@@ -69,12 +70,8 @@ See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns.
    - Cross-reference multiple sources when possible
 
 3. **Validate plan against codebase state**
-   - Use `run_terminal_cmd` to run type checking
-     - Command: `npm run type-check` with `is_background: false`
-   - Use `run_terminal_cmd` to run linting (if script exists)
-     - Command: `npm run lint` with `is_background: false` (verify script exists first)
-   - Use `run_terminal_cmd` to run tests (if script exists)
-     - Command: `npm test` with `is_background: false` (verify script exists first)
+   - See `.cursor/rules/default-tool-usage.mdc#npm-script-validation` for validation sequence
+   - Follow standard validation sequence (type-check, lint, test)
    - Compare plan assumptions with actual codebase state
 
 4. **Analyze documentation impact**
@@ -129,6 +126,7 @@ See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns.
    - Add scorecard near beginning of plan document
 
 3. **Mark plan status as Analysis Complete**
+   - See `.cursor/rules/default-tool-usage.mdc#plan-status-updates` for pattern
    - Use `run_terminal_cmd` to get current date
      - Command: `date '+%Y-%m-%d %H:%M'` with `is_background: false`
    - Use `search_replace` to update plan status

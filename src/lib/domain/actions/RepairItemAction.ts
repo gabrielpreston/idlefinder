@@ -7,6 +7,8 @@ import { Action } from '../primitives/Action';
 import type { Requirement, RequirementContext } from '../primitives/Requirement';
 import type { Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { RepairItemEffect } from '../primitives/Effect';
@@ -65,7 +67,8 @@ export class RepairItemAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const item = entities.get(this.itemId) as Item | undefined;
 
@@ -81,7 +84,7 @@ export class RepairItemAction extends Action {
 					durability: item.attributes.durability,
 					maxDurability: item.attributes.maxDurability
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

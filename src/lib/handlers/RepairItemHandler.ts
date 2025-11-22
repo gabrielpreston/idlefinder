@@ -89,7 +89,8 @@ export function createRepairItemHandler(): CommandHandler<RepairItemCommand, Gam
 			actionResult.effects,
 			{
 				itemId: validatedPayload.itemId
-			}
+			},
+			context.currentTime
 		);
 
 		return Promise.resolve({

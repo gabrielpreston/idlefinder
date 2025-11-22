@@ -70,7 +70,7 @@ describe('StartMissionAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('nonexistent-mission', 'adv-1');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -82,7 +82,7 @@ describe('StartMissionAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('mission-1', 'nonexistent-adventurer');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -94,7 +94,7 @@ describe('StartMissionAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new StartMissionAction('nonexistent-mission', 'nonexistent-adventurer');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -112,7 +112,7 @@ describe('StartMissionAction', () => {
 			const events = action.generateEvents(entities, resources, effects, {
 				startedAt,
 				endsAt
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			expect(events[0]?.type).toBe('MissionStarted');
@@ -130,7 +130,7 @@ describe('StartMissionAction', () => {
 			const events = action.generateEvents(entities, resources, effects, {
 				startedAt
 				// endsAt not provided
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'MissionStarted') {
@@ -152,7 +152,7 @@ describe('StartMissionAction', () => {
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
 				startedAt
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'MissionStarted') {
@@ -174,7 +174,7 @@ describe('StartMissionAction', () => {
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
 				startedAt
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'MissionStarted') {
@@ -196,7 +196,7 @@ describe('StartMissionAction', () => {
 			const action = new StartMissionAction('mission-1', 'adv-1');
 			const events = action.generateEvents(entities, resources, effects, {
 				// startedAt not provided
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'MissionStarted') {

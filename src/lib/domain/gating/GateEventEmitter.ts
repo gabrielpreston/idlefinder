@@ -9,6 +9,8 @@ import type { GameState } from '../entities/GameState';
 import type { DomainEventBus } from '../../bus/DomainEventBus';
 import type { GateId } from './GateDefinition';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import { trackGateTransitions, getCurrentGateStates } from './GateStateTracker';
 
 /**
@@ -25,7 +27,8 @@ import { trackGateTransitions, getCurrentGateStates } from './GateStateTracker';
 export function evaluateGatesWithEvents(
 	previousStates: Record<GateId, boolean>,
 	currentState: GameState,
-	eventBus: DomainEventBus
+	eventBus: DomainEventBus,
+	currentTime: Timestamp
 ): Record<GateId, boolean> {
 	// Track transitions
 	const newlyUnlocked = trackGateTransitions(previousStates, currentState);
@@ -35,7 +38,7 @@ export function evaluateGatesWithEvents(
 		const event: DomainEvent = {
 			type: 'GateUnlocked',
 			payload: eventPayload,
-			timestamp: new Date().toISOString(),
+			timestamp: formatEventTimestamp(currentTime),
 		};
 		void eventBus.publish(event);
 	}

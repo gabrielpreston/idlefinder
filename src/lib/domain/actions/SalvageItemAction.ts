@@ -7,6 +7,8 @@ import { Action } from '../primitives/Action';
 import type { Requirement, RequirementContext } from '../primitives/Requirement';
 import type { Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { SalvageItemEffect } from '../primitives/Effect';
@@ -76,7 +78,8 @@ export class SalvageItemAction extends Action {
 		entities: Map<string, Entity>,
 		resources: ResourceBundle,
 		_effects: Effect[],
-		params: Record<string, unknown>
+		params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const salvageParams = params as unknown as SalvageItemParams;
 		const itemId = salvageParams.itemId;
@@ -91,7 +94,7 @@ export class SalvageItemAction extends Action {
 					itemId,
 					materials
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

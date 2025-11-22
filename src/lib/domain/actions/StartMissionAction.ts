@@ -18,6 +18,7 @@ import {
 	type Effect
 } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
 import type { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
 import type { Mission } from '../entities/Mission';
@@ -103,7 +104,8 @@ export class StartMissionAction extends Action {
 		entities: Map<string, Entity>,
 		resources: ResourceBundle,
 		effects: Effect[],
-		params: Record<string, unknown>
+		params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const startParams = params as unknown as StartMissionParams;
 		const mission = entities.get(this.missionId) as Mission | undefined;
@@ -125,7 +127,7 @@ export class StartMissionAction extends Action {
 		// Use startedAt if available, otherwise use current time
 		const startTime = startedAt
 			? startedAt.value.toString()
-			: new Date().toISOString();
+			: formatEventTimestamp(currentTime);
 
 		return [
 			{
@@ -136,7 +138,7 @@ export class StartMissionAction extends Action {
 					startTime,
 					duration
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

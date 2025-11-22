@@ -113,7 +113,8 @@ export function createUpgradeFacilityHandler(): CommandHandler<UpgradeFacilityCo
 			effectResult.entities,
 			effectResult.resources,
 			result.effects,
-			{}
+			{},
+			context.currentTime
 		);
 
 		return Promise.resolve({

@@ -8,6 +8,7 @@ import { Timestamp } from '../valueObjects/Timestamp';
 import { getTimer } from '../primitives/TimerHelpers';
 import { SetTimerEffect, SetEntityStateEffect, CreateMissionEffect, type Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
 import { success, type SystemResult } from '../primitives/SystemResult';
 import { GameConfig } from '../config/GameConfig';
 import { generateMissionPool } from './MissionGenerationSystem';
@@ -125,7 +126,7 @@ export function processMissionPool(
 			payload: {
 				missionId: mission.id
 			},
-			timestamp: new Date(now.value).toISOString()
+			timestamp: formatEventTimestamp(now)
 		};
 		events.push(expiredEvent);
 	}

@@ -84,7 +84,8 @@ export function createConstructFacilityHandler(): CommandHandler<ConstructFacili
 			effectResult.entities,
 			effectResult.resources,
 			result.effects,
-			{}
+			{},
+			context.currentTime
 		);
 
 		return Promise.resolve({

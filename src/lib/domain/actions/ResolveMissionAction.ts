@@ -19,6 +19,7 @@ import {
 	type Effect
 } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
 import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Mission } from '../entities/Mission';
 import type { Adventurer } from '../entities/Adventurer';
@@ -221,7 +222,8 @@ export class ResolveMissionAction extends Action {
 		entities: Map<string, Entity>,
 		resources: ResourceBundle,
 		effects: Effect[],
-		params: Record<string, unknown>
+		params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const resolveParams = params as unknown as ResolveMissionParams;
 
@@ -231,7 +233,7 @@ export class ResolveMissionAction extends Action {
 
 		const timestamp = resolveParams.resolvedAt 
 			? resolveParams.resolvedAt.value.toString()
-			: new Date().toISOString();
+			: formatEventTimestamp(currentTime);
 
 		return [
 			{

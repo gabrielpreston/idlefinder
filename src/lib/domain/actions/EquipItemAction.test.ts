@@ -159,7 +159,7 @@ describe('EquipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new EquipItemAction('nonexistent-item', 'adv-1', 'weapon');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -171,7 +171,7 @@ describe('EquipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new EquipItemAction('item-1', 'nonexistent-adv', 'weapon');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -187,7 +187,7 @@ describe('EquipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new EquipItemAction('item-1', 'adv-1', 'weapon');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			expect(events[0]?.type).toBe('ItemEquipped');
@@ -204,7 +204,7 @@ describe('EquipItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new EquipItemAction('item-1', 'adv-1', 'armor');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'ItemEquipped') {

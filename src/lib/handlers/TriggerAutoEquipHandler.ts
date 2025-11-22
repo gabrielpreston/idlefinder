@@ -109,7 +109,8 @@ export function createTriggerAutoEquipHandler(): CommandHandler<TriggerAutoEquip
 						itemId: action['itemId'],
 						adventurerId: action['adventurerId'],
 						slot: action['slot']
-					}
+					},
+					context.currentTime
 				);
 				allEvents.push(...events);
 			}

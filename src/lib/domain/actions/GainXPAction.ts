@@ -10,6 +10,8 @@ import type { Requirement, RequirementContext } from '../primitives/Requirement'
 import { entityExistsRequirement } from '../primitives/Requirement';
 import { SetEntityAttributeEffect, type Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
@@ -60,7 +62,8 @@ export class GainXPAction extends Action {
 		entities: Map<string, Entity>,
 		resources: ResourceBundle,
 		effects: Effect[],
-		params: Record<string, unknown>
+		params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const gainParams = params as unknown as GainXPParams;
 		const adventurer = requireEntityAs<Adventurer>(entities, this.adventurerId, isAdventurer);
@@ -75,7 +78,7 @@ export class GainXPAction extends Action {
 					amount,
 					newTotalXP: adventurer.attributes.xp
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

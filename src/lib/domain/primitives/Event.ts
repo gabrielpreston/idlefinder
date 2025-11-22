@@ -6,6 +6,8 @@
  * Domain systems generate Events; infrastructure (DomainEventBus) transports them.
  */
 
+import { Timestamp } from '../valueObjects/Timestamp';
+
 /**
  * Domain Event Type - all possible event types
  */
@@ -260,5 +262,16 @@ export interface DomainEvent {
 		userId?: string;
 		[key: string]: unknown;
 	};
+}
+
+/**
+ * Format Timestamp as ISO 8601 UTC string for domain events
+ * DRY: Single source of truth for event timestamp formatting
+ * 
+ * @param timestamp - Timestamp value object to format
+ * @returns ISO 8601 UTC string
+ */
+export function formatEventTimestamp(timestamp: Timestamp): string {
+	return new Date(timestamp.value).toISOString();
 }
 

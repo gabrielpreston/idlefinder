@@ -31,6 +31,7 @@ Before executing this command, ensure:
    - Use `grep` to find related code patterns
 
 2. **Investigate npm scripts and project structure**
+   - See `.cursor/rules/default-development-workflow.mdc#npm-script-reference` for npm script documentation
    - Use `run_terminal_cmd` to discover available npm scripts (`npm run`)
    - Use `read_file` to review package.json
    - Use `codebase_search` to find GitHub workflows
@@ -98,6 +99,7 @@ Before executing this command, ensure:
 6. **Add scorecards and confidence scores**
    - Provide confidence score for each change with supporting arguments
    - Include scorecard of initial proposal near beginning of document
+   - See `.cursor/rules/default-tool-usage.mdc#plan-status-updates` for date command pattern
    - Use `run_terminal_cmd` to get date for plan creation timestamp
      - Command: `date '+%Y-%m-%d %H:%M'` with `is_background: false`
 

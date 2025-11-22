@@ -10,6 +10,8 @@ import type { Requirement, RequirementContext } from '../primitives/Requirement'
 import { entityExistsRequirement, allRequirements } from '../primitives/Requirement';
 import { SetEntityAttributeEffect, type Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
@@ -79,7 +81,8 @@ export class LevelUpAdventurerAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		// Adventurer existence is guaranteed by requirements check in computeEffects
 		const adventurer = entities.get(this.adventurerId) as Adventurer;
@@ -98,7 +101,7 @@ export class LevelUpAdventurerAction extends Action {
 					newLevel: adventurer.attributes.level,
 					abilityMods: abilityModsRecord
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

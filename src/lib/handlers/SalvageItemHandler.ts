@@ -94,7 +94,8 @@ export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, G
 			{
 				itemId: validatedPayload.itemId,
 				materialsAmount: validatedPayload.materialsAmount
-			}
+			},
+			context.currentTime
 		);
 
 		return Promise.resolve({

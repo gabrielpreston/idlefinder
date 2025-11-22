@@ -5,8 +5,8 @@ Execute the full validation suite using npm scripts and systematically fix any f
 
 ## Steps
 - **Run validation suite**
-  - Run `npm run type-check` to check TypeScript types
-  - Run `npm run lint` to check code quality
+  - See `.cursor/rules/default-tool-usage.mdc#npm-script-validation` for validation sequence
+  - Follow standard validation sequence (type-check, lint, test)
   - Run `npm test` to run test suite
   - Capture output and identify failures
 - **Analyze failures**

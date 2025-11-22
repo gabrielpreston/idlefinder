@@ -26,7 +26,15 @@ See `.cursor/rules/default-building-blocks.mdc` for complete building block refe
 - Domain Primitives (Identifier, Timestamp, Duration, ResourceBundle, etc.)
 - Systems Primitives (Entity Pattern, Vocabulary, Core Entities, Systems)
 - Architecture Principles (Domain Purity, Value Object Immutability, etc.)
-- Breaking Changes & Modernization Philosophy
+
+See `.cursor/rules/default-principles.mdc` for DRY and First Principles guidance.
+
+**DRY Compliance**: Reference existing patterns rather than duplicating them:
+- Tool usage: See `.cursor/rules/default-tool-usage.mdc`
+- Validation: See `.cursor/rules/default-tool-usage.mdc#npm-script-validation`
+- Error handling: See `.cursor/rules/default-error-handling.mdc`
+- npm scripts: See `.cursor/rules/default-development-workflow.mdc#npm-script-reference`
+- Breaking changes: See `.cursor/rules/default-building-blocks.mdc#breaking-changes`
 
 ## AI Execution Steps
 

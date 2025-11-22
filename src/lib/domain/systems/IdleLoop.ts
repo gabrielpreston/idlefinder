@@ -84,7 +84,8 @@ export class IdleLoop {
 								entities,
 								resources,
 								result.effects,
-								{ missionId: mission.id, resolvedAt: now }
+								{ missionId: mission.id, resolvedAt: now },
+								now
 							);
 							events.push(...actionEvents);
 						}
@@ -127,7 +128,8 @@ export class IdleLoop {
 							missionId: action['missionId'],
 							adventurerId: action['adventurerId'],
 							startedAt: now
-						}
+						},
+						now
 					);
 					events.push(...actionEvents);
 				}
@@ -161,7 +163,8 @@ export class IdleLoop {
 						entities,
 						resources,
 						result.effects,
-						{}
+						{},
+						now
 					);
 					events.push(...actionEvents);
 				}

@@ -272,7 +272,8 @@ describe('ConstructFacilityAction', () => {
 				effectResult.entities,
 				effectResult.resources,
 				effects,
-				{}
+				{},
+				Timestamp.now()
 			);
 
 			expect(events.length).toBe(1);
@@ -296,7 +297,8 @@ describe('ConstructFacilityAction', () => {
 				emptyEntities,
 				emptyResources,
 				[],
-				{}
+				{},
+				Timestamp.now()
 			);
 
 			// Should return empty array if facilityId not set or facility not found

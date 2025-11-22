@@ -4,6 +4,14 @@ description: Cursor tool usage patterns and examples for commands
 
 # Cursor Tool Usage Reference
 
+## DRY Principle for Tool Usage
+
+**Reference, Don't Duplicate**: Commands should reference this file for tool usage patterns rather than duplicating them. See `.cursor/rules/default-principles.mdc` for core DRY principles.
+
+**Pattern**: Instead of copying tool usage examples into commands, reference this file:
+- ✅ **DO**: "See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns"
+- ❌ **DON'T**: Duplicate tool usage examples in commands
+
 ## Core Tools
 
 ### `read_file`
@@ -114,18 +122,51 @@ Create or overwrite files.
   - Example: `run_terminal_cmd` with `command: "npm run"` and `is_background: false`
 ```
 
-### Updating Plan Status
+### Updating Plan Status {#plan-status-updates}
+
+**Standard status transitions:**
+- "Plan Created" → "Being Analyzed"
+- "Being Analyzed" → "Analysis Complete"
+- "Analysis Complete" → "In Progress"
+- "In Progress" → "Completed"
+
+**Pattern for updating plan status:**
 ```markdown
-- Use `run_terminal_cmd` to get current date
-  - Example: `run_terminal_cmd` with `command: "date '+%Y-%m-%d %H:%M'"` and `is_background: false`
-- Use `search_replace` to update plan status
-  - Example: `search_replace` with `file_path: ".cursor/plans/{plan-name}.plan.md"`, `old_string: "**Plan Status**: Analysis Complete"`, `new_string: "**Plan Status**: Analysis Complete\n**Plan Status**: In Progress - {date}"`
+1. Get current timestamp:
+   - Use `run_terminal_cmd` with `command: "date '+%Y-%m-%d %H:%M'"` and `is_background: false`
+
+2. Update plan status (preserve history by appending):
+   - Use `search_replace` with:
+     - `file_path: ".cursor/plans/{plan-name}-{uuid}.plan.md"`
+     - `old_string: "**Plan Status**: {current-status}"`
+     - `new_string: "**Plan Status**: {current-status}\n**Plan Status**: {new-status} - {date}"`
 ```
 
-## NPM Script Validation
+**Example transitions:**
+- "Plan Created" → "Being Analyzed": Append "**Plan Status**: Being Analyzed - {date}"
+- "Analysis Complete" → "In Progress": Append "**Plan Status**: In Progress - {date}"
+- "In Progress" → "Completed": Append "**Plan Status**: Completed - {date}"
 
-Before referencing npm scripts in commands:
+## NPM Script Validation Sequence {#npm-script-validation}
 
+**Standard validation order:**
+1. **Type checking** (always run, critical): `npm run type-check`
+2. **Linting** (if script exists): `npm run lint`
+3. **Testing** (if script exists): `npm test`
+
+**Pattern for validation sequence:**
+```markdown
+1. Verify script exists (before running):
+   - Use `read_file` with `target_file: "package.json"` to check script exists
+   - Or use `run_terminal_cmd` with `command: "npm run"` to discover available scripts
+
+2. Run validation in order:
+   - Always: `run_terminal_cmd` with `command: "npm run type-check"` and `is_background: false`
+   - If exists: `run_terminal_cmd` with `command: "npm run lint"` and `is_background: false`
+   - If exists: `run_terminal_cmd` with `command: "npm test"` and `is_background: false`
+```
+
+**Before referencing npm scripts in commands:**
 1. **Check script existence**: Use `read_file` to read `package.json` and verify script exists
 2. **Check permissions**: Verify script is allowed in `.cursor/cli.json` if needed
 3. **Handle missing scripts**: Either add script to `package.json` or use alternative approach

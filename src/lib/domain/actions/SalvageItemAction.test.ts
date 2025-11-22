@@ -150,7 +150,7 @@ describe('SalvageItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new SalvageItemAction('item-1');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			expect(events[0]?.type).toBe('ItemSalvaged');

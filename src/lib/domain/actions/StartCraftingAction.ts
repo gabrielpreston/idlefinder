@@ -7,6 +7,7 @@ import { Action } from '../primitives/Action';
 import type { Requirement, RequirementContext } from '../primitives/Requirement';
 import type { Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { SetTimerEffect, ModifyResourceEffect } from '../primitives/Effect';
@@ -76,7 +77,8 @@ export class StartCraftingAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const job = entities.get(this.jobId) as CraftingJob | undefined;
 		if (!job) {
@@ -90,7 +92,7 @@ export class StartCraftingAction extends Action {
 					jobId: this.jobId,
 					recipeId: job.attributes.recipeId
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

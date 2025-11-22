@@ -32,6 +32,7 @@ Before executing this command, ensure:
    - Review plan's implementation order and dependencies
 
 2. **Get current date and update plan status**
+   - See `.cursor/rules/default-tool-usage.mdc#plan-status-updates` for pattern
    - Use `run_terminal_cmd` to get current date
      - Command: `date '+%Y-%m-%d %H:%M'` with `is_background: false`
    - Use `search_replace` to update plan status to "In Progress"
@@ -85,10 +86,9 @@ Before executing this command, ensure:
      - Use `search_replace` or `write` to make changes
 
 2. **Validate changes after each major step**
-   - Use `run_terminal_cmd` to run type checking (`npm run type-check`)
+   - See `.cursor/rules/default-tool-usage.mdc#npm-script-validation` for validation sequence
+   - Follow standard validation sequence (type-check, lint, test)
    - If aggressive refactoring: Fix type errors immediately, address breaking changes directly
-   - Use `run_terminal_cmd` to run linting (`npm run lint`) if script exists
-   - Use `run_terminal_cmd` to run tests (`npm test`) if script exists and not aggressive refactoring
    - Note: For aggressive refactoring, skip comprehensive testing - focus on type safety
 
 3. **Continue implementation following plan**
@@ -100,20 +100,17 @@ Before executing this command, ensure:
 ### Phase 3: Completion and Validation
 
 1. **Run full validation suite**
-   - Use `run_terminal_cmd` to run type checking
-     - Command: `npm run type-check` with `is_background: false`
-   - Use `run_terminal_cmd` to run linting (if available)
-     - Command: `npm run lint` with `is_background: false` (verify script exists first)
+   - See `.cursor/rules/default-tool-usage.mdc#npm-script-validation` for validation sequence
+   - Follow standard validation sequence (type-check, lint, test)
    - If aggressive refactoring:
      - Focus on type safety - ensure type-check passes
      - Skip comprehensive test suites
      - Address all type errors without creating compatibility layers
-   - Otherwise, use `run_terminal_cmd` to run tests (if available)
-     - Command: `npm test` with `is_background: false` (verify script exists first)
    - Use `read_lints` to check for linting errors
      - Example: `read_lints` with `paths: ["src"]` or specific file paths
 
 2. **Update plan status to Completed**
+   - See `.cursor/rules/default-tool-usage.mdc#plan-status-updates` for pattern
    - Use `run_terminal_cmd` to get current date
      - Command: `date '+%Y-%m-%d %H:%M'` with `is_background: false`
    - Use `search_replace` to update plan status
@@ -168,7 +165,7 @@ Implementation progress tracked through:
 
 ## Notes
 
-- Always prioritize using npm scripts for validation (`npm run type-check`, `npm run lint`, `npm test`)
+- Always prioritize using npm scripts for validation (see `.cursor/rules/default-tool-usage.mdc#npm-script-validation`)
 - Check script existence in package.json before running (use `read_file` on package.json)
 - If scripts don't exist, use available alternatives or note missing scripts
 - Update plan status at start (In Progress) and end (Completed) of implementation

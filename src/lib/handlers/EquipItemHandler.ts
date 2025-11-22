@@ -97,7 +97,8 @@ export function createEquipItemHandler(): CommandHandler<EquipItemCommand, GameS
 				itemId: validatedPayload.itemId,
 				adventurerId: validatedPayload.adventurerId,
 				slot: validatedPayload.slot
-			}
+			},
+			context.currentTime
 		);
 
 		return Promise.resolve({

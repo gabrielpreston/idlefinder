@@ -12,6 +12,7 @@ import type { Effect } from './Effect';
 import type { DomainEvent } from './Event';
 import type { Entity } from './Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
+import type { Timestamp } from '../valueObjects/Timestamp';
 
 /**
  * Result of executing an action
@@ -62,7 +63,8 @@ export abstract class Action {
 		entities: Map<string, Entity>,
 		resources: ResourceBundle,
 		effects: Effect[],
-		params: Record<string, unknown>
+		params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[];
 
 	/**

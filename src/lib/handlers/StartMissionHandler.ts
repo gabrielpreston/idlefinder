@@ -129,7 +129,8 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 			effectResult.entities,
 			effectResult.resources,
 			result.effects,
-			{ missionId: payload.missionId, adventurerId, startedAt: now }
+			{ missionId: payload.missionId, adventurerId, startedAt: now },
+			context.currentTime
 		);
 
 		return Promise.resolve({

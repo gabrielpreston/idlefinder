@@ -171,9 +171,8 @@ See `.cursor/rules/default-building-blocks.mdc` for complete building block refe
    - Use `list_dir` to understand directory structure
 
 2. **Run static analysis tools**
-   - Use `run_terminal_cmd` to run type checking (`npm run type-check`)
-   - Use `run_terminal_cmd` to run linting (`npm run lint`)
-   - See `.cursor/rules/default-tool-usage.mdc` for tool usage patterns
+   - See `.cursor/rules/default-tool-usage.mdc#npm-script-validation` for validation sequence
+   - Follow standard validation sequence (type-check, lint, test)
 
 ### Phase 2: Pattern Detection
 

@@ -17,6 +17,8 @@ import {
 	type Effect
 } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
@@ -221,7 +223,8 @@ export class ConstructFacilityAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		if (!this.facilityId) {
 			return [];
@@ -243,7 +246,7 @@ export class ConstructFacilityAction extends Action {
 					baseCapacity: facility.attributes.baseCapacity,
 					bonusMultipliers: facility.attributes.bonusMultipliers
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

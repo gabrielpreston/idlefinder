@@ -244,7 +244,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				
 				// Verify outcome is CriticalSuccess (roll 16 + 10 = 26 >= 25)
 				expect(events.length).toBeGreaterThan(0);
@@ -278,7 +278,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				expect(events.length).toBeGreaterThan(0);
 			} finally {
 				mockRandom.mockRestore();
@@ -305,7 +305,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				expect(events.length).toBeGreaterThan(0);
 			} finally {
 				mockRandom.mockRestore();
@@ -332,7 +332,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				expect(events.length).toBeGreaterThan(0);
 			} finally {
 				mockRandom.mockRestore();
@@ -359,7 +359,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				expect(events.length).toBeGreaterThan(0);
 			} finally {
 				mockRandom.mockRestore();
@@ -390,7 +390,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				
 				if (events[0]?.type === 'MissionCompleted') {
 					const rewards = (events[0].payload as { rewards: { gold: number; xp: number; fame?: number } }).rewards;
@@ -426,7 +426,7 @@ describe('ResolveMissionAction', () => {
 			
 			try {
 				const effects = action.computeEffects(context, {});
-				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {});
+				const events = action.generateEvents(entities, new ResourceBundle(new Map()), effects, {}, Timestamp.now());
 				
 				if (events[0]?.type === 'MissionCompleted') {
 					const rewards = (events[0].payload as { rewards: { gold: number; xp: number; fame?: number } }).rewards;
@@ -468,7 +468,7 @@ describe('ResolveMissionAction', () => {
 			// Now generate events with the resolvedAt parameter
 			const events = action.generateEvents(result.entities, result.resources, effects, {
 				resolvedAt: customResolvedAt
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'MissionCompleted') {
@@ -504,7 +504,7 @@ describe('ResolveMissionAction', () => {
 			// Now generate events without resolvedAt parameter
 			const events = action.generateEvents(result.entities, result.resources, effects, {
 				// resolvedAt not provided
-			});
+			}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			if (events[0]?.type === 'MissionCompleted') {
@@ -524,7 +524,7 @@ describe('ResolveMissionAction', () => {
 			const action = new ResolveMissionAction('mission-1');
 			// Don't call computeEffects - verify generateEvents returns empty when state not set
 
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -540,7 +540,7 @@ describe('ResolveMissionAction', () => {
 			const action = new ResolveMissionAction('mission-1');
 			// Don't call computeEffects - verify generateEvents returns empty when state not set
 
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -556,7 +556,7 @@ describe('ResolveMissionAction', () => {
 			const action = new ResolveMissionAction('mission-1');
 			// Don't call computeEffects - verify generateEvents returns empty when state not set
 
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -601,7 +601,7 @@ describe('ResolveMissionAction', () => {
 			expect(result.resources.get('gold')).toBeGreaterThan(0);
 			
 			// Verify outcome through events (public API)
-			const events = action.generateEvents(result.entities, result.resources, effects, {});
+			const events = action.generateEvents(result.entities, result.resources, effects, {}, Timestamp.now());
 			if (events[0]?.type === 'MissionCompleted') {
 				const payload = events[0].payload as { outcome: string; rewards: { fame?: number } };
 				expect(payload.outcome).toBe('CriticalSuccess');

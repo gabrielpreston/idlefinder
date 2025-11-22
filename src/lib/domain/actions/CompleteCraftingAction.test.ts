@@ -170,7 +170,7 @@ describe('CompleteCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new CompleteCraftingAction('nonexistent-job');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -182,7 +182,7 @@ describe('CompleteCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new CompleteCraftingAction('job-1');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBeGreaterThanOrEqual(1);
 			expect(events[0]?.type).toBe('CraftingCompleted');
@@ -218,7 +218,7 @@ describe('CompleteCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new CompleteCraftingAction('job-1');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(2);
 			expect(events[0]?.type).toBe('CraftingCompleted');
@@ -237,7 +237,7 @@ describe('CompleteCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new CompleteCraftingAction('job-1');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			// Should only have CraftingCompleted event, no ItemCreated
 			expect(events.length).toBe(1);

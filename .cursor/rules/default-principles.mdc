@@ -1,0 +1,124 @@
+---
+description: Core development principles - DRY, First Principles, and fundamental guidelines
+---
+
+# Core Development Principles
+
+## DRY (Don't Repeat Yourself)
+
+**Principle**: Centralize patterns, reference don't duplicate.
+
+**Application**:
+- ✅ **DO**: Reference existing rule files (e.g., "See `.cursor/rules/default-tool-usage.mdc`")
+- ✅ **DO**: Use centralized patterns from rule files
+- ✅ **DO**: Reference npm script documentation rather than listing commands
+- ✅ **DO**: Reference validation sequences rather than duplicating them
+- ❌ **DON'T**: Duplicate validation sequences in commands
+- ❌ **DON'T**: Repeat tool usage patterns
+- ❌ **DON'T**: Copy breaking changes philosophy to multiple files
+- ❌ **DON'T**: List npm scripts when they're documented elsewhere
+
+**Pattern References**:
+- Tool usage: See `.cursor/rules/default-tool-usage.mdc`
+- Validation sequence: See `.cursor/rules/default-tool-usage.mdc#npm-script-validation`
+- Error handling: See `.cursor/rules/default-error-handling.mdc`
+- npm scripts: See `.cursor/rules/default-development-workflow.mdc#npm-script-reference`
+- Building blocks: See `.cursor/rules/default-building-blocks.mdc`
+- Breaking changes: See `.cursor/rules/default-building-blocks.mdc#breaking-changes`
+
+## First Principles Thinking
+
+**Principle**: Start from fundamental truths, question assumptions, build from basics.
+
+**Application**:
+- ✅ **DO**: Question why a pattern exists before following it
+- ✅ **DO**: Start from basic requirements and build up
+- ✅ **DO**: Remove unnecessary abstractions
+- ✅ **DO**: Prefer composition over complex inheritance
+- ✅ **DO**: Verify assumptions with evidence ("Prove Your Homework")
+- ❌ **DON'T**: Add complexity without understanding the problem
+- ❌ **DON'T**: Create abstractions "just in case"
+- ❌ **DON'T**: Follow patterns blindly without understanding
+- ❌ **DON'T**: Make claims without evidence
+
+**Questions to Ask**:
+1. What is the fundamental problem we're solving?
+2. What is the simplest solution that works?
+3. Does this abstraction add value or complexity?
+4. Can we compose from existing building blocks?
+5. What assumptions are we making?
+6. Can we verify this claim with evidence?
+
+**Evidence-Based Development**:
+- All pattern claims must cite specific files and line numbers
+- Integration claims must show actual integration points
+- Performance claims must demonstrate improvements
+- Architecture claims must reference existing decisions
+- See `.cursor/commands/ph.md` for validation patterns
+
+## Composition Over Duplication
+
+**Principle**: Compose from existing building blocks rather than creating duplicates.
+
+**Application**:
+- ✅ **DO**: Reuse domain primitives (see `.cursor/rules/default-building-blocks.mdc#domain-primitives`)
+- ✅ **DO**: Follow existing entity patterns (see `.cursor/rules/default-building-blocks.mdc#systems-primitives`)
+- ✅ **DO**: Use existing systems rather than duplicating logic
+- ✅ **DO**: Compose from primitives rather than creating new ones
+- ❌ **DON'T**: Create new value objects when existing ones work
+- ❌ **DON'T**: Duplicate entity patterns
+- ❌ **DON'T**: Copy business logic instead of extracting to systems
+- ❌ **DON'T**: Create duplicate validation logic
+
+**Before Creating New Code**:
+- [ ] Check if domain primitive exists before creating new value object
+- [ ] Verify existing entity pattern before creating new entity class
+- [ ] Identify existing system before creating new business logic
+- [ ] Use existing repository pattern before creating new data access
+- [ ] Follow established application service pattern for orchestration
+- [ ] Compose from existing building blocks rather than duplicating
+
+## Simplicity Over Complexity
+
+**Principle**: Prefer simple, direct solutions over complex abstractions.
+
+**Application**:
+- ✅ **DO**: Use direct solutions when they're clear and maintainable
+- ✅ **DO**: Remove unnecessary layers of abstraction
+- ✅ **DO**: Simplify complex code paths
+- ✅ **DO**: Question the need for new patterns or abstractions
+- ❌ **DON'T**: Add abstractions without clear benefit
+- ❌ **DON'T**: Create complex patterns for simple problems
+- ❌ **DON'T**: Maintain multiple code paths for the same feature
+- ❌ **DON'T**: Over-engineer solutions
+
+**Complexity Checklist**:
+- Is this the simplest solution that works?
+- Does this abstraction solve a real problem?
+- Can we remove this layer without losing functionality?
+- Would a direct approach be clearer?
+
+## Token Usage Optimization
+
+**Principle**: Minimize token usage by centralizing and referencing rather than duplicating.
+
+**Application**:
+- ✅ **DO**: Reference centralized documentation
+- ✅ **DO**: Use anchor links to specific sections
+- ✅ **DO**: Consolidate repeated patterns into rule files
+- ❌ **DON'T**: Duplicate long command sequences
+- ❌ **DON'T**: Repeat validation patterns in multiple files
+- ❌ **DON'T**: Copy entire sections when a reference would suffice
+
+**Token Efficiency**:
+- Reference patterns: ~10-20 tokens
+- Duplicated pattern: ~100-500 tokens
+- Savings: 80-95% reduction in token usage
+
+## Integration with Other Principles
+
+These principles work together with:
+- **Domain-Driven Design**: See `.cursor/rules/default-architecture.mdc`
+- **Type Safety**: See `.cursor/rules/default-typescript-standards.mdc`
+- **Testing Strategy**: See `.cursor/rules/default-testing.mdc`
+- **Breaking Changes**: See `.cursor/rules/default-building-blocks.mdc#breaking-changes`

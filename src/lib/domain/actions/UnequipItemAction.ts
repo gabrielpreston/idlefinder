@@ -7,6 +7,8 @@ import { Action } from '../primitives/Action';
 import type { Requirement, RequirementContext } from '../primitives/Requirement';
 import type { Effect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { UnequipItemEffect } from '../primitives/Effect';
@@ -81,7 +83,8 @@ export class UnequipItemAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const item = entities.get(this.itemId) as Item | undefined;
 		const adventurer = entities.get(this.adventurerId) as Adventurer | undefined;
@@ -97,7 +100,7 @@ export class UnequipItemAction extends Action {
 					itemId: this.itemId,
 					adventurerId: this.adventurerId
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}

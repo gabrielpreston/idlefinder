@@ -8,6 +8,8 @@ import type { Requirement, RequirementContext } from '../primitives/Requirement'
 import type { Effect } from '../primitives/Effect';
 import { CreateItemEffect, SetEntityAttributeEffect } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { entityExistsRequirement } from '../primitives/Requirement';
@@ -85,7 +87,8 @@ export class CompleteCraftingAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const job = entities.get(this.jobId) as CraftingJob | undefined;
 		if (!job) {
@@ -104,7 +107,7 @@ export class CompleteCraftingAction extends Action {
 					recipeId: job.attributes.recipeId,
 					itemId: createdItem?.id || ''
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			},
 			...(createdItem ? [{
 				type: 'ItemCreated' as const,
@@ -113,7 +116,7 @@ export class CompleteCraftingAction extends Action {
 					itemType: createdItem.attributes.itemType,
 					rarity: createdItem.attributes.rarity
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}] : [])
 		];
 	}

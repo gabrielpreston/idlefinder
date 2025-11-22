@@ -18,6 +18,8 @@ Before validating code, check for proper use of reusable building blocks:
 ## NPM Scripts for Validation
 
 See `.cursor/rules/default-development-workflow.mdc#npm-script-reference` for complete npm script reference.
+See `.cursor/rules/default-tool-usage.mdc#npm-script-validation` for validation sequence pattern.
+See `.cursor/rules/default-principles.mdc` for DRY and First Principles guidance.
 
 Key validation scripts:
 - **`npm run type-check`** - Run TypeScript type checking (`tsc --noEmit`)

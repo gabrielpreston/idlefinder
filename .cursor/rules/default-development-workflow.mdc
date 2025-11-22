@@ -57,75 +57,9 @@ When working on this project, follow this streamlined workflow optimized for sol
 
 ## Breaking Changes & Modernization Philosophy
 
-### Explicit Encouragement of Breaking Changes
+See `.cursor/rules/default-building-blocks.mdc#breaking-changes` for complete breaking changes philosophy, modernization guidance, refactoring workflow, and anti-patterns.
 
-**CRITICAL**: This is a solo project. Breaking changes and large-scale refactors are not just acceptable—they are **actively encouraged** to keep the codebase modern and maintainable.
-
-### Breaking Changes Are Welcome
-
-- ✅ **DO**: Make breaking changes without hesitation
-- ✅ **DO**: Refactor entire subsystems to use modern patterns
-- ✅ **DO**: Update dependencies to latest versions (even if breaking)
-- ✅ **DO**: Migrate to newer APIs and patterns
-- ✅ **DO**: Remove deprecated code paths immediately
-- ✅ **DO**: Simplify architecture through breaking changes
-- ✅ **DO**: Modernize code to use latest TypeScript/SvelteKit features
-- ✅ **DO**: Replace old patterns with better ones, even if it breaks existing code
-- ❌ **DON'T**: Maintain backwards compatibility for the sake of it
-- ❌ **DON'T**: Keep deprecated code "just in case"
-- ❌ **DON'T**: Avoid refactors because they're "too large"
-- ❌ **DON'T**: Worry about migration paths or gradual rollouts
-
-### Large-Scale Refactoring Philosophy
-
-**Blaze Forward**: When you see an opportunity to modernize or improve the codebase, take it. Don't let concerns about breaking changes hold you back.
-
-**Refactoring Priorities:**
-1. **Modern Standards First**: Always prefer the latest TypeScript, SvelteKit, and framework patterns
-2. **Architectural Improvements**: Large refactors that improve architecture are welcome
-3. **Code Quality**: Breaking changes that improve code quality are encouraged
-4. **Dependency Updates**: Update to latest versions, handle breaking changes as needed
-5. **Pattern Modernization**: Replace old patterns with modern best practices
-
-**Examples of Encouraged Breaking Changes:**
-- Migrating entire subsystems to new patterns
-- Updating all code to use new TypeScript features
-- Refactoring API contracts to be more type-safe
-- Removing legacy code paths entirely
-- Changing data structures to better models
-- Modernizing component architecture
-- Updating to latest SvelteKit patterns
-
-### Refactoring Workflow
-
-When performing large-scale refactors:
-
-1. **Create a feature branch**: `feat/modernize-[system-name]`
-2. **Break everything**: Don't try to maintain compatibility
-3. **Fix everything**: Update all affected code to work with new patterns
-4. **Test thoroughly**: Ensure the game works after refactor
-5. **Merge confidently**: Breaking changes are expected and welcome
-
-### Modernization Checklist
-
-When modernizing code:
-- [ ] Use latest TypeScript features (satisfies, const assertions, etc.)
-- [ ] Use latest SvelteKit patterns
-- [ ] Remove all deprecated code paths
-- [ ] Update to latest dependency versions
-- [ ] Apply modern architectural patterns
-- [ ] Improve type safety throughout
-- [ ] Simplify complex legacy code
-
-### Anti-Patterns: What NOT to Do
-
-- ❌ **Don't**: Create compatibility layers or adapters
-- ❌ **Don't**: Keep old code "for reference"
-- ❌ **Don't**: Maintain multiple code paths for the same feature
-- ❌ **Don't**: Worry about "too many files changed" in a PR
-- ❌ **Don't**: Avoid refactors because they touch many files
-- ❌ **Don't**: Create migration guides (just fix the code)
-- ❌ **Don't**: Maintain deprecated APIs alongside new ones
+**Summary**: This is a solo project. Breaking changes and large-scale refactors are **actively encouraged** to keep the codebase modern and maintainable. Accept breaking changes, update all dependent code directly, remove deprecated code immediately, and prioritize modernization over backwards compatibility.
 
 ## Simplified PDCA for Solo Development
 

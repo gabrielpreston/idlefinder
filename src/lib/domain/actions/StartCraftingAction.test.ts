@@ -156,7 +156,7 @@ describe('StartCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new StartCraftingAction('nonexistent-job', Duration.ofMinutes(5));
-			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {});
+			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -168,7 +168,7 @@ describe('StartCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new StartCraftingAction('job-1', Duration.ofMinutes(5));
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			expect(events[0]?.type).toBe('CraftingStarted');

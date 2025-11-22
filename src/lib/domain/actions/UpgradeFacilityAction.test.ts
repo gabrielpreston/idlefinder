@@ -123,7 +123,7 @@ describe('UpgradeFacilityAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('nonexistent-facility');
-			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {});
+			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {}, Timestamp.now());
 
 			expect(events).toEqual([]);
 		});
@@ -136,7 +136,7 @@ describe('UpgradeFacilityAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('facility-1');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities, resources, effects, {}, Timestamp.now());
 
 			expect(events.length).toBe(1);
 			expect(events[0]?.type).toBe('FacilityUpgraded');

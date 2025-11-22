@@ -97,7 +97,8 @@ export function createUnequipItemHandler(): CommandHandler<UnequipItemCommand, G
 				itemId: validatedPayload.itemId,
 				adventurerId: validatedPayload.adventurerId,
 				slot: validatedPayload.slot
-			}
+			},
+			context.currentTime
 		);
 
 		return Promise.resolve({

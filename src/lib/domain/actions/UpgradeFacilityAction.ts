@@ -17,6 +17,8 @@ import {
 	type Effect
 } from '../primitives/Effect';
 import type { DomainEvent } from '../primitives/Event';
+import { formatEventTimestamp } from '../primitives/Event';
+import type { Timestamp } from '../valueObjects/Timestamp';
 import type { Facility } from '../entities/Facility';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
@@ -128,7 +130,8 @@ export class UpgradeFacilityAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		_params: Record<string, unknown>
+		_params: Record<string, unknown>,
+		currentTime: Timestamp
 	): DomainEvent[] {
 		const facility = entities.get(this.facilityId) as Facility | undefined;
 		if (!facility) {
@@ -144,7 +147,7 @@ export class UpgradeFacilityAction extends Action {
 					newTier: facility.attributes.tier,
 					bonusMultipliers: facility.attributes.bonusMultipliers
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatEventTimestamp(currentTime)
 			}
 		];
 	}
