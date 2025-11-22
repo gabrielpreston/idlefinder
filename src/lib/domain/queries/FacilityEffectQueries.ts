@@ -224,7 +224,7 @@ export function getResourceGenerationRates(state: GameState): Record<string, num
 			continue;
 		}
 		
-		const assigneeType = slot.attributes.assigneeType as 'player' | 'adventurer';
+		const assigneeType = slot.attributes.assigneeType;
 		
 		// Calculate effective rate using single source of truth
 		const effectiveRatePerMinute = getSlotEffectiveRate(slot, assigneeType, state);

@@ -112,7 +112,7 @@ describe('CommandBus', () => {
 
 			const publishedEvents: DomainEvent[] = [];
 			domainEventBus.subscribe('MissionStarted', (payload: DomainEvent['payload']) => {
-				publishedEvents.push({ ...event, payload: payload as DomainEvent['payload'] });
+				publishedEvents.push({ ...event, payload: payload });
 			});
 
 			const command = createTestCommand('StartMission', {
@@ -271,7 +271,7 @@ describe('CommandBus', () => {
 	describe('command queue processing', () => {
 		it('should queue commands when already processing', async () => {
 			// Create a handler that takes time to complete
-			let resolveHandler: () => void;
+			let resolveHandler: (() => void) | undefined;
 			const handlerPromise = new Promise<void>((resolve) => {
 				resolveHandler = resolve;
 			});
@@ -304,8 +304,12 @@ describe('CommandBus', () => {
 			// Verify both commands are queued
 			expect(handler).toHaveBeenCalledTimes(1); // Only first command started
 
-			// Resolve first handler
-			resolveHandler!();
+		// Resolve first handler
+		// resolveHandler is guaranteed to be assigned by the Promise constructor
+		if (!resolveHandler) {
+			throw new Error('resolveHandler not assigned');
+		}
+		resolveHandler();
 			await dispatch1Promise;
 
 			// Now second command should be processed

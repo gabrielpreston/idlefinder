@@ -12,8 +12,8 @@ import {
 	getPanelUnlockReason
 } from './UIGatingQueries';
 import { createTestGameState, createTestAdventurer, createEmptyTestGameState } from '../../test-utils/testFactories';
+import { requireGuildHall } from '../../test-utils/entityTestHelpers';
 import type { GameState } from '../entities/GameState';
-import type { Facility } from '../entities/Facility';
 import type { Entity } from '../primitives/Requirement';
 // Import gating module to ensure gates are registered
 import '../gating';
@@ -31,12 +31,8 @@ describe('UIGatingQueries', () => {
 		});
 
 		it('should return true when guildhall reaches tier 1', () => {
-			const guildhall = Array.from(state.entities.values()).find(
-				e => e.type === 'Facility' && (e as import('../entities/Facility').Facility).attributes.facilityType === 'Guildhall'
-			) as import('../entities/Facility').Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Tier 0 -> 1
-			}
+			const guildhall = requireGuildHall(state);
+			guildhall.upgrade(); // Tier 0 -> 1
 
 			expect(isAdventurersPanelUnlocked(state)).toBe(true);
 		});
@@ -48,12 +44,8 @@ describe('UIGatingQueries', () => {
 		});
 
 		it('should return true when guildhall reaches tier 1', () => {
-			const guildhall = Array.from(state.entities.values()).find(
-				e => e.type === 'Facility' && (e as import('../entities/Facility').Facility).attributes.facilityType === 'Guildhall'
-			) as import('../entities/Facility').Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Tier 0 -> 1
-			}
+			const guildhall = requireGuildHall(state);
+			guildhall.upgrade(); // Tier 0 -> 1
 
 			expect(isMissionsPanelUnlocked(state)).toBe(true);
 		});
@@ -81,12 +73,8 @@ describe('UIGatingQueries', () => {
 		});
 
 		it('should return true when Guild Hall is at Tier 1+', () => {
-			const guildhall = Array.from(state.entities.values()).find(
-				(e) => e.type === 'Facility' && (e as Facility).attributes.facilityType === 'Guildhall'
-			) as Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Tier 0 -> 1
-			}
+			const guildhall = requireGuildHall(state);
+			guildhall.upgrade(); // Tier 0 -> 1
 			expect(isFacilitiesPanelUnlocked(state)).toBe(true);
 		});
 	});
@@ -118,12 +106,8 @@ describe('UIGatingQueries', () => {
 		});
 
 		it('should return null for unlocked adventurers panel', () => {
-			const guildhall = Array.from(state.entities.values()).find(
-				e => e.type === 'Facility' && (e as import('../entities/Facility').Facility).attributes.facilityType === 'Guildhall'
-			) as import('../entities/Facility').Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Tier 0 -> 1
-			}
+			const guildhall = requireGuildHall(state);
+			guildhall.upgrade(); // Tier 0 -> 1
 
 			const reason = getPanelUnlockReason(PANEL_IDS.ADVENTURERS, state);
 			expect(reason).toBeNull();
@@ -131,24 +115,16 @@ describe('UIGatingQueries', () => {
 
 		it('should return functional reason for missions panel when unlocked but no adventurers', () => {
 			const emptyState = createEmptyTestGameState();
-			const guildhall = Array.from(emptyState.entities.values()).find(
-				e => e.type === 'Facility' && (e as import('../entities/Facility').Facility).attributes.facilityType === 'Guildhall'
-			) as import('../entities/Facility').Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Tier 0 -> 1
-			}
+			const guildhall = requireGuildHall(emptyState);
+			guildhall.upgrade(); // Tier 0 -> 1
 
 			const reason = getPanelUnlockReason(PANEL_IDS.MISSIONS, emptyState);
 			expect(reason).toBe('Recruit your first adventurer to activate');
 		});
 
 		it('should return null for missions panel when functional', () => {
-			const guildhall = Array.from(state.entities.values()).find(
-				e => e.type === 'Facility' && (e as import('../entities/Facility').Facility).attributes.facilityType === 'Guildhall'
-			) as import('../entities/Facility').Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Tier 0 -> 1
-			}
+			const guildhall = requireGuildHall(state);
+			guildhall.upgrade(); // Tier 0 -> 1
 			const adventurer = createTestAdventurer({ id: 'adv-1' });
 			const entities = new Map<string, Entity>([
 				...Array.from(state.entities.entries()),

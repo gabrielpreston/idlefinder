@@ -11,6 +11,7 @@ import { ResourceUnit } from '../../domain/valueObjects/ResourceUnit';
 import { ResourceSlot } from '../../domain/entities/ResourceSlot';
 import { Identifier } from '../../domain/valueObjects/Identifier';
 import type { GameStateDTO } from '../dto/GameStateDTO';
+import { isResourceSlot } from '../../domain/primitives/EntityTypeGuards';
 
 describe('GameStateMapper', () => {
 	describe('domainToDTO', () => {
@@ -214,13 +215,13 @@ describe('GameStateMapper', () => {
 
 		it('should handle missing entities array', () => {
 			const now = Timestamp.now();
-			const dto: GameStateDTO = {
+			const dto = {
 				version: 3,
 				playerId: 'player-1',
 				lastPlayed: now.value.toString(),
-				entities: undefined as any, // Missing entities
+				entities: undefined, // Missing entities - testing invalid data
 				resources: { resources: {} }
-			};
+			} as unknown as GameStateDTO;
 
 			const restored = dtoToDomain(dto);
 
@@ -236,7 +237,7 @@ describe('GameStateMapper', () => {
 				entities: [
 					{
 						id: 'unknown-1',
-						type: 'UnknownType' as any, // Unknown type
+						type: 'UnknownType', // Unknown type - testing invalid data
 						attributes: {},
 						tags: [],
 						state: '',
@@ -289,10 +290,10 @@ describe('GameStateMapper', () => {
 			const state = createTestGameState({ entities });
 			const dto = domainToDTO(state);
 			
-			// Remove timers from DTO
+			// Remove timers from DTO - testing invalid data
 			const advDto = dto.entities.find(e => e.id === 'adv-1');
 			if (advDto) {
-				advDto.timers = undefined as any;
+				(advDto as { timers?: unknown }).timers = undefined;
 			}
 
 			const restored = dtoToDomain(dto);
@@ -306,10 +307,10 @@ describe('GameStateMapper', () => {
 			const state = createTestGameState({ entities });
 			const dto = domainToDTO(state);
 			
-			// Remove tags from DTO
+			// Remove tags from DTO - testing invalid data
 			const advDto = dto.entities.find(e => e.id === 'adv-1');
 			if (advDto) {
-				advDto.tags = undefined as any;
+				(advDto as { tags?: unknown }).tags = undefined;
 			}
 
 			const restored = dtoToDomain(dto);
@@ -323,10 +324,10 @@ describe('GameStateMapper', () => {
 			const state = createTestGameState({ entities });
 			const dto = domainToDTO(state);
 			
-			// Remove metadata from DTO
+			// Remove metadata from DTO - testing invalid data
 			const advDto = dto.entities.find(e => e.id === 'adv-1');
 			if (advDto) {
-				advDto.metadata = undefined as any;
+				(advDto as { metadata?: unknown }).metadata = undefined;
 			}
 
 			const restored = dtoToDomain(dto);
@@ -393,9 +394,12 @@ describe('GameStateMapper', () => {
 			const dto = domainToDTO(state);
 			const restored = dtoToDomain(dto);
 
-			const restoredSlot = restored.entities.get('slot-1') as ResourceSlot;
-			expect(restoredSlot?.attributes.resourceType).toBe('materials');
-			expect(restoredSlot?.attributes.assigneeType).toBe('adventurer');
+		const restoredSlot = restored.entities.get('slot-1');
+		expect(restoredSlot).toBeDefined();
+		if (restoredSlot && isResourceSlot(restoredSlot)) {
+			expect(restoredSlot.attributes.resourceType).toBe('materials');
+			expect(restoredSlot.attributes.assigneeType).toBe('adventurer');
+		}
 		});
 
 		it('should handle Mission with all difficulty tiers', () => {

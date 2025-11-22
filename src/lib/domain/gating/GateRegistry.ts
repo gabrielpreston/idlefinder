@@ -26,15 +26,21 @@ export class GateRegistry {
 			let isDev = false;
 			
 			// Check Node.js environment
-			if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+			if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
 				isDev = true;
 			}
 			
 			// Check Vite/SvelteKit environment (import.meta.env.DEV is available at compile time)
 			// Use a try-catch to safely check for import.meta
 			try {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				if ((globalThis as any).import?.meta?.env?.DEV) {
+				// Type-safe check for import.meta.env.DEV
+				interface ImportMeta {
+					env?: {
+						DEV?: boolean;
+					};
+				}
+				const globalWithImport = globalThis as typeof globalThis & { import?: { meta?: ImportMeta } };
+				if (globalWithImport.import?.meta?.env?.DEV) {
 					isDev = true;
 				}
 			} catch {

@@ -11,6 +11,7 @@ import { createTestGameState } from '../../test-utils/testFactories';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { ResourceUnit } from '../valueObjects/ResourceUnit';
 import type { GameState } from '../entities/GameState';
+import type { GateId } from './GateDefinition';
 // Import gating module to ensure gates are registered
 import '../gating';
 
@@ -37,7 +38,7 @@ describe('GateQueries', () => {
 		});
 
 		it('should return null when gate not found', () => {
-			const reason = getGateUnlockReason('nonexistent_gate' as any, state);
+			const reason = getGateUnlockReason('nonexistent_gate' as GateId, state);
 			expect(reason).toBeNull();
 		});
 
@@ -86,7 +87,7 @@ describe('GateQueries', () => {
 		});
 
 		it('should return 0 when gate not found', () => {
-			const progress = getGateProgress('nonexistent_gate' as any, state);
+			const progress = getGateProgress('nonexistent_gate' as GateId, state);
 			expect(progress).toBe(0);
 		});
 

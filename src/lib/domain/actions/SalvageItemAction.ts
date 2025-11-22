@@ -12,6 +12,7 @@ import type { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { SalvageItemEffect } from '../primitives/Effect';
 import { entityExistsRequirement } from '../primitives/Requirement';
 import type { Item } from '../entities/Item';
+import { isItem } from '../primitives/EntityTypeGuards';
 
 export interface SalvageItemParams {
 	itemId: string;
@@ -52,22 +53,22 @@ export class SalvageItemAction extends Action {
 		params: Record<string, unknown>
 	): Effect[] {
 		const salvageParams = params as unknown as SalvageItemParams;
-		const itemId = salvageParams?.itemId ?? this.itemId;
 
-		const item = context.entities.get(itemId) as Item | undefined;
-		if (!item) {
-			throw new Error(`Item ${itemId} not found`);
+		const itemEntity = context.entities.get(this.itemId);
+		if (!itemEntity || !isItem(itemEntity)) {
+			throw new Error(`Item ${this.itemId} not found`);
 		}
+		const item = itemEntity;
 
 		// Calculate yields if not provided
-		const yields = salvageParams?.materialsAmount !== undefined
+		const yields = salvageParams.materialsAmount !== undefined
 			? {
-					materials: salvageParams.materialsAmount ?? 0
+					materials: salvageParams.materialsAmount
 				}
 			: calculateSalvageYields(item);
 
 		return [
-			new SalvageItemEffect(itemId, yields.materials)
+			new SalvageItemEffect(this.itemId, yields.materials)
 		];
 	}
 
@@ -78,10 +79,10 @@ export class SalvageItemAction extends Action {
 		params: Record<string, unknown>
 	): DomainEvent[] {
 		const salvageParams = params as unknown as SalvageItemParams;
-		const itemId = salvageParams?.itemId ?? this.itemId;
+		const itemId = salvageParams.itemId;
 
 		// Item should be removed by SalvageItemEffect, so we check resources instead
-		const materials = resources.get('materials') ?? 0;
+		const materials = resources.get('materials');
 
 		return [
 			{

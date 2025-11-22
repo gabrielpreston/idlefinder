@@ -3,7 +3,7 @@
 	import Modal from '../ui/Modal.svelte';
 	import Badge from '../ui/Badge.svelte';
 	import { ErrorMessage } from '../ui';
-	import { getPathfinderClass, getPathfinderAncestry } from '$lib/domain/data/pathfinder';
+	import { getPathfinderClass, getPathfinderAncestry, type PathfinderClassKey, type PathfinderAncestryKey } from '$lib/domain/data/pathfinder';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import { recruitAdventurerCost, canAffordRecruitAdventurerState } from '$lib/stores/gameState';
 	import { useCommandError } from '$lib/composables/useCommandError';
@@ -21,8 +21,8 @@
 		return cleanup;
 	});
 
-	$: className = adventurer ? getPathfinderClass(adventurer.attributes.classKey as any)?.name || adventurer.attributes.classKey : '';
-	$: ancestryName = adventurer ? getPathfinderAncestry(adventurer.attributes.ancestryKey as any)?.name || adventurer.attributes.ancestryKey : '';
+	$: className = adventurer ? getPathfinderClass(adventurer.attributes.classKey as PathfinderClassKey)?.name || adventurer.attributes.classKey : '';
+	$: ancestryName = adventurer ? getPathfinderAncestry(adventurer.attributes.ancestryKey as PathfinderAncestryKey)?.name || adventurer.attributes.ancestryKey : '';
 	$: cost = $recruitAdventurerCost?.get('gold') ?? 50;
 	$: canAfford = $canAffordRecruitAdventurerState;
 
@@ -62,11 +62,11 @@
 			<div class="preview-stats">
 				<div class="stat-row">
 					<span class="stat-label">Level:</span>
-					<span class="stat-value">{adventurer.attributes.level}</span>
+					<span class="stat-value">{String(adventurer.attributes.level)}</span>
 				</div>
 				<div class="stat-row">
 					<span class="stat-label">Base HP:</span>
-					<span class="stat-value">{adventurer.attributes.baseHP}</span>
+					<span class="stat-value">{String(adventurer.attributes.baseHP)}</span>
 				</div>
 				<div class="stat-row">
 					<span class="stat-label">Class:</span>
@@ -86,7 +86,7 @@
 				<ErrorMessage message={$commandError} />
 
 				<div class="cost-info">
-					Cost: <strong>{cost} gold</strong>
+					Cost: <strong>{String(cost)} gold</strong>
 					{#if !canAfford}
 						<span class="insufficient-funds">(Insufficient gold)</span>
 					{/if}
@@ -97,7 +97,7 @@
 					onclick={handleRecruit}
 					disabled={!canAfford}
 				>
-					Recruit for {cost} gold
+					Recruit for {String(cost)} gold
 				</button>
 			</div>
 		</div>

@@ -9,33 +9,37 @@ import { GameState } from '../domain/entities/GameState';
 import { ConstructFacilityAction } from '../domain/actions/ConstructFacilityAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create ConstructFacility command handler using Actions
  */
 export function createConstructFacilityHandler(): CommandHandler<ConstructFacilityCommand, GameState> {
-	return async function(
+	return function(
 		payload: ConstructFacilityCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
-		// Validate facility type
-		const validTypes = ['Dormitory', 'MissionCommand', 'TrainingGrounds', 'ResourceDepot'];
-		if (!validTypes.includes(payload.facilityType)) {
-			return {
+		// Validate command payload using Zod
+		const validation = validateCommand('ConstructFacility', payload);
+		if (!validation.success) {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'ConstructFacility',
-							reason: `Invalid facility type: ${payload.facilityType}`
+							reason: validation.error
 						},
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
+
+		// Use validated payload (type assertion needed for TypeScript narrowing)
+		const validatedPayload = validation.data as ConstructFacilityCommand;
 
 		// Create requirement context
 		const requirementContext: RequirementContext = {
@@ -45,11 +49,11 @@ export function createConstructFacilityHandler(): CommandHandler<ConstructFacili
 		};
 
 		// Execute action
-		const action = new ConstructFacilityAction(payload.facilityType);
+		const action = new ConstructFacilityAction(validatedPayload.facilityType);
 		const result = action.execute(requirementContext, {});
 
 		if (!result.success) {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -61,7 +65,7 @@ export function createConstructFacilityHandler(): CommandHandler<ConstructFacili
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Apply effects
@@ -83,10 +87,10 @@ export function createConstructFacilityHandler(): CommandHandler<ConstructFacili
 			{}
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events
-		};
+		});
 	};
 }
 

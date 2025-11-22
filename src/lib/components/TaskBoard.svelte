@@ -38,7 +38,8 @@
 
 		// Generate unique mission instance ID from template
 		// Format: templateId-timestamp-random
-		const uniqueMissionId = `${selectedMissionTemplate}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+		const randomSuffix = Math.random().toString(36).substring(2, 9);
+		const uniqueMissionId = `${selectedMissionTemplate}-${String(Date.now())}-${randomSuffix}`;
 
 		validationError = null;
 		clearError();
@@ -76,7 +77,7 @@
 					value={offer.templateId}
 					bind:group={selectedMissionTemplate}
 				/>
-				<span>{offer.name} ({Math.floor(offer.duration / 1000)}s)</span>
+				<span>{offer.name} ({String(Math.floor(offer.duration / 1000))}s)</span>
 			</label>
 		{/each}
 	</div>
@@ -97,7 +98,7 @@
 						disabled={adventurer.state === 'OnMission'}
 					/>
 					<span>
-						{adventurerName} (Level {adventurer.attributes.level})
+						{adventurerName} (Level {String(adventurer.attributes.level)})
 						{#if adventurer.state === 'OnMission'}
 							- On Mission
 						{/if}

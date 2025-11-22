@@ -16,6 +16,7 @@ import { automateMissionSelection } from './MissionAutomationSystem';
 import { processCraftingQueue } from './CraftingSystem';
 import { processSlotGeneration } from './SlotGenerationSystem';
 import { processMissionPool } from './MissionPoolManagementSystem';
+import { EntityQueryBuilder } from '../queries/EntityQueryBuilder';
 
 /**
  * Idle Loop Result - new state and events from idle progression
@@ -48,9 +49,9 @@ export class IdleLoop {
 		const allErrors: string[] = [];
 
 		// Find missions that are ready for resolution
-		const missions = Array.from(entities.values()).filter(
-			(e) => e.type === 'Mission'
-		) as Mission[];
+		// Create temporary GameState for EntityQueryBuilder
+		const tempState = new GameState(previousState.playerId, previousState.lastPlayed, entities, resources);
+		const missions = EntityQueryBuilder.byType<Mission>('Mission')(tempState);
 
 		for (const mission of missions) {
 			if (mission.state === 'InProgress') {
@@ -131,7 +132,7 @@ export class IdleLoop {
 					events.push(...actionEvents);
 				}
 			} catch (error) {
-				console.error(`[IdleLoop] Error processing automation action:`, error);
+				allErrors.push(`Error processing automation action: ${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
 

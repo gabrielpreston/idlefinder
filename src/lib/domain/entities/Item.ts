@@ -46,7 +46,7 @@ export class Item implements Entity {
 		// Validate durability
 		if (attributes.durability < 0 || attributes.durability > attributes.maxDurability) {
 			throw new Error(
-				`Item durability (${attributes.durability}) must be between 0 and maxDurability (${attributes.maxDurability})`
+				`Item durability (${String(attributes.durability)}) must be between 0 and maxDurability (${String(attributes.maxDurability)})`
 			);
 		}
 	}
@@ -98,7 +98,7 @@ export class Item implements Entity {
 	 */
 	applyDamage(amount: number): void {
 		if (amount < 0) {
-			throw new Error(`Cannot apply negative damage: ${amount}`);
+			throw new Error(`Cannot apply negative damage: ${String(amount)}`);
 		}
 		this.attributes.durability = Math.max(0, this.attributes.durability - amount);
 		if (this.attributes.durability === 0) {

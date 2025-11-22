@@ -10,6 +10,7 @@ import { createTestFacility } from '../test-utils/testFactories';
 import { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 import { ResourceUnit } from '../domain/valueObjects/ResourceUnit';
 import type { Entity } from '../domain/primitives/Requirement';
+import { isFacility } from '../domain/primitives/EntityTypeGuards';
 
 describe('UpgradeFacilityHandler Integration', () => {
 	let busManager: BusManager;
@@ -35,12 +36,13 @@ describe('UpgradeFacilityHandler Integration', () => {
 
 			await busManager.commandBus.dispatch(command);
 
-			// Verify state updated
-			const state = busManager.getState();
-			const updatedFacility = state.entities.get(facility.id) as import('../domain/entities/Facility').Facility;
-			if (updatedFacility) {
-				expect(updatedFacility.attributes.tier).toBe(2);
-			}
+		// Verify state updated
+		const state = busManager.getState();
+		const updatedFacility = state.entities.get(facility.id);
+		expect(updatedFacility).toBeDefined();
+		if (updatedFacility && isFacility(updatedFacility)) {
+			expect(updatedFacility.attributes.tier).toBe(2);
+		}
 		});
 
 		it('should find facility by facilityType when ID not found', async () => {

@@ -68,14 +68,14 @@ describe('Item', () => {
 			const item = createTestItem({ state: 'Equipped' });
 			const adventurerId = Identifier.from<'AdventurerId'>('adv-1');
 
-			expect(() => item.equip(adventurerId)).toThrow('Cannot equip item: item state is Equipped');
+			expect(() => { item.equip(adventurerId); }).toThrow('Cannot equip item: item state is Equipped');
 		});
 
 		it('should throw error when item is broken', () => {
 			const item = createTestItem({ durability: 0, state: 'InArmory' });
 			const adventurerId = Identifier.from<'AdventurerId'>('adv-1');
 
-			expect(() => item.equip(adventurerId)).toThrow('Cannot equip broken item');
+			expect(() => { item.equip(adventurerId); }).toThrow('Cannot equip broken item');
 		});
 	});
 
@@ -93,7 +93,7 @@ describe('Item', () => {
 		it('should throw error when item is not Equipped', () => {
 			const item = createTestItem({ state: 'InArmory' });
 
-			expect(() => item.unequip()).toThrow('Cannot unequip item: item state is InArmory');
+			expect(() => { item.unequip(); }).toThrow('Cannot unequip item: item state is InArmory');
 		});
 	});
 
@@ -118,7 +118,7 @@ describe('Item', () => {
 		it('should throw error when item is already at full durability', () => {
 			const item = createTestItem({ durability: GameConfig.items.maxDurability });
 
-			expect(() => item.repair()).toThrow('Item is already at full durability');
+			expect(() => { item.repair(); }).toThrow('Item is already at full durability');
 		});
 	});
 
@@ -151,7 +151,7 @@ describe('Item', () => {
 		it('should throw error for negative damage', () => {
 			const item = createTestItem({ durability: 100 });
 
-			expect(() => item.applyDamage(-10)).toThrow('Cannot apply negative damage: -10');
+			expect(() => { item.applyDamage(-10); }).toThrow('Cannot apply negative damage: -10');
 		});
 	});
 

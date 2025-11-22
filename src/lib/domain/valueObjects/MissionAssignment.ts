@@ -31,11 +31,7 @@ export class MissionAssignment {
 	 */
 	isValid(): boolean {
 		return (
-			this.missionId !== undefined &&
-			this.missionId !== null &&
 			this.missionId.trim().length > 0 &&
-			this.adventurerId !== undefined &&
-			this.adventurerId !== null &&
 			this.adventurerId.trim().length > 0 &&
 			this.score >= 0
 		);

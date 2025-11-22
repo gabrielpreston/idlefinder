@@ -6,6 +6,7 @@
 
 import type { Timestamp } from '../valueObjects/Timestamp';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
+import { safeString } from '../../utils/templateLiterals';
 
 /**
  * Base entity type - all entities must have id and type
@@ -174,7 +175,7 @@ export function resourceRequirement(
 		if (currentAmount < minAmount) {
 			return {
 				satisfied: false,
-				reason: `Insufficient ${resourceType}: have ${currentAmount}, need ${minAmount}`
+				reason: `Insufficient ${safeString(resourceType)}: have ${safeString(currentAmount)}, need ${safeString(minAmount)}`
 			};
 		}
 		return { satisfied: true };

@@ -26,7 +26,7 @@ describe('GateRegistry', () => {
 				conditions: [resourceCondition('gold', 100)],
 			};
 
-			expect(() => registry.register(gate)).not.toThrow();
+			expect(() => { registry.register(gate); }).not.toThrow();
 			expect(registry.get('test-gate-1')).toEqual(gate);
 		});
 
@@ -45,7 +45,7 @@ describe('GateRegistry', () => {
 			};
 
 			registry.register(gate1);
-			expect(() => registry.register(gate2)).toThrow('already registered');
+			expect(() => { registry.register(gate2); }).toThrow('already registered');
 		});
 	});
 
@@ -87,7 +87,7 @@ describe('GateRegistry', () => {
 				},
 			];
 
-			expect(() => registry.registerAll(gates)).toThrow('already registered');
+			expect(() => { registry.registerAll(gates); }).toThrow('already registered');
 		});
 	});
 

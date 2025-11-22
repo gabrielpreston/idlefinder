@@ -34,7 +34,7 @@ export class Identifier<T extends string = string> {
 	 * Validates that the identifier value is valid (non-empty).
 	 */
 	isValid(): boolean {
-		return this.value !== undefined && this.value !== null && this.value.trim().length > 0;
+		return this.value.trim().length > 0;
 	}
 }
 

@@ -9,19 +9,40 @@ import { GameState } from '../domain/entities/GameState';
 import { StartMissionAction } from '../domain/actions/StartMissionAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create StartMission command handler using Actions
  */
 export function createStartMissionHandler(): CommandHandler<StartMissionCommand, GameState> {
-	return async function(
+	return function(
 		payload: StartMissionCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('StartMission', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'StartMission',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as StartMissionCommand;
+
 		// MVP: Single adventurer per mission
-		if (payload.adventurerIds.length !== 1) {
-			return {
+		if (validatedPayload.adventurerIds.length !== 1) {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -33,29 +54,29 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
-		const adventurerId = payload.adventurerIds[0];
+		const adventurerId = validatedPayload.adventurerIds[0];
 		const now = context.currentTime;
 
 		// Mission must already exist in the mission pool
 		// Mission pool system provides all Available missions
-		const existingMission = state.entities.get(payload.missionId);
+		const existingMission = state.entities.get(validatedPayload.missionId);
 		if (!existingMission || existingMission.type !== 'Mission') {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'StartMission',
-							reason: `Mission ${payload.missionId} not found in mission pool`
+							reason: `Mission ${validatedPayload.missionId} not found in mission pool`
 						},
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Use existing mission from pool
@@ -69,15 +90,15 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 		};
 
 		// Execute action
-		const action = new StartMissionAction(payload.missionId, adventurerId);
+		const action = new StartMissionAction(validatedPayload.missionId, adventurerId);
 		const result = action.execute(requirementContext, {
-			missionId: payload.missionId,
+			missionId: validatedPayload.missionId,
 			adventurerId,
 			startedAt: now
 		});
 
 		if (!result.success) {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -89,7 +110,7 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Apply effects
@@ -111,10 +132,10 @@ export function createStartMissionHandler(): CommandHandler<StartMissionCommand,
 			{ missionId: payload.missionId, adventurerId, startedAt: now }
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events
-		};
+		});
 	};
 }
 

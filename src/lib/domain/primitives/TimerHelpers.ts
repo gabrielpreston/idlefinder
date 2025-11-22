@@ -7,6 +7,7 @@
 import { Timestamp } from '../valueObjects/Timestamp';
 import type { Entity } from './Requirement';
 import { validateTimerValue } from './TimerValidator';
+import { safeString } from '../../utils/templateLiterals';
 
 /**
  * Get timer value as Timestamp (for entity method calls)
@@ -23,15 +24,34 @@ export function getTimer(
 	key: string,
 	validate: boolean = false
 ): Timestamp | null {
+	// Guard against missing timers object (runtime safety check)
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+	if (!entity.timers) {
+		return null;
+	}
+	
+	// Check if key exists in timers object (handles undefined at runtime)
+	if (!(key in entity.timers)) {
+		return null;
+	}
+	
 	const value = entity.timers[key];
+	// Handle both null and undefined (undefined can occur at runtime even though TypeScript doesn't allow it)
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (value === null || value === undefined) {
+		return null;
+	}
+	
+	// Ensure value is a number before creating Timestamp
+	// Check for NaN as well to prevent invalid timestamps
+	if (typeof value !== 'number' || !Number.isFinite(value)) {
 		return null;
 	}
 	
 	if (validate) {
 		const validation = validateTimerValue(value);
 		if (!validation.isValid) {
-			throw new Error(`Invalid timer value for key "${key}": ${validation.error}`);
+			throw new Error(`Invalid timer value for key "${safeString(key)}": ${validation.error ?? 'unknown error'}`);
 		}
 	}
 	
@@ -62,7 +82,7 @@ export function setTimer(
 	if (validate) {
 		const validation = validateTimerValue(timestamp.value);
 		if (!validation.isValid) {
-			throw new Error(`Invalid timer value for key "${key}": ${validation.error}`);
+			throw new Error(`Invalid timer value for key "${safeString(key)}": ${validation.error ?? 'unknown error'}`);
 		}
 	}
 	

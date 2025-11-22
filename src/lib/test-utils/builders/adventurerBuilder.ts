@@ -11,7 +11,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set adventurer ID
 	 */
-	id(id: string): AdventurerBuilder {
+	id(id: string): this {
 		this.overrides = { ...this.overrides, id };
 		return this;
 	}
@@ -19,7 +19,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set adventurer name
 	 */
-	name(name: string): AdventurerBuilder {
+	name(name: string): this {
 		this.overrides = { ...this.overrides, name };
 		return this;
 	}
@@ -27,7 +27,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set level
 	 */
-	level(level: number): AdventurerBuilder {
+	level(level: number): this {
 		this.overrides = { ...this.overrides, level };
 		return this;
 	}
@@ -35,7 +35,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set XP
 	 */
-	xp(xp: number): AdventurerBuilder {
+	xp(xp: number): this {
 		this.overrides = { ...this.overrides, xp };
 		return this;
 	}
@@ -43,7 +43,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set state to Idle
 	 */
-	idle(): AdventurerBuilder {
+	idle(): this {
 		this.overrides = { ...this.overrides, state: 'Idle' };
 		return this;
 	}
@@ -51,7 +51,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set state to OnMission
 	 */
-	onMission(): AdventurerBuilder {
+	onMission(): this {
 		this.overrides = { ...this.overrides, state: 'OnMission' };
 		return this;
 	}
@@ -59,7 +59,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set state to Fatigued
 	 */
-	fatigued(): AdventurerBuilder {
+	fatigued(): this {
 		this.overrides = { ...this.overrides, state: 'Fatigued' };
 		return this;
 	}
@@ -67,7 +67,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set state to Recovering
 	 */
-	recovering(): AdventurerBuilder {
+	recovering(): this {
 		this.overrides = { ...this.overrides, state: 'Recovering' };
 		return this;
 	}
@@ -75,7 +75,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set state to Dead
 	 */
-	dead(): AdventurerBuilder {
+	dead(): this {
 		this.overrides = { ...this.overrides, state: 'Dead' };
 		return this;
 	}
@@ -83,7 +83,7 @@ export class AdventurerBuilder {
 	/**
 	 * Set tags
 	 */
-	withTags(tags: string[]): AdventurerBuilder {
+	withTags(tags: string[]): this {
 		this.overrides = { ...this.overrides, tags };
 		return this;
 	}

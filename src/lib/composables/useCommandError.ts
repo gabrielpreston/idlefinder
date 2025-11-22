@@ -56,7 +56,7 @@ export function useCommandError(
 			}
 
 			// Set up auto-clear if configured
-			if (autoClearTimeout !== null && autoClearTimeout > 0) {
+			if (autoClearTimeout > 0) {
 				timeoutId = setTimeout(() => {
 					errorStore.set(null);
 					timeoutId = null;

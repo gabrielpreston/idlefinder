@@ -8,9 +8,10 @@ import type { Capacity } from './Capacity';
 import type { Query } from './Query';
 
 /**
- * Capacity Query Builder - Static methods for creating capacity queries
+ * Capacity Query Builder - Functions for creating capacity queries
  */
-export class CapacityQueryBuilder {
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace CapacityQueryBuilder {
 	/**
 	 * Create a capacity query from max and current queries
 	 * 
@@ -18,7 +19,7 @@ export class CapacityQueryBuilder {
 	 * @param getCurrent Query that returns current usage
 	 * @returns Query that returns Capacity with current, max, available, and utilization
 	 */
-	static create(
+	export function create(
 		getMax: Query<number>,
 		getCurrent: Query<number>
 	): Query<Capacity> {

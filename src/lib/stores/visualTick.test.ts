@@ -5,6 +5,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { startVisualTick } from './visualTick';
 
+interface GlobalWithRAF {
+	__triggerRAF?: () => void;
+}
+
 describe('visualTick', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -12,7 +16,7 @@ describe('visualTick', () => {
 		// Instead, track callbacks and call them manually when needed
 		let rafId = 0;
 		const pendingCallbacks: Array<(timestamp: number) => void> = [];
-		global.requestAnimationFrame = vi.fn((cb) => {
+		global.requestAnimationFrame = vi.fn((cb: (timestamp: number) => void) => {
 			// Don't call immediately - store for manual execution
 			pendingCallbacks.push(cb);
 			return ++rafId;
@@ -23,11 +27,10 @@ describe('visualTick', () => {
 		}) as unknown as typeof cancelAnimationFrame;
 		
 		// Helper to manually trigger RAF callbacks
-		 
-		(global as any).__triggerRAF = () => {
+		(global as GlobalWithRAF).__triggerRAF = () => {
 			const callbacks = [...pendingCallbacks];
 			pendingCallbacks.length = 0;
-			callbacks.forEach(cb => cb(Date.now()));
+			callbacks.forEach(cb => { cb(Date.now()); });
 		};
 	});
 
@@ -51,9 +54,9 @@ describe('visualTick', () => {
 			const cleanup = startVisualTick(updateFn, 100);
 
 			// Trigger RAF callbacks and advance time past interval
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 			vi.advanceTimersByTime(120);
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 
 			// Function should have been called at least once
 			expect(updateFn).toHaveBeenCalled();
@@ -65,16 +68,16 @@ describe('visualTick', () => {
 			const cleanup = startVisualTick(updateFn, 100);
 
 			// Trigger RAF and advance time by less than interval
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 			vi.advanceTimersByTime(50);
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 
 			// Should not have been called yet (throttled)
 			expect(updateFn).not.toHaveBeenCalled();
 
 			// Advance past interval and trigger RAF
 			vi.advanceTimersByTime(60);
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 
 			expect(updateFn).toHaveBeenCalled();
 			cleanup();
@@ -102,9 +105,9 @@ describe('visualTick', () => {
 			const cleanup = startVisualTick(updateFn);
 
 			// Trigger RAF and advance time
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 			vi.advanceTimersByTime(120);
-			(global as any).__triggerRAF();
+			(global as GlobalWithRAF).__triggerRAF?.();
 
 			expect(updateFn).toHaveBeenCalled();
 			cleanup();

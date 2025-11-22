@@ -9,6 +9,7 @@ import { cleanupStores } from '../../test-utils/storeCleanup';
 import { createTestGameState } from '../../test-utils/testFactories';
 import { missionBuilder } from '../../test-utils/builders/missionBuilder';
 import { adventurerBuilder } from '../../test-utils/builders/adventurerBuilder';
+import { getSelectByLabel } from '../../test-utils/domTestHelpers';
 
 describe('UI Edge Cases', () => {
 	beforeEach(() => {
@@ -82,7 +83,7 @@ describe('UI Edge Cases', () => {
 			});
 			
 			// Filter by type that doesn't match
-			const typeFilter = screen.getByLabelText(/type/i) as HTMLSelectElement;
+			const typeFilter = getSelectByLabel(/type/i);
 			typeFilter.value = 'exploration';
 			typeFilter.dispatchEvent(new Event('change', { bubbles: true }));
 			
@@ -114,8 +115,8 @@ describe('UI Edge Cases', () => {
 			});
 			
 			// Apply filters that don't match
-			const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
-			const typeFilter = screen.getByLabelText(/type/i) as HTMLSelectElement;
+			const stateFilter = getSelectByLabel(/state/i);
+			const typeFilter = getSelectByLabel(/type/i);
 			
 			stateFilter.value = 'Expired';
 			stateFilter.dispatchEvent(new Event('change', { bubbles: true }));

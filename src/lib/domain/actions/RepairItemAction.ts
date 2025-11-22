@@ -56,7 +56,7 @@ export class RepairItemAction extends Action {
 		params: Record<string, unknown>
 	): Effect[] {
 		const repairParams = params as unknown as { itemId?: string };
-		const itemId = repairParams?.itemId ?? this.itemId;
+		const itemId = repairParams.itemId ?? this.itemId;
 
 		return [new RepairItemEffect(itemId)];
 	}
@@ -65,12 +65,9 @@ export class RepairItemAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		params: Record<string, unknown>
+		_params: Record<string, unknown>
 	): DomainEvent[] {
-		const repairParams = params as unknown as { itemId?: string };
-		const itemId = repairParams?.itemId ?? this.itemId;
-
-		const item = entities.get(itemId) as Item | undefined;
+		const item = entities.get(this.itemId) as Item | undefined;
 
 		if (!item) {
 			return [];
@@ -80,7 +77,7 @@ export class RepairItemAction extends Action {
 			{
 				type: 'ItemRepaired',
 				payload: {
-					itemId,
+					itemId: this.itemId,
 					durability: item.attributes.durability,
 					maxDurability: item.attributes.maxDurability
 				},

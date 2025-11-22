@@ -6,9 +6,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestCommand, setupIntegrationTest, createTestGameState, createTestMission } from '../../test-utils';
 import { createTestFacility } from '../../test-utils/testFactories';
+import { requireGuildHall, findAvailableMissions, findAdventurerById } from '../../test-utils/entityTestHelpers';
+import { expectAdventurerExists } from '../../test-utils/expectHelpers';
+import { isMission } from '../../domain/primitives/EntityTypeGuards';
 import type { BusManager } from '../../bus/BusManager';
 import type { DomainEvent } from '../../bus/types';
-import type { Facility } from '../../domain/entities/Facility';
 // Import gating module to ensure gates are registered
 import '../../domain/gating';
 
@@ -22,19 +24,11 @@ describe('Command Flow Integration', () => {
 		
 		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
 		// This allows recruitment in tests
-		const guildhall = Array.from(initialState.entities.values()).find(
-			(e) =>
-				e.type === 'Facility' &&
-				(e as Facility).attributes.facilityType === 'Guildhall'
-		) as Facility;
-		if (guildhall) {
-			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
-		}
+		const guildhall = requireGuildHall(initialState);
+		guildhall.upgrade(); // Upgrades from tier 0 to tier 1
 		
 		// Ensure we have at least one available mission
-		const existingMissions = Array.from(initialState.entities.values()).filter(
-			e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-		);
+		const existingMissions = findAvailableMissions(initialState);
 		if (existingMissions.length === 0) {
 			// Add a test mission if none exist
 			const testMission = createTestMission({ id: 'test-mission-1', state: 'Available' });
@@ -62,12 +56,9 @@ describe('Command Flow Integration', () => {
 
 			// Verify state updated - find the recruited adventurer by name
 			const state = busManager.getState();
-			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			// Initial state has 4 preview adventurers, so we should have 5 total
-			expect(adventurers.length).toBeGreaterThanOrEqual(5);
-			const adventurer = adventurers.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer') as import('../../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.metadata.name).toBe('Test Adventurer');
+			const adventurer = expectAdventurerExists(state, 'Test Adventurer');
+			expect(adventurer.metadata.name).toBe('Test Adventurer');
 		});
 
 		it('should complete full flow for StartMission command', async () => {
@@ -79,16 +70,12 @@ describe('Command Flow Integration', () => {
 			await busManager.commandBus.dispatch(recruitCommand);
 
 			const stateAfterRecruit = busManager.getState();
-			const adventurersAfterRecruit = Array.from(stateAfterRecruit.entities.values()).filter(e => e.type === 'Adventurer');
 			// Find the recruited adventurer by name
-			const recruitedAdventurer = adventurersAfterRecruit.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer');
-			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+			const recruitedAdventurer = expectAdventurerExists(stateAfterRecruit, 'Test Adventurer');
+			const adventurerId = recruitedAdventurer.id;
 
 			// Get an available mission from the mission pool
-			const availableMissions = Array.from(stateAfterRecruit.entities.values()).filter(
-				e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-			) as import('../../domain/entities/Mission').Mission[];
+			const availableMissions = findAvailableMissions(stateAfterRecruit);
 			expect(availableMissions.length).toBeGreaterThan(0);
 			const missionId = availableMissions[0].id;
 
@@ -106,15 +93,13 @@ describe('Command Flow Integration', () => {
 
 			// Verify state updated - mission should be in progress
 			const state = busManager.getState();
-			const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission');
-			// Initial state has missions in pool, so we should have at least 1 mission
-			expect(missions.length).toBeGreaterThan(0);
-			const startedMission = missions.find(m => m.id === missionId) as import('../../domain/entities/Mission').Mission;
+			const startedMission = state.entities.get(missionId);
 			expect(startedMission).toBeDefined();
-			expect(startedMission?.state).toBe('InProgress');
-			const adventurer = Array.from(state.entities.values()).find(e => e.id === adventurerId) as import('../../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.state).toBe('OnMission');
+			if (startedMission && isMission(startedMission)) {
+				expect(startedMission.state).toBe('InProgress');
+			}
+			const adventurer = findAdventurerById(state, adventurerId);
+			expect(adventurer.state).toBe('OnMission');
 		});
 
 		it('should handle multiple commands in sequence', async () => {
@@ -149,16 +134,12 @@ describe('Command Flow Integration', () => {
 			);
 
 			const state1 = busManager.getState();
-			const adventurers1 = Array.from(state1.entities.values()).filter(e => e.type === 'Adventurer');
 			// Find the recruited adventurer by name
-			const recruitedAdventurer = adventurers1.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Test');
-			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+			const recruitedAdventurer = expectAdventurerExists(state1, 'Test');
+			const adventurerId = recruitedAdventurer.id;
 
 			// Get an available mission from the mission pool
-			const availableMissions = Array.from(state1.entities.values()).filter(
-				e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-			) as import('../../domain/entities/Mission').Mission[];
+			const availableMissions = findAvailableMissions(state1);
 			expect(availableMissions.length).toBeGreaterThan(0);
 			const missionId = availableMissions[0].id;
 
@@ -171,15 +152,11 @@ describe('Command Flow Integration', () => {
 			);
 
 			const state2 = busManager.getState();
-			const adventurers2 = Array.from(state2.entities.values()).filter(e => e.type === 'Adventurer');
 
 			// Verify adventurer still exists and is updated
-			// Initial state has 4 preview adventurers, so we should have 5 total
-			expect(adventurers2.length).toBeGreaterThanOrEqual(5);
-			const adventurer = adventurers2.find(a => a.id === adventurerId) as import('../../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.id).toBe(adventurerId);
-			expect(adventurer?.state).toBe('OnMission');
+			const adventurer = findAdventurerById(state2, adventurerId);
+			expect(adventurer.id).toBe(adventurerId);
+			expect(adventurer.state).toBe('OnMission');
 		});
 	});
 

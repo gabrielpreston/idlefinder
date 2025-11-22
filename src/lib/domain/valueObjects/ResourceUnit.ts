@@ -20,8 +20,6 @@ export class ResourceUnit {
 	 */
 	isValid(): boolean {
 		return (
-			this.resourceType !== undefined &&
-			this.resourceType !== null &&
 			this.resourceType.trim().length > 0 &&
 			this.amount >= 0
 		);

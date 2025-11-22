@@ -124,3 +124,22 @@ export function expectEntityCreated(
 	return { result, created };
 }
 
+/**
+ * Type-safe entity getter for tests
+ * Returns entity or throws with helpful test error message
+ */
+export function getEntityOrFail<T extends Entity>(
+	entities: Map<string, Entity>,
+	id: string,
+	typeGuard: (entity: Entity) => entity is T
+): T {
+	const entity = entities.get(id);
+	if (!entity) {
+		throw new Error(`Test setup error: Entity ${id} not found`);
+	}
+	if (!typeGuard(entity)) {
+		throw new Error(`Test setup error: Entity ${id} is not expected type`);
+	}
+	return entity;
+}
+

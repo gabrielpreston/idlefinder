@@ -37,7 +37,7 @@ export function evaluateGatesWithEvents(
 			payload: eventPayload,
 			timestamp: new Date().toISOString(),
 		};
-		eventBus.publish(event);
+		void eventBus.publish(event);
 	}
 
 	// Return current states for next evaluation

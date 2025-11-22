@@ -20,7 +20,7 @@
 	
 	/**
 	 * Optional custom formatter (overrides numberType)
-	 * Use for special cases like rates with units: (n) => `${n.toFixed(1)}/min`
+	 * Use for special cases like rates with units: (n) => `${String(n.toFixed(1))}/min`
 	 */
 	export let format: ((_n: number) => string) | undefined = undefined;
 
@@ -28,7 +28,7 @@
 	$: actualFormat = format ?? (
 		numberType === 'integer' 
 			? formatInteger 
-			: (n: number) => formatDecimal(n, decimalPlaces)
+			: (n: number) => formatDecimal(n, Number(decimalPlaces))
 	);
 
 	const animated = tweened(value, {

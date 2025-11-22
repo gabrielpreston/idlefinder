@@ -240,7 +240,7 @@ describe('RosterQueries', () => {
 			// Capacity is 2 (base) + 5 (Dormitory tier 1) = 7
 			// Create 7 adventurers
 			const adventurers = Array.from({ length: 7 }, (_, i) => 
-				createTestAdventurer({ id: `adv-${i}` })
+				createTestAdventurer({ id: `adv-${String(i)}` })
 			);
 			// Merge entities: start with base entities (which now has upgraded Guild Hall), add Dormitory and adventurers
 			const entities = new Map(baseState.entities);
@@ -264,7 +264,7 @@ describe('RosterQueries', () => {
 
 			// Capacity is 1, but create 2 adventurers
 			const adventurers = Array.from({ length: 2 }, (_, i) => 
-				createTestAdventurer({ id: `adv-${i}` })
+				createTestAdventurer({ id: `adv-${String(i)}` })
 			);
 			// Merge entities: start with base entities (which now has upgraded Guild Hall), add adventurers
 			const entities = new Map(baseState.entities);
@@ -307,7 +307,7 @@ describe('RosterQueries', () => {
 			const baseState = createTestGameState();
 			const dormitory = createTestFacility({ facilityType: 'Dormitory', tier: 1 });
 			const adventurers = Array.from({ length: 3 }, (_, i) => 
-				createTestAdventurer({ id: `adv-${i}` })
+				createTestAdventurer({ id: `adv-${String(i)}` })
 			);
 			// Merge entities: start with base entities, add Dormitory and adventurers
 			const entities = new Map(baseState.entities);

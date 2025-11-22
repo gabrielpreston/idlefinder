@@ -12,6 +12,8 @@ import { Timestamp } from '../valueObjects/Timestamp';
 import type { Effect } from '../primitives/Effect';
 import { applyEffects } from '../primitives/Effect';
 import { GameConfig } from '../config/GameConfig';
+import { Facility } from '../entities/Facility';
+import type { Entity } from '../primitives/Requirement';
 
 describe('UpgradeFacilityAction', () => {
 	describe('getRequirements', () => {
@@ -74,12 +76,13 @@ describe('UpgradeFacilityAction', () => {
 			const effects = action.computeEffects(context, {});
 
 			// Apply effects and verify behavior
-			const result = applyEffects(effects, entities, initialResources);
+			const result = applyEffects(effects, entities as Map<string, Entity>, initialResources);
 			
 			// Verify facility tier increased (behavioral)
 			const updatedFacility = result.entities.get('facility-1');
 			expect(updatedFacility).toBeDefined();
-			expect((updatedFacility as any).attributes.tier).toBe(2);
+			expect(updatedFacility).toBeInstanceOf(Facility);
+			expect((updatedFacility as Facility).attributes.tier).toBe(2);
 			
 			// Verify gold was subtracted (behavioral)
 			expect(result.resources.get('gold')).toBeLessThan(upgradeCost);
@@ -100,12 +103,13 @@ describe('UpgradeFacilityAction', () => {
 			const effects = action.computeEffects(context, {});
 
 			// Apply effects and verify behavior
-			const result = applyEffects(effects, entities, initialResources);
+			const result = applyEffects(effects, entities as Map<string, Entity>, initialResources);
 			
 			// Verify facility tier increased to 3 (behavioral)
 			const updatedFacility = result.entities.get('facility-1');
 			expect(updatedFacility).toBeDefined();
-			expect((updatedFacility as any).attributes.tier).toBe(3);
+			expect(updatedFacility).toBeInstanceOf(Facility);
+			expect((updatedFacility as Facility).attributes.tier).toBe(3);
 			
 			// Verify gold was subtracted by upgrade cost (behavioral)
 			expect(result.resources.get('gold')).toBe(0);
@@ -119,7 +123,7 @@ describe('UpgradeFacilityAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new UpgradeFacilityAction('nonexistent-facility');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {});
 
 			expect(events).toEqual([]);
 		});
@@ -221,7 +225,7 @@ describe('UpgradeFacilityAction', () => {
 				// But getRequirements() uses getFacilityFromContext() which returns null,
 				// so it returns entityExistsRequirement instead
 				// To test tier mismatch, we need to call execute() which will evaluate all requirements
-				if (result.satisfied === false) {
+				if (!result.satisfied) {
 					expect(result.reason).toBeDefined();
 				}
 			}

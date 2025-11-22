@@ -5,6 +5,7 @@
 
 import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { RecruitAdventurerCommand, DomainEvent } from '../bus/types';
+import { validateCommand } from '../bus/commandValidation';
 import { GameState } from '../domain/entities/GameState';
 import { Adventurer } from '../domain/entities/Adventurer';
 import { Identifier } from '../domain/valueObjects/Identifier';
@@ -25,47 +26,67 @@ import { canRecruit, getMaxRosterCapacity, getCurrentRosterSize } from '../domai
  * Create RecruitAdventurer command handler
  */
 export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventurerCommand, GameState> {
-	return async function(
+	return function(
 		payload: RecruitAdventurerCommand,
 		state: GameState,
 		_context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
-		// Validation: Check if player has enough gold
-		const recruitCost = GameConfig.costs.recruitAdventurer;
-		const currentGold = state.resources.get('gold') || 0;
-		if (currentGold < recruitCost) {
-			return {
+		// Validate command payload using Zod
+		const validation = validateCommand('RecruitAdventurer', payload);
+		if (!validation.success) {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'RecruitAdventurer',
-							reason: `Insufficient gold: need ${recruitCost}, have ${currentGold}`
+							reason: validation.error
 						},
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
+		}
+
+		const validatedPayload = validation.data as RecruitAdventurerCommand;
+
+		// Validation: Check if player has enough gold
+		const recruitCost = GameConfig.costs.recruitAdventurer;
+		const currentGold = state.resources.get('gold') || 0;
+		if (currentGold < recruitCost) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'RecruitAdventurer',
+							reason: `Insufficient gold: need ${String(recruitCost)}, have ${String(currentGold)}`
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
 		}
 
 		// Validation: Check if roster has capacity
 		if (!canRecruit(state)) {
 			const maxCapacity = getMaxRosterCapacity(state);
 			const currentSize = getCurrentRosterSize(state);
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'RecruitAdventurer',
-							reason: `Roster is full: capacity ${maxCapacity}, current size ${currentSize}. Build or upgrade Dormitory to increase capacity.`
+							reason: `Roster is full: capacity ${String(maxCapacity)}, current size ${String(currentSize)}. Build or upgrade Dormitory to increase capacity.`
 						},
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Generate adventurer ID
@@ -86,20 +107,20 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 			// Use preview adventurer's attributes
 			const previewAdventurer = state.entities.get(payload.previewAdventurerId) as Adventurer | undefined;
 			
-			if (!previewAdventurer || previewAdventurer.type !== 'Adventurer' || previewAdventurer.state !== 'Preview') {
-				return {
+			if (!previewAdventurer || previewAdventurer.state !== 'Preview') {
+				return Promise.resolve({
 					newState: state,
 					events: [
 						{
 							type: 'CommandFailed',
 							payload: {
 								commandType: 'RecruitAdventurer',
-								reason: `Preview adventurer ${payload.previewAdventurerId} not found or invalid`
+								reason: `Preview adventurer ${validatedPayload.previewAdventurerId ?? 'unknown'} not found or invalid`
 							},
 							timestamp: new Date().toISOString()
 						}
 					]
-				};
+				});
 			}
 
 			// Copy attributes from preview
@@ -109,15 +130,17 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 				abilityMods: previewAdventurer.attributes.abilityMods,
 				classKey: previewAdventurer.attributes.classKey,
 				ancestryKey: previewAdventurer.attributes.ancestryKey,
-				traitTags: payload.traits.length > 0 ? payload.traits : previewAdventurer.attributes.traitTags,
+				traitTags: validatedPayload.traits.length > 0 ? validatedPayload.traits : previewAdventurer.attributes.traitTags,
 				roleKey: previewAdventurer.attributes.roleKey,
 				baseHP: previewAdventurer.attributes.baseHP,
 				assignedSlotId: null
 			};
-			traits = payload.traits.length > 0 ? payload.traits : [...previewAdventurer.tags];
+			traits = validatedPayload.traits.length > 0 ? validatedPayload.traits : [...previewAdventurer.tags];
 
 			// Remove preview entity from entities map
-			newEntities.delete(payload.previewAdventurerId);
+			if (validatedPayload.previewAdventurerId) {
+				newEntities.delete(validatedPayload.previewAdventurerId);
+			}
 		} else {
 			// Generate random attributes (backward compatible)
 			const classKey = getRandomPathfinderClassKey();
@@ -135,12 +158,12 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 				])),
 				classKey,
 				ancestryKey,
-				traitTags: payload.traits || [],
+				traitTags: validatedPayload.traits, // Guaranteed to be array after Zod validation (default: [])
 				roleKey: deriveRoleKey(classKey),
 				baseHP: 10,
 				assignedSlotId: null
 			};
-			traits = payload.traits || [];
+			traits = validatedPayload.traits; // Guaranteed to be array after Zod validation (default: [])
 		}
 
 		// Create new Adventurer entity
@@ -174,15 +197,15 @@ export function createRecruitAdventurerHandler(): CommandHandler<RecruitAdventur
 			payload: {
 				adventurerId,
 				name: adventurerName,
-				traits: payload.traits || []
+				traits: validatedPayload.traits // Guaranteed to be array after Zod validation (default: [])
 			},
 			timestamp: new Date().toISOString()
 		};
 
-		return {
+		return Promise.resolve({
 			newState,
 			events: [adventurerRecruitedEvent]
-		};
+		});
 	};
 }
 

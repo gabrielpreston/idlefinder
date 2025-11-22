@@ -17,12 +17,12 @@
 			{@const endsAtTimer = getTimer(mission, 'endsAt')}
 			{@const startedAtMs = startedAtTimer?.value}
 			{@const endsAtMs = endsAtTimer?.value}
-			{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id}`}
+			{@const missionName = (mission.metadata.name as string) || `Mission ${String(mission.id)}`}
 			{@const duration = getMissionDisplayDuration(mission)}
 			<div class="mission-item">
 				<div class="mission-name">{missionName}</div>
 				<div class="mission-details">
-					Duration: {Math.floor(duration / 1000)}s
+					Duration: {String(Math.floor(duration / 1000))}s
 				</div>
 				{#if startedAtMs && endsAtMs && duration > 0 && !isNaN(duration) && !isNaN(startedAtMs)}
 					<div class="mission-progress">

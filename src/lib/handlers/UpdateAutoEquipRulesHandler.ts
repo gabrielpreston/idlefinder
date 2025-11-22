@@ -5,6 +5,7 @@
 
 import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { UpdateAutoEquipRulesCommand, DomainEvent } from '../bus/types';
+import { validateCommand } from '../bus/commandValidation';
 import { GameState } from '../domain/entities/GameState';
 import { AutoEquipRules } from '../domain/entities/AutoEquipRules';
 import { Identifier } from '../domain/valueObjects/Identifier';
@@ -15,11 +16,31 @@ import type { StatPriority } from '../domain/attributes/AutoEquipRulesAttributes
  * Create UpdateAutoEquipRules command handler
  */
 export function createUpdateAutoEquipRulesHandler(): CommandHandler<UpdateAutoEquipRulesCommand, GameState> {
-	return async function(
+	return function(
 		payload: UpdateAutoEquipRulesCommand,
 		state: GameState,
 		_context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('UpdateAutoEquipRules', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'UpdateAutoEquipRules',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as UpdateAutoEquipRulesCommand;
+
 		// Find AutoEquipRules entity (should be singleton)
 		let rulesEntity: AutoEquipRules | undefined;
 		for (const entity of state.entities.values()) {
@@ -37,18 +58,23 @@ export function createUpdateAutoEquipRulesHandler(): CommandHandler<UpdateAutoEq
 		}
 
 		// Update focus if provided
-		if (payload.focus) {
-			rulesEntity.updateFocus(payload.focus);
+		if (validatedPayload.focus) {
+			rulesEntity.updateFocus(validatedPayload.focus);
 		}
 
 		// Update allow rare auto-equip if provided
-		if (payload.allowRareAutoEquip !== undefined) {
-			rulesEntity.updateAllowRareAutoEquip(payload.allowRareAutoEquip);
+		if (validatedPayload.allowRareAutoEquip !== undefined) {
+			rulesEntity.updateAllowRareAutoEquip(validatedPayload.allowRareAutoEquip);
 		}
 
 		// Update role priorities if provided
-		if (payload.rolePriorities) {
-			for (const [roleKey, priorities] of payload.rolePriorities.entries()) {
+		if (validatedPayload.rolePriorities) {
+			// Convert record to Map for compatibility
+			const rolePrioritiesMap = new Map<string, string[]>();
+			for (const [roleKey, priorities] of Object.entries(validatedPayload.rolePriorities)) {
+				rolePrioritiesMap.set(roleKey, priorities as string[]);
+			}
+			for (const [roleKey, priorities] of rolePrioritiesMap.entries()) {
 				rulesEntity.updateRolePriorities(roleKey as RoleKey, priorities as StatPriority[]);
 			}
 		}
@@ -61,10 +87,10 @@ export function createUpdateAutoEquipRulesHandler(): CommandHandler<UpdateAutoEq
 			state.resources
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events: [] // No events for config updates
-		};
+		});
 	};
 }
 

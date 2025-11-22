@@ -52,12 +52,7 @@ function createGameStateStore() {
 	return {
 		subscribe,
 		initialize: (rt: GameRuntime) => {
-			if (!rt) {
-				throw new Error('GameRuntime cannot be null when initializing gameState store');
-			}
-			if (!rt.gameState) {
-				throw new Error('GameRuntime.gameState cannot be null');
-			}
+			// GameRuntime and gameState are guaranteed by type system
 			// Clean up any existing runtime before initializing a new one
 			if (runtime) {
 				runtime.destroy();
@@ -68,14 +63,10 @@ function createGameStateStore() {
 			set(rt.busManager.getState());
 			// Use runtime's gameState store for future updates
 			const unsubscribe = rt.gameState.subscribe((state: GameState) => {
-				if (!state) {
-					console.warn('gameState store received null state - this should not happen');
-					return;
-				}
 				set(state);
 			});
 			// Store unsubscribe in runtime's destroy (will be called on cleanup)
-			const originalDestroy = rt.destroy;
+			const originalDestroy = rt.destroy.bind(rt);
 			rt.destroy = () => {
 				unsubscribe();
 				originalDestroy();
@@ -456,17 +447,26 @@ export const availableMissionCount: Readable<number> = derived(
 // Resource stores - individual resource accessors
 export const gold: Readable<number> = derived(
 	gameState,
-	($state) => $state?.resources?.get('gold') ?? 0
+	($state) => {
+		if (!$state) return 0;
+		return $state.resources.get('gold');
+	}
 );
 
 export const fame: Readable<number> = derived(
 	gameState,
-	($state) => $state?.resources?.get('fame') ?? 0
+	($state) => {
+		if (!$state) return 0;
+		return $state.resources.get('fame');
+	}
 );
 
 export const materials: Readable<number> = derived(
 	gameState,
-	($state) => $state?.resources?.get('materials') ?? 0
+	($state) => {
+		if (!$state) return 0;
+		return $state.resources.get('materials');
+	}
 );
 
 // Facility counts store

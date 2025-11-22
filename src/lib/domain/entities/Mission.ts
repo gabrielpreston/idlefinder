@@ -63,7 +63,7 @@ export class Mission implements Entity {
 		// Validate timer relationship using TimerValidator
 		const validation = validateTimerRelationship(startedAt, endsAt, 'before');
 		if (!validation.isValid) {
-			throw new Error(`Invalid timer relationship: ${validation.error}`);
+			throw new Error(`Invalid timer relationship: ${validation.error ?? 'unknown error'}`);
 		}
 		
 		this.state = 'InProgress';

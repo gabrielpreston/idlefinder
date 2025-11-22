@@ -5,6 +5,7 @@
 
 import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { UpdateMissionDoctrineCommand, DomainEvent } from '../bus/types';
+import { validateCommand } from '../bus/commandValidation';
 import { GameState } from '../domain/entities/GameState';
 import { MissionDoctrine } from '../domain/entities/MissionDoctrine';
 import { Identifier } from '../domain/valueObjects/Identifier';
@@ -13,11 +14,31 @@ import { Identifier } from '../domain/valueObjects/Identifier';
  * Create UpdateMissionDoctrine command handler
  */
 export function createUpdateMissionDoctrineHandler(): CommandHandler<UpdateMissionDoctrineCommand, GameState> {
-	return async function(
+	return function(
 		payload: UpdateMissionDoctrineCommand,
 		state: GameState,
 		_context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('UpdateMissionDoctrine', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'UpdateMissionDoctrine',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as UpdateMissionDoctrineCommand;
+
 		// Find MissionDoctrine entity (should be singleton)
 		let doctrineEntity: MissionDoctrine | undefined;
 		for (const entity of state.entities.values()) {
@@ -35,24 +56,24 @@ export function createUpdateMissionDoctrineHandler(): CommandHandler<UpdateMissi
 		}
 
 		// Update focus if provided
-		if (payload.focus) {
-			doctrineEntity.updateFocus(payload.focus);
+		if (validatedPayload.focus) {
+			doctrineEntity.updateFocus(validatedPayload.focus);
 		}
 
 		// Update risk tolerance if provided
-		if (payload.riskTolerance) {
-			doctrineEntity.updateRiskTolerance(payload.riskTolerance);
+		if (validatedPayload.riskTolerance) {
+			doctrineEntity.updateRiskTolerance(validatedPayload.riskTolerance);
 		}
 
 		// Update other attributes if provided
-		if (payload.preferredMissionTypes !== undefined) {
-			doctrineEntity.attributes.preferredMissionTypes = payload.preferredMissionTypes;
+		if (validatedPayload.preferredMissionTypes !== undefined) {
+			doctrineEntity.attributes.preferredMissionTypes = validatedPayload.preferredMissionTypes;
 		}
-		if (payload.minLevel !== undefined) {
-			doctrineEntity.attributes.minLevel = payload.minLevel;
+		if (validatedPayload.minLevel !== undefined) {
+			doctrineEntity.attributes.minLevel = validatedPayload.minLevel;
 		}
-		if (payload.maxLevel !== undefined) {
-			doctrineEntity.attributes.maxLevel = payload.maxLevel;
+		if (validatedPayload.maxLevel !== undefined) {
+			doctrineEntity.attributes.maxLevel = validatedPayload.maxLevel;
 		}
 
 		// Create new state with updated entities
@@ -63,7 +84,7 @@ export function createUpdateMissionDoctrineHandler(): CommandHandler<UpdateMissi
 			state.resources
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events: [
 				{
@@ -75,7 +96,7 @@ export function createUpdateMissionDoctrineHandler(): CommandHandler<UpdateMissi
 					timestamp: new Date().toISOString()
 				}
 			]
-		};
+		});
 	};
 }
 

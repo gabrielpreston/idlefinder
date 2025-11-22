@@ -16,11 +16,13 @@ export default [
 	},
 	{
 		files: ['**/*.{js,mjs,cjs,ts}'],
+		ignores: ['eslint.config.js', 'svelte.config.js', 'vitest.config.ts'],
 		languageOptions: {
 			parser: tsParser,
 			parserOptions: {
 				sourceType: 'module',
-				ecmaVersion: 2020
+				ecmaVersion: 2020,
+				project: './tsconfig.json'
 			},
 			globals: {
 				...globals.browser,
@@ -32,7 +34,19 @@ export default [
 		},
 		rules: {
 			...tsPlugin.configs.recommended.rules,
+			...tsPlugin.configs['strict-type-checked'].rules,
 			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+		}
+	},
+	{
+		files: ['svelte.config.js', 'vitest.config.ts'],
+		languageOptions: {
+			parser: tsParser,
+			parserOptions: {
+				sourceType: 'module',
+				ecmaVersion: 2020,
+				project: null
+			}
 		}
 	},
 	{
@@ -57,7 +71,13 @@ export default [
 	{
 		files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
 		rules: {
-			'@typescript-eslint/no-explicit-any': 'off'
+			'@typescript-eslint/no-explicit-any': 'off',
+			'@typescript-eslint/no-unsafe-assignment': 'off',
+			'@typescript-eslint/no-unsafe-call': 'off',
+			'@typescript-eslint/no-unsafe-member-access': 'off',
+			'@typescript-eslint/no-non-null-assertion': 'warn',
+			'@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+			'@typescript-eslint/no-unnecessary-condition': 'warn'
 		}
 	},
 	prettierConfig

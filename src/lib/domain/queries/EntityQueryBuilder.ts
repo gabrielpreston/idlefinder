@@ -10,9 +10,10 @@ import type { Entity } from '../primitives/Requirement';
 import type { Query } from './Query';
 
 /**
- * Entity Query Builder - Static methods for creating entity queries
+ * Entity Query Builder - Functions for creating entity queries
  */
-export class EntityQueryBuilder {
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace EntityQueryBuilder {
 	/**
 	 * Query entities by type
 	 * 
@@ -20,7 +21,7 @@ export class EntityQueryBuilder {
 	 * @param type Entity type string (e.g., 'Adventurer', 'Mission', 'Facility')
 	 * @returns Query that returns all entities of the specified type
 	 */
-	static byType<T extends Entity>(type: string): Query<T[]> {
+	export function byType<T extends Entity>(type: string): Query<T[]> {
 		return (state: GameState): T[] => {
 			return Array.from(state.entities.values()).filter(
 				(entity) => entity.type === type
@@ -35,7 +36,7 @@ export class EntityQueryBuilder {
 	 * @param state Entity state string (e.g., 'Idle', 'OnMission', 'Available')
 	 * @returns Query that returns all entities in the specified state
 	 */
-	static byState<T extends Entity>(state: string): Query<T[]> {
+	export function byState<T extends Entity>(state: string): Query<T[]> {
 		return (gameState: GameState): T[] => {
 			return Array.from(gameState.entities.values()).filter(
 				(entity) => {
@@ -54,7 +55,7 @@ export class EntityQueryBuilder {
 	 * @param value Value to match
 	 * @returns Query that returns all entities with matching attribute value
 	 */
-	static byAttribute<T extends Entity>(attrPath: string, value: unknown): Query<T[]> {
+	export function byAttribute<T extends Entity>(attrPath: string, value: unknown): Query<T[]> {
 		return (state: GameState): T[] => {
 			return Array.from(state.entities.values()).filter(
 				(entity) => {
@@ -82,7 +83,7 @@ export class EntityQueryBuilder {
 	 * @param predicate Function that returns true for entities to include
 	 * @returns Query that returns all entities matching the predicate
 	 */
-	static where<T extends Entity>(predicate: (entity: Entity) => entity is T): Query<T[]> {
+	export function where<T extends Entity>(predicate: (entity: Entity) => entity is T): Query<T[]> {
 		return (state: GameState): T[] => {
 			return Array.from(state.entities.values()).filter(predicate);
 		};
@@ -95,7 +96,7 @@ export class EntityQueryBuilder {
 	 * @param predicate Function that returns true for entities to include
 	 * @returns Query that returns all entities matching the predicate
 	 */
-	static filter<T extends Entity>(predicate: (entity: Entity) => boolean): Query<T[]> {
+	export function filter<T extends Entity>(predicate: (entity: Entity) => boolean): Query<T[]> {
 		return (state: GameState): T[] => {
 			return Array.from(state.entities.values()).filter(predicate) as T[];
 		};

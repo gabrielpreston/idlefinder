@@ -59,7 +59,7 @@ export class TickBus {
 			const deltaMs = now - this.lastTick;
 			this.lastTick = now;
 
-			this.emitTick(deltaMs, new Date(now));
+			void this.emitTick(deltaMs, new Date(now));
 		}, this.tickIntervalMs);
 	}
 
@@ -115,6 +115,15 @@ export class TickBus {
 			const finalTime = new Date(startTime.getTime() + numTicks * tickIntervalMs + remainder);
 			await this.emitTick(remainder, finalTime);
 		}
+	}
+
+	/**
+	 * Get handlers for testing purposes
+	 * Exposes private handlers Set for test access
+	 * @returns Read-only Set of tick handlers
+	 */
+	getHandlersForTesting(): ReadonlySet<TickHandler> {
+		return this.handlers;
 	}
 }
 

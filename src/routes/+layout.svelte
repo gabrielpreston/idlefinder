@@ -44,8 +44,10 @@
 						const entities = new Map(savedState.entities);
 						entities.set(initialGuildhall.id, initialGuildhall);
 						
-						// Also ensure the initial gold slot exists if it doesn't
-						const initialStateSlots = initialState.getEntitiesByType('ResourceSlot');
+					// Also ensure the initial gold slot exists if it doesn't
+					const { EntityQueryBuilder } = await import('$lib/domain/queries/EntityQueryBuilder');
+					const { ResourceSlot } = await import('$lib/domain/entities/ResourceSlot');
+					const initialStateSlots = EntityQueryBuilder.byType<typeof ResourceSlot>('ResourceSlot')(initialState);
 						for (const slot of initialStateSlots) {
 							if (!entities.has(slot.id)) {
 								entities.set(slot.id, slot);

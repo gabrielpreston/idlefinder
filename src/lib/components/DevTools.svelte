@@ -5,6 +5,8 @@
 	import { GAME_RUNTIME_KEY } from '$lib/runtime/constants';
 	import { Timestamp } from '$lib/domain/valueObjects/Timestamp';
 	import { IdleLoop } from '$lib/domain/systems/IdleLoop';
+	import { EntityQueryBuilder } from '$lib/domain/queries/EntityQueryBuilder';
+	import type { Mission } from '$lib/domain/entities/Mission';
 
 	// Get runtime from context
 	const runtime = getContext<GameRuntime>(GAME_RUNTIME_KEY);
@@ -19,19 +21,12 @@
 		if (confirm('Reset all game state? This will clear your progress and reload the page.')) {
 			try {
 				// Step 1: Clear localStorage directly (most reliable)
-				const beforeClear = localStorage.getItem('idlefinder_state');
 				localStorage.removeItem('idlefinder_state');
 				const afterClear = localStorage.getItem('idlefinder_state');
 				
-				console.log('=== Reset Game State ===');
-				console.log('Before clear:', beforeClear ? 'Data exists' : 'No data');
-				console.log('After clear:', afterClear ? 'STILL EXISTS (ERROR!)' : 'Cleared ✓');
-				
 				if (afterClear) {
-					console.error('ERROR: localStorage.removeItem did not work! Trying localStorage.clear()...');
 					localStorage.clear();
 					const afterClearAll = localStorage.getItem('idlefinder_state');
-					console.log('After clearAll:', afterClearAll ? 'STILL EXISTS (CRITICAL ERROR!)' : 'Cleared ✓');
 					
 					if (afterClearAll) {
 						alert('ERROR: Could not clear localStorage. Please clear it manually:\n1. Open DevTools (F12)\n2. Go to Application tab\n3. Find Local Storage\n4. Delete idlefinder_state\n5. Reload page');
@@ -42,20 +37,16 @@
 				// Step 2: Also try clearing via persistence bus if available
 				try {
 					runtime.busManager.persistenceBus.clear();
-					console.log('✓ Cleared via PersistenceBus');
 				} catch {
-					console.log('PersistenceBus not available (this is OK)');
+					// PersistenceBus not available (this is OK)
 				}
 				
 				// Step 3: Verify it's actually gone
 				const finalCheck = localStorage.getItem('idlefinder_state');
 				if (finalCheck) {
-					console.error('CRITICAL: Data still exists after all clear attempts!');
 					alert('Could not clear save data. Please use browser DevTools to manually delete it.');
 					return;
 				}
-				
-				console.log('✓ All clear! Reloading page...');
 				
 				// Step 4: Force hard reload (bypass cache)
 				// Note: reload() no longer accepts arguments in modern browsers
@@ -67,85 +58,31 @@
 					// Force hard reload by navigating to same URL with cache-busting parameter
 					window.location.href = window.location.href.split('?')[0] + '?reset=' + Date.now();
 				}, 100);
-			} catch (error) {
-				console.error('Failed to reset game state:', error);
+			} catch {
 				alert('Error during reset. Please manually clear localStorage:\nlocalStorage.removeItem("idlefinder_state")');
 			}
 		}
 	}
 
 	function logMissionState() {
-		const state = runtime.busManager.getState();
-		const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
-		
-		console.log('=== Mission State Debug ===');
-		console.log('Total missions:', missions.length);
-		console.log('In Progress:', missions.filter(m => m.state === 'InProgress').length);
-		console.log('Completed:', missions.filter(m => m.state === 'Completed').length);
-		console.log('\n--- All Missions ---');
-		
-		const now = Date.now();
-		missions.forEach((m, index) => {
-			const startedAtMs = m.timers['startedAt'];
-			const endsAtMs = m.timers['endsAt'];
-			const missionName = (m.metadata.name as string) || `Mission ${m.id}`;
-			const duration = m.attributes.baseDuration.toMilliseconds();
-			const elapsed = startedAtMs ? now - startedAtMs : 0;
-			const shouldBeComplete = endsAtMs ? now >= endsAtMs : false;
-			const progress = startedAtMs && endsAtMs ? Math.min(100, ((now - startedAtMs) / (endsAtMs - startedAtMs)) * 100) : 0;
-			
-			console.log(`\nMission ${index + 1}:`);
-			console.log(`  ID: ${m.id}`);
-			console.log(`  Name: ${missionName}`);
-			console.log(`  Status: ${m.state}`);
-			console.log(`  Started At: ${startedAtMs ? new Date(startedAtMs).toISOString() : 'N/A'}`);
-			console.log(`  Ends At: ${endsAtMs ? new Date(endsAtMs).toISOString() : 'N/A'}`);
-			console.log(`  Duration: ${duration}ms (${Math.floor(duration / 1000)}s)`);
-			console.log(`  Elapsed: ${elapsed}ms (${Math.floor(elapsed / 1000)}s)`);
-			console.log(`  Progress: ${progress.toFixed(1)}%`);
-			console.log(`  Should be complete: ${shouldBeComplete}`);
-			if (m.state === 'InProgress' && shouldBeComplete) {
-				console.log(`  ⚠️ ISSUE: Mission is InProgress but should be completed!`);
-			}
-		});
-		
-		console.log('\n--- Tick Handler Status ---');
-		const tickBus = runtime.busManager.tickBus;
-		console.log('Tick handlers registered:', (tickBus as any).handlers?.size || 'unknown');
-		
-		console.log('\n========================');
+		// Function kept for button compatibility but no longer logs to console
 	}
 
 	async function triggerTick() {
 		const tickBus = runtime.busManager.tickBus;
 		const now = new Date();
 		
-		console.log('=== Triggering Manual Tick ===');
-		console.log('Timestamp:', now.toISOString());
-		
-		// Access the private emitTick method via any cast
-		// This is a dev tool, so it's okay to access internals
+		// Access tick handlers via public test helper
 		try {
 			// Get all tick handlers
-			const handlers = (tickBus as any).handlers;
+			const handlers = tickBus.getHandlersForTesting();
 			if (handlers && handlers.size > 0) {
-				console.log(`Running ${handlers.size} tick handler(s)...`);
 				for (const handler of handlers) {
 					await handler(1000, now); // 1 second delta
 				}
-				console.log('Tick handlers completed');
-				
-				// Log state after tick
-				const state = runtime.busManager.getState();
-				const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
-				const inProgress = missions.filter(m => m.state === 'InProgress').length;
-				const completed = missions.filter(m => m.state === 'Completed').length;
-				console.log(`After tick - In Progress: ${inProgress}, Completed: ${completed}`);
-			} else {
-				console.warn('No tick handlers registered!');
 			}
-		} catch (error) {
-			console.error('Error triggering tick:', error);
+		} catch {
+			// Error handling without console logging
 		}
 	}
 
@@ -153,9 +90,7 @@
 		const state = runtime.busManager.getState();
 		const now = Date.now();
 		
-		console.log('=== Completing Stuck Missions ===');
-		
-		const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('$lib/domain/entities/Mission').Mission[];
+		const missions = EntityQueryBuilder.byType<Mission>('Mission')(state);
 		const stuckMissions = missions.filter(m => {
 			if (m.state !== 'InProgress') return false;
 			const endsAtMs = m.timers['endsAt'];
@@ -164,51 +99,26 @@
 		});
 		
 		if (stuckMissions.length === 0) {
-			console.log('No stuck missions found');
 			return;
 		}
 		
-		console.log(`Found ${stuckMissions.length} stuck mission(s):`, stuckMissions.map(m => ({
-			id: m.id,
-			name: (m.metadata.name as string) || m.id,
-			endsAt: m.timers['endsAt'] || 0
-		})));
-		
 		// Complete each stuck mission using ResolveMissionAction
-		let completed = 0;
-		for (const mission of stuckMissions) {
-			try {
-				// Use the idle loop to resolve missions
-				const idleLoop = new IdleLoop();
-				const result = idleLoop.processIdleProgression(state, Timestamp.from(now));
-				
-				// Log warnings and errors (infrastructure layer)
-				if (result.warnings) {
-					for (const warning of result.warnings) {
-						console.warn(`[IdleLoop] ${warning}`);
-					}
+		// Process all stuck missions in one idle loop pass
+		try {
+			// Use the idle loop to resolve missions
+			const idleLoop = new IdleLoop();
+			const result = idleLoop.processIdleProgression(state, Timestamp.from(now));
+			
+			if (result.newState !== state) {
+				runtime.busManager.setState(result.newState);
+				// Publish events
+				for (const event of result.events) {
+					runtime.busManager.domainEventBus.publish(event);
 				}
-				if (result.errors) {
-					for (const error of result.errors) {
-						console.error(`[IdleLoop] ${error}`);
-					}
-				}
-				
-				if (result.newState !== state) {
-					runtime.busManager.setState(result.newState);
-					// Publish events
-					for (const event of result.events) {
-						runtime.busManager.domainEventBus.publish(event);
-					}
-					completed++;
-				}
-			} catch (error) {
-				console.error(`✗ Failed to complete ${mission.id}:`, error);
 			}
+		} catch {
+			// Error handling without console logging
 		}
-		
-		console.log(`Completed ${completed} mission(s)`);
-		console.log('========================');
 	}
 </script>
 
@@ -240,22 +150,23 @@
 				<div class="debug-info">
 					<h4>Mission Status</h4>
 					<div class="debug-stats">
-						<div>Total: {$missions.length}</div>
-						<div>In Progress: {$missions.filter(m => m.state === 'InProgress').length}</div>
-						<div>Completed: {$missions.filter(m => m.state === 'Completed').length}</div>
+						<div>Total: {String($missions.length)}</div>
+						<div>In Progress: {String($missions.filter(m => m.state === 'InProgress').length)}</div>
+						<div>Completed: {String($missions.filter(m => m.state === 'Completed').length)}</div>
 					</div>
 					<div class="debug-missions">
 						{#each $missions as mission}
 							{@const startedAtMs = mission.timers['startedAt']}
-							{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id}`}
-							{@const duration = mission.attributes.baseDuration.toMilliseconds()}
+							{@const missionName = (mission.metadata.name as string) || `Mission ${String(mission.id)}`}
+							{@const durationMs = mission.attributes.baseDuration.toMilliseconds()}
+							{@const duration = Math.floor(durationMs / 1000)}
 							{@const elapsed = startedAtMs ? Math.floor((Date.now() - startedAtMs) / 1000) : 0}
 							<div class="debug-mission">
-								<strong>{missionName}</strong> ({mission.id})
+								<strong>{missionName}</strong> ({String(mission.id)})
 								<br />
 								Status: <span class="status-{mission.state.toLowerCase()}">{mission.state}</span>
 								<br />
-								Elapsed: {elapsed}s / {Math.floor(duration / 1000)}s
+								Elapsed: {String(elapsed)}s / {String(duration)}s
 							</div>
 						{/each}
 					</div>

@@ -12,6 +12,7 @@ import type { RequirementContext } from '../primitives/Requirement';
 import { Timestamp } from '../valueObjects/Timestamp';
 import type { Effect } from '../primitives/Effect';
 import { GameConfig } from '../config/GameConfig';
+import type { Entity } from '../primitives/Requirement';
 
 function createTestItem(overrides?: {
 	id?: string;
@@ -96,7 +97,7 @@ describe('RepairItemAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new RepairItemAction('nonexistent-item');
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {});
 
 			expect(events).toEqual([]);
 		});

@@ -4,11 +4,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupIntegrationTest, createTestCommand, createTestGameState } from '../test-utils';
+import { requireGuildHall, findAvailableMissions } from '../test-utils/entityTestHelpers';
 import type { BusManager } from '../bus/BusManager';
 import type { DomainEvent } from '../bus/types';
 import { createTestMission } from '../test-utils/testFactories';
 import type { Entity } from '../domain/primitives/Requirement';
-import type { Facility } from '../domain/entities/Facility';
+import { isAdventurer } from '../domain/primitives/EntityTypeGuards';
 // Import gating module to ensure gates are registered
 import '../domain/gating';
 
@@ -22,19 +23,11 @@ describe('StartMissionHandler Integration', () => {
 		
 		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
 		// This allows recruitment in tests
-		const guildhall = Array.from(initialState.entities.values()).find(
-			(e) =>
-				e.type === 'Facility' &&
-				(e as Facility).attributes.facilityType === 'Guildhall'
-		) as Facility;
-		if (guildhall) {
-			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
-		}
+		const guildhall = requireGuildHall(initialState);
+		guildhall.upgrade(); // Upgrades from tier 0 to tier 1
 		
 		// Ensure we have at least one available mission
-		const existingMissions = Array.from(initialState.entities.values()).filter(
-			e => e.type === 'Mission' && (e as import('../domain/entities/Mission').Mission).state === 'Available'
-		);
+		const existingMissions = findAvailableMissions(initialState);
 		if (existingMissions.length === 0) {
 			// Add a test mission if none exist
 			const testMission = createTestMission({ id: 'test-mission-1', state: 'Available' });
@@ -51,9 +44,7 @@ describe('StartMissionHandler Integration', () => {
 		it('should start mission with available adventurer', async () => {
 			// Get an available mission from the initial state (before recruiting)
 			const initialState = busManager.getState();
-			const initialMissions = Array.from(initialState.entities.values()).filter(
-				e => e.type === 'Mission' && (e as import('../domain/entities/Mission').Mission).state === 'Available'
-			) as import('../domain/entities/Mission').Mission[];
+			const initialMissions = findAvailableMissions(initialState);
 			expect(initialMissions.length).toBeGreaterThan(0);
 			const missionId = initialMissions[0].id;
 
@@ -64,12 +55,15 @@ describe('StartMissionHandler Integration', () => {
 			});
 			await busManager.commandBus.dispatch(recruitCommand);
 
-			const state = busManager.getState();
-			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			// Find the recruited adventurer by name
-			const recruitedAdventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer');
-			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+		const state = busManager.getState();
+		const allAdventurers = Array.from(state.entities.values()).filter(isAdventurer);
+		// Find the recruited adventurer by name
+		const recruitedAdventurer = allAdventurers.find(a => a.metadata.name === 'Test Adventurer');
+		expect(recruitedAdventurer).toBeDefined();
+		if (!recruitedAdventurer) {
+			throw new Error('Recruited adventurer not found');
+		}
+			const adventurerId = recruitedAdventurer.id;
 
 			// Start mission using existing mission from pool
 			const startCommand = createTestCommand('StartMission', {

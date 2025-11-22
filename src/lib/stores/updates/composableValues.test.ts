@@ -14,8 +14,10 @@ import type { DurationConfig } from './updateStrategies';
 
 // Mock requestAnimationFrame for Node environment
 beforeEach(() => {
-	global.requestAnimationFrame = vi.fn((cb) => {
-		setTimeout(cb, 16);
+	global.requestAnimationFrame = vi.fn((cb: FrameRequestCallback): number => {
+		setTimeout(() => {
+			cb(performance.now());
+		}, 16);
 		return 1;
 	}) as unknown as typeof requestAnimationFrame;
 
@@ -42,7 +44,7 @@ describe('composableValues', () => {
 			vi.useRealTimers();
 		});
 
-		it('should create all progress stores', async () => {
+		it('should create all progress stores', () => {
 			const config = writable<DurationConfig>({
 				startTime: mockNow,
 				duration: 1000

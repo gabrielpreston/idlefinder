@@ -10,6 +10,7 @@ import { Identifier } from '../valueObjects/Identifier';
 import type { ResourceSlotAttributes } from '../attributes/ResourceSlotAttributes';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { GameConfig } from '../config/GameConfig';
+import { EntityQueryBuilder } from '../queries/EntityQueryBuilder';
 
 /**
  * Handle facility upgrade and determine which slots should be created
@@ -25,9 +26,7 @@ export function handleFacilityUpgrade(
 	// Guildhall Tier 2 unlocks Gold Slot #2
 	if (event.facilityType === 'Guildhall' && event.newTier === 2) {
 		// Check if Gold Slot #2 already exists
-		const existingSlots = Array.from(state.entities.values()).filter(
-			(e) => e.type === 'ResourceSlot'
-		) as ResourceSlot[];
+		const existingSlots = EntityQueryBuilder.byType<ResourceSlot>('ResourceSlot')(state);
 
 		const goldSlot2Exists = existingSlots.some(
 			(slot) =>
@@ -38,7 +37,7 @@ export function handleFacilityUpgrade(
 
 		if (!goldSlot2Exists) {
 			// Create Gold Slot #2
-			const slotId = Identifier.from<'SlotId'>(`slot-gold-2-${Date.now()}`);
+			const slotId = Identifier.from<'SlotId'>(`slot-gold-2-${String(now.value)}`);
 			const attributes: ResourceSlotAttributes = {
 				facilityId: event.facilityId,
 				resourceType: 'gold',

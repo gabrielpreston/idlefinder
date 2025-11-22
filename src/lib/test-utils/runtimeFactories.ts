@@ -53,7 +53,7 @@ let cachedStateHash: string | null = null;
 export async function createCachedRuntime(initialState?: GameState): Promise<GameRuntime> {
 	const state = initialState || createTestGameState();
 	// Simple hash based on entity count and resource values
-	const stateHash = `${state.entities.size}-${state.resources.get('gold')}-${state.resources.get('fame')}-${state.resources.get('materials')}`;
+	const stateHash = `${String(state.entities.size)}-${String(state.resources.get('gold'))}-${String(state.resources.get('fame'))}-${String(state.resources.get('materials'))}`;
 	
 	if (cachedRuntime && cachedStateHash === stateHash) {
 		return cachedRuntime;

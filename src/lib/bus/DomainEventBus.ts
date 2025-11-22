@@ -26,7 +26,10 @@ export class DomainEventBus {
 		if (!this.listeners.has(eventType)) {
 			this.listeners.set(eventType, new Set());
 		}
-		this.listeners.get(eventType)!.add(handler as EventHandler);
+		const handlers = this.listeners.get(eventType);
+		if (handlers) {
+			handlers.add(handler as EventHandler);
+		}
 
 		// Return unsubscribe function
 		return () => {
@@ -45,7 +48,7 @@ export class DomainEventBus {
 	 * All subscribers are notified, errors are isolated
 	 */
 	async publish(event: DomainEvent): Promise<void> {
-		const handlers = this.listeners.get(event.type as DomainEventType);
+		const handlers = this.listeners.get(event.type);
 		if (!handlers) {
 			return;
 		}

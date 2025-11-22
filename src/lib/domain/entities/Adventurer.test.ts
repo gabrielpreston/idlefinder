@@ -42,7 +42,7 @@ describe('Adventurer', () => {
 		};
 
 		const metadata = overrides?.loreTags
-			? { ...(overrides?.metadata || {}), loreTags: overrides.loreTags }
+			? { ...(overrides.metadata || {}), loreTags: overrides.loreTags }
 			: overrides?.metadata || {};
 		return new Adventurer(
 			id,
@@ -170,7 +170,7 @@ describe('Adventurer', () => {
 			const adventurer = createAdventurer({ state: 'OnMission' });
 			const missionId: MissionId = Identifier.from('mission-1');
 
-			expect(() => adventurer.assignToMission(missionId)).toThrow(
+			expect(() => { adventurer.assignToMission(missionId); }).toThrow(
 				'Cannot assign adventurer to mission: adventurer state is OnMission'
 			);
 		});
@@ -179,7 +179,7 @@ describe('Adventurer', () => {
 			const adventurer = createAdventurer({ state: 'Fatigued' });
 			const missionId: MissionId = Identifier.from('mission-1');
 
-			expect(() => adventurer.assignToMission(missionId)).toThrow(
+			expect(() => { adventurer.assignToMission(missionId); }).toThrow(
 				'Cannot assign adventurer to mission: adventurer state is Fatigued'
 			);
 		});
@@ -199,7 +199,7 @@ describe('Adventurer', () => {
 		it('should throw error if adventurer is not OnMission', () => {
 			const adventurer = createAdventurer({ state: 'Idle' });
 
-			expect(() => adventurer.completeMission()).toThrow(
+			expect(() => { adventurer.completeMission(); }).toThrow(
 				'Cannot complete mission: adventurer state is Idle'
 			);
 		});
@@ -226,7 +226,7 @@ describe('Adventurer', () => {
 		it('should throw error for negative XP', () => {
 			const adventurer = createAdventurer({ xp: 50 });
 
-			expect(() => adventurer.applyXP(-10)).toThrow('Cannot apply negative XP: -10');
+			expect(() => { adventurer.applyXP(-10); }).toThrow('Cannot apply negative XP: -10');
 		});
 
 		it('should allow zero XP', () => {

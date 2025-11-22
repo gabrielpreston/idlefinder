@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialGameState } from './GameStateFactory';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { GameConfig } from '../config/GameConfig';
+import { EntityQueryBuilder } from '../queries/EntityQueryBuilder';
 
 describe('GameStateFactory', () => {
 	describe('createInitialGameState', () => {
@@ -29,7 +30,7 @@ describe('GameStateFactory', () => {
 			const now = Timestamp.now();
 			const state = createInitialGameState('player-1', now);
 
-			const facilities = state.getEntitiesByType('Facility');
+			const facilities = EntityQueryBuilder.byType('Facility')(state);
 			const guildhall = facilities.find(f => (f as any).attributes.facilityType === 'Guildhall');
 			expect(guildhall).toBeDefined();
 		});
@@ -38,7 +39,7 @@ describe('GameStateFactory', () => {
 			const now = Timestamp.now();
 			const state = createInitialGameState('player-1', now);
 
-			const doctrines = state.getEntitiesByType('MissionDoctrine');
+			const doctrines = EntityQueryBuilder.byType('MissionDoctrine')(state);
 			expect(doctrines.length).toBeGreaterThan(0);
 		});
 
@@ -46,7 +47,7 @@ describe('GameStateFactory', () => {
 			const now = Timestamp.now();
 			const state = createInitialGameState('player-1', now);
 
-			const rules = state.getEntitiesByType('AutoEquipRules');
+			const rules = EntityQueryBuilder.byType('AutoEquipRules')(state);
 			expect(rules.length).toBeGreaterThan(0);
 		});
 
@@ -54,7 +55,7 @@ describe('GameStateFactory', () => {
 			const now = Timestamp.now();
 			const state = createInitialGameState('player-1', now);
 
-			const queues = state.getEntitiesByType('CraftingQueue');
+			const queues = EntityQueryBuilder.byType('CraftingQueue')(state);
 			expect(queues.length).toBeGreaterThan(0);
 		});
 
@@ -62,7 +63,7 @@ describe('GameStateFactory', () => {
 			const now = Timestamp.now();
 			const state = createInitialGameState('player-1', now);
 
-			const slots = state.getEntitiesByType('ResourceSlot');
+			const slots = EntityQueryBuilder.byType('ResourceSlot')(state);
 			expect(slots.length).toBeGreaterThan(0);
 		});
 	});

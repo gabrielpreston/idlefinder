@@ -16,11 +16,11 @@ const STORAGE_KEY = 'idlefinder_state';
  * Returns null if localStorage is not available (e.g., SSR)
  */
 function getLocalStorage(): Storage | null {
-	if (typeof window !== 'undefined' && window.localStorage) {
+	if (typeof window !== 'undefined') {
 		return window.localStorage;
 	}
-	if (typeof global !== 'undefined' && (global as typeof globalThis).localStorage) {
-		return (global as typeof globalThis).localStorage;
+	if (typeof global !== 'undefined' && (global as { localStorage?: Storage }).localStorage) {
+		return (global as { localStorage: Storage }).localStorage;
 	}
 	return null;
 }
@@ -52,7 +52,7 @@ export class LocalStorageAdapter {
 			const dto = domainToDTO(stateWithTimestamp);
 			storage.setItem(STORAGE_KEY, JSON.stringify(dto));
 		} catch (error) {
-			console.error('[Persistence] Save error:', error);
+			console.error('Failed to save game state to localStorage:', error);
 		}
 	}
 
@@ -73,12 +73,16 @@ export class LocalStorageAdapter {
 				return null;
 			}
 
-			const dto: GameStateDTO = JSON.parse(stored);
+			const dto = JSON.parse(stored) as unknown;
+			if (typeof dto !== 'object' || dto === null) {
+				return null;
+			}
+			const typedDto = dto as GameStateDTO;
 
 			// Convert DTO to domain (handles version migration)
-			return dtoToDomain(dto);
+			return dtoToDomain(typedDto);
 		} catch (error) {
-			console.error('[Persistence] Load error:', error);
+			console.error('Failed to load game state from localStorage:', error);
 			return null;
 		}
 	}
@@ -88,7 +92,7 @@ export class LocalStorageAdapter {
 	 */
 	getLastPlayed(): Date | null {
 		const state = this.load();
-		if (!state || !state.lastPlayed) {
+		if (!state?.lastPlayed) {
 			return null;
 		}
 		return new Date(state.lastPlayed.value);
@@ -108,7 +112,7 @@ export class LocalStorageAdapter {
 		try {
 			storage.removeItem(STORAGE_KEY);
 		} catch (error) {
-			console.error('[Persistence] Clear error:', error);
+			console.error('Failed to clear game state from localStorage:', error);
 		}
 	}
 }

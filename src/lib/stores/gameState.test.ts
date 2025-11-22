@@ -85,14 +85,16 @@ describe('gameState store', () => {
 		it('should not crash when refresh is called without runtime', () => {
 			// Ensure runtime is null by not initializing
 			// This tests the branch: if (runtime) { ... } else { nothing }
-			expect(() => gameState.refresh()).not.toThrow();
+			expect(() => { gameState.refresh(); }).not.toThrow();
 		});
 
 		it('should call destroy callback on cleanup', () => {
 			const state = createTestGameState();
 			const runtime = startGame(state);
-			const originalDestroy = runtime.destroy;
-			const destroySpy = vi.fn(originalDestroy);
+		const originalDestroy = runtime.destroy.bind(runtime);
+		const destroySpy = vi.fn(() => {
+			originalDestroy();
+		});
 			runtime.destroy = destroySpy;
 
 			gameState.initialize(runtime);

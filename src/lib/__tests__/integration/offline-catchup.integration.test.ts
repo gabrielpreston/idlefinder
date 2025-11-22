@@ -29,14 +29,14 @@ describe('Offline Catch-Up Integration', () => {
 		busManager.domainEventBus.subscribe('MissionCompleted', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'MissionCompleted',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
 		busManager.domainEventBus.subscribe('ResourcesChanged', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'ResourcesChanged',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
@@ -75,7 +75,7 @@ describe('Offline Catch-Up Integration', () => {
 			manager.domainEventBus.subscribe('MissionCompleted', (payload: DomainEvent['payload']) => {
 				publishedEvents.push({
 					type: 'MissionCompleted',
-					payload: payload as DomainEvent['payload'],
+					payload: payload,
 					timestamp: new Date().toISOString()
 				});
 			});
@@ -160,7 +160,8 @@ describe('Offline Catch-Up Integration', () => {
 
 			// Adventurer should be freed when mission completes
 			const updatedAdventurer = Array.from(finalState.entities.values()).find(e => e.id === 'adv-1') as import('../../domain/entities/Adventurer').Adventurer;
-			expect(updatedAdventurer?.state).toBe('Idle');
+			expect(updatedAdventurer).toBeDefined();
+			expect(updatedAdventurer.state).toBe('Idle');
 		});
 	});
 });

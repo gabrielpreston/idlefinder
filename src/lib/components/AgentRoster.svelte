@@ -48,7 +48,7 @@
 	</div>
 
 	<div class="adventurers-list">
-		<h3>Adventurers ({$adventurers.length})</h3>
+		<h3>Adventurers ({String($adventurers.length)})</h3>
 		{#if $adventurers.length === 0}
 			<p>No adventurers recruited yet.</p>
 		{:else}
@@ -56,7 +56,7 @@
 			<div class="adventurer-item">
 				<div class="adventurer-name">{(adventurer.metadata.name as string) || 'Unnamed Adventurer'}</div>
 				<div class="adventurer-details">
-					Level {adventurer.attributes.level} | XP: {adventurer.attributes.xp} | Status:{' '}
+					Level {String(adventurer.attributes.level)} | XP: {String(adventurer.attributes.xp)} | Status:{' '}
 					{adventurer.state === 'Idle' ? 'Available' : adventurer.state === 'OnMission' ? 'On Mission' : adventurer.state}
 				</div>
 				{#if adventurer.tags.length > 0}

@@ -196,7 +196,7 @@ export class SetEntityAttributeEffect implements Effect {
 			} else {
 				// Fallback: direct attribute assignment
 				const entityWithAttributes = entity as Entity & Record<string, unknown>;
-				const parentObj = entityWithAttributes[parts[0]] as Record<string, unknown>;
+				const parentObj = entityWithAttributes[parts[0]] as Record<string, unknown> | undefined;
 				if (parentObj) {
 					parentObj[parts[1]] = this.value;
 				}
@@ -386,10 +386,19 @@ export class UnequipItemEffect implements Effect {
 			item.unequip();
 		}
 
-		// Clear adventurer equipment reference
-		if (adventurer.attributes.equipment) {
-			delete adventurer.attributes.equipment[`${this.slot}Id`];
-		}
+	// Clear adventurer equipment reference
+	if (adventurer.attributes.equipment) {
+		const equipment = { ...adventurer.attributes.equipment };
+		// Create new object without the slot key
+		const { weaponId, armorId, offHandId, accessoryId } = equipment;
+		const slotKey = `${this.slot}Id`;
+		const newEquipment: typeof adventurer.attributes.equipment = {};
+		if (slotKey !== 'weaponId' && weaponId) newEquipment.weaponId = weaponId;
+		if (slotKey !== 'armorId' && armorId) newEquipment.armorId = armorId;
+		if (slotKey !== 'offHandId' && offHandId) newEquipment.offHandId = offHandId;
+		if (slotKey !== 'accessoryId' && accessoryId) newEquipment.accessoryId = accessoryId;
+		adventurer.attributes.equipment = Object.keys(newEquipment).length > 0 ? newEquipment : undefined;
+	}
 
 		return {
 			entities,

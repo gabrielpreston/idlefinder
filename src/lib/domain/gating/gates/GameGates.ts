@@ -20,7 +20,7 @@ import {
 export function registerGameGates(): void {
 	// In development with HMR, gates may already be registered
 	// Clear registry first to allow re-registration
-	const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
+	const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
 	if (isDev) {
 		gateRegistry.clear();
 	}

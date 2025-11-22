@@ -56,13 +56,13 @@
 				<div class="facility-item">
 					<div class="facility-header">
 						<h3>{facilityName}</h3>
-						<span class="level">Tier {facility.attributes.tier}</span>
+						<span class="level">Tier {String(facility.attributes.tier)}</span>
 					</div>
 					<div class="facility-effects">
-						<div class="effect">Capacity: {facility.attributes.baseCapacity}</div>
+						<div class="effect">Capacity: {String(facility.attributes.baseCapacity)}</div>
 						{#if Object.keys(facility.attributes.bonusMultipliers).length > 0}
 							{#each Object.entries(facility.attributes.bonusMultipliers) as [key, value]}
-								<div class="effect">{key}: {value}</div>
+								<div class="effect">{key}: {String(value ?? 0)}</div>
 							{/each}
 						{/if}
 					</div>
@@ -70,7 +70,7 @@
 						{@const cost = getUpgradeCost(facilityType)}
 						<div class="upgrade-section">
 							<div class="cost">
-								Cost: {cost} gold
+								Cost: {String(cost)} gold
 							</div>
 							<button
 								onclick={() => upgradeFacility(facilityType)}

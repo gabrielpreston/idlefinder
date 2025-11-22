@@ -25,7 +25,7 @@ export function getMissionCard(name: string): HTMLElement | null {
 		return queryCache.get(cacheKey) || null;
 	}
 	
-	const element = screen.queryByText(name, { selector: '[data-testid="mission-card"], .mission-card' }) as HTMLElement | null;
+	const element = screen.queryByText(name, { selector: '[data-testid="mission-card"], .mission-card' });
 	queryCache.set(cacheKey, element);
 	return element;
 }
@@ -33,13 +33,13 @@ export function getMissionCard(name: string): HTMLElement | null {
 /**
  * Get filter select by label (cached)
  */
-export function getFilterSelect(label: string | RegExp): HTMLSelectElement | null {
-	const cacheKey = `filter-select-${label}`;
+export function getFilterSelect(label: string | RegExp): HTMLElement | null {
+	const cacheKey = `filter-select-${String(label)}`;
 	if (queryCache.has(cacheKey)) {
-		return queryCache.get(cacheKey) as HTMLSelectElement | null;
+		return queryCache.get(cacheKey) ?? null;
 	}
 	
-	const element = screen.queryByLabelText(label) as HTMLSelectElement | null;
+	const element = screen.queryByLabelText(label);
 	queryCache.set(cacheKey, element);
 	return element;
 }
@@ -47,13 +47,13 @@ export function getFilterSelect(label: string | RegExp): HTMLSelectElement | nul
 /**
  * Get sort select (cached)
  */
-export function getSortSelect(): HTMLSelectElement | null {
+export function getSortSelect(): HTMLElement | null {
 	const cacheKey = 'sort-select';
 	if (queryCache.has(cacheKey)) {
-		return queryCache.get(cacheKey) as HTMLSelectElement | null;
+		return queryCache.get(cacheKey) ?? null;
 	}
 	
-	const element = screen.queryByLabelText(/sort/i) as HTMLSelectElement | null;
+	const element = screen.queryByLabelText(/sort/i);
 	queryCache.set(cacheKey, element);
 	return element;
 }
@@ -67,7 +67,7 @@ export function getAdventurerCard(name: string): HTMLElement | null {
 		return queryCache.get(cacheKey) || null;
 	}
 	
-	const element = screen.queryByText(name, { selector: '[data-testid="adventurer-card"], .adventurer-card' }) as HTMLElement | null;
+	const element = screen.queryByText(name, { selector: '[data-testid="adventurer-card"], .adventurer-card' });
 	queryCache.set(cacheKey, element);
 	return element;
 }

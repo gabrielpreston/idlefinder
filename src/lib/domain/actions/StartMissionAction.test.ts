@@ -144,8 +144,7 @@ describe('StartMissionAction', () => {
 			const startedAt = Timestamp.now();
 			const endsAt = startedAt.add(Duration.ofSeconds(600));
 			// Set endsAt timer on mission
-			 
-			(mission as any).timers = { endsAt: endsAt.value };
+			mission.timers = { endsAt: endsAt.value };
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
 			const effects: Effect[] = [];
@@ -166,8 +165,7 @@ describe('StartMissionAction', () => {
 			const mission = createTestMission({ id: 'mission-1', state: 'Available' });
 			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
 			// Ensure endsAt timer is not set
-			 
-			(mission as any).timers = {};
+			mission.timers = {};
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
 			const startedAt = Timestamp.now();
@@ -190,8 +188,7 @@ describe('StartMissionAction', () => {
 			const adventurer = createTestAdventurer({ id: 'adv-1', state: 'Idle' });
 			const endsAt = Timestamp.now().add(Duration.ofSeconds(600));
 			// Set endsAt timer but not startedAt
-			 
-			(mission as any).timers = { endsAt: endsAt.value };
+			mission.timers = { endsAt: endsAt.value };
 			const entities = new Map<string, Entity>([[mission.id, mission], [adventurer.id, adventurer]]);
 			const resources = ResourceBundle.fromArray([]);
 			const effects: Effect[] = [];

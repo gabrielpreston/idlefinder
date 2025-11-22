@@ -12,8 +12,10 @@ import type { DurationConfig } from '../../stores/updates/updateStrategies';
 
 // Mock requestAnimationFrame for Node environment
 beforeEach(() => {
-	global.requestAnimationFrame = vi.fn((cb) => {
-		setTimeout(cb, 16);
+	global.requestAnimationFrame = vi.fn((cb: FrameRequestCallback): number => {
+		setTimeout(() => {
+			cb(performance.now());
+		}, 16);
 		return 1;
 	}) as unknown as typeof requestAnimationFrame;
 
@@ -107,18 +109,16 @@ describe('UX Updates Integration', () => {
 			const progress = createDurationProgressStore(config, timeSource);
 
 			// Simulate tab becoming hidden by calling the visibility handler
-			if (global.document) {
-				const visibilityHandler = (global.document.addEventListener as ReturnType<
-					typeof vi.fn
-				>).mock.calls.find(
-					(call) => call[0] === 'visibilitychange'
-				)?.[1] as () => void;
+			// global.document is always set in beforeEach
+			const visibilityHandler = (global.document.addEventListener as ReturnType<
+				typeof vi.fn
+			>).mock.calls.find(
+				(call) => call[0] === 'visibilitychange'
+			)?.[1] as () => void;
 
-				if (visibilityHandler) {
-					// Handler toggles isTabVisible, so calling it simulates visibility change
-					visibilityHandler();
-				}
-			}
+			// Handler toggles isTabVisible, so calling it simulates visibility change
+			// visibilityHandler is always defined because createDurationProgressStore sets up the listener
+			visibilityHandler();
 
 			// Progress store should still be accessible
 			const progressValue = get(progress.progress);

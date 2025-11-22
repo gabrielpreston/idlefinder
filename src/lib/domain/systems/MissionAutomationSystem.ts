@@ -33,7 +33,7 @@ export function automateMissionSelection(
 		}
 	}
 
-	if (!doctrine || doctrine.state !== 'Active') {
+	if (!doctrine) {
 		return { actions };
 	}
 

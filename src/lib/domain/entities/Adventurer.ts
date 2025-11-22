@@ -80,7 +80,7 @@ export class Adventurer implements Entity {
 	 */
 	applyXP(amount: number): void {
 		if (amount < 0) {
-			throw new Error(`Cannot apply negative XP: ${amount}`);
+			throw new Error(`Cannot apply negative XP: ${String(amount)}`);
 		}
 		this.attributes.xp += amount;
 	}

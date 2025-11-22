@@ -14,6 +14,7 @@ import { CompleteCraftingAction } from '../actions/CompleteCraftingAction';
 import { StartCraftingAction } from '../actions/StartCraftingAction';
 import { calculateEffectiveCraftingDuration } from './CraftingDurationModifiers';
 import { getFacilitiesByType } from '../queries/FacilityQueries';
+import { EntityQueryBuilder } from '../queries/EntityQueryBuilder';
 
 export interface CraftingResult {
 	actions: Array<CompleteCraftingAction | StartCraftingAction>;
@@ -32,15 +33,10 @@ export function processCraftingQueue(
 	const events: DomainEvent[] = [];
 
 	// Find CraftingQueue entity
-	let craftingQueue: CraftingQueue | undefined;
-	for (const entity of state.entities.values()) {
-		if (entity.type === 'CraftingQueue') {
-			craftingQueue = entity as CraftingQueue;
-			break;
-		}
-	}
+	const craftingQueues = EntityQueryBuilder.byType<CraftingQueue>('CraftingQueue')(state);
+	const craftingQueue = craftingQueues.find((q) => q.state === 'Active');
 
-	if (!craftingQueue || craftingQueue.state !== 'Active') {
+	if (!craftingQueue) {
 		return { actions, events };
 	}
 
@@ -51,7 +47,7 @@ export function processCraftingQueue(
 	// Check for completed jobs
 	for (const jobId of activeJobIds) {
 		const job = state.entities.get(jobId) as CraftingJob | undefined;
-		if (!job || job.type !== 'CraftingJob') {
+		if (!job) {
 			continue;
 		}
 
@@ -67,7 +63,7 @@ export function processCraftingQueue(
 		const queue = craftingQueue.getQueue();
 		for (const jobId of queue) {
 			const job = state.entities.get(jobId) as CraftingJob | undefined;
-			if (!job || job.type !== 'CraftingJob') {
+			if (!job) {
 				continue;
 			}
 

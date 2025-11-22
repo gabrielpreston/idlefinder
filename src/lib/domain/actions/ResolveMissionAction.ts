@@ -29,7 +29,7 @@ import { getTimer } from '../primitives/TimerHelpers';
 
 export interface ResolveMissionParams {
 	missionId: string;
-	resolvedAt: Timestamp;
+	resolvedAt?: Timestamp;
 }
 
 /**
@@ -125,7 +125,7 @@ function missionReadyRequirement(missionId: string): Requirement {
 		if (context.currentTime.value < endsAt.value) {
 			return {
 				satisfied: false,
-				reason: `Mission ${missionId} not ready: endsAt ${endsAt.value} > now ${context.currentTime.value}`
+				reason: `Mission ${missionId} not ready: endsAt ${String(endsAt.value)} > now ${String(context.currentTime.value)}`
 			};
 		}
 		return { satisfied: true };
@@ -159,10 +159,8 @@ export class ResolveMissionAction extends Action {
 		_params: Record<string, unknown>
 	): Effect[] {
 		// Note: resolvedAt parameter is available but mission completion uses endsAt timer from mission entity
+		// Mission existence is guaranteed by requirements check
 		const mission = context.entities.get(this.missionId) as Mission;
-		if (!mission) {
-			throw new Error(`Mission ${this.missionId} not found`);
-		}
 
 		// Find assigned adventurer (stored in mission metadata or find by state)
 		const adventurers = Array.from(context.entities.values()).filter(
@@ -226,15 +224,14 @@ export class ResolveMissionAction extends Action {
 		params: Record<string, unknown>
 	): DomainEvent[] {
 		const resolveParams = params as unknown as ResolveMissionParams;
-		const mission = entities.get(this.missionId) as Mission;
-
-		if (!mission) {
-			return [];
-		}
 
 		if (!this.outcome || !this.rewards || !this.adventurerId) {
 			return [];
 		}
+
+		const timestamp = resolveParams.resolvedAt 
+			? resolveParams.resolvedAt.value.toString()
+			: new Date().toISOString();
 
 		return [
 			{
@@ -250,9 +247,7 @@ export class ResolveMissionAction extends Action {
 						materials: this.rewards.materials
 					}
 				},
-				timestamp: resolveParams?.resolvedAt
-					? resolveParams.resolvedAt.value.toString()
-					: new Date().toISOString()
+				timestamp
 			}
 		];
 	}

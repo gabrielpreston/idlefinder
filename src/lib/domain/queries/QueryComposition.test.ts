@@ -82,14 +82,14 @@ describe('QueryComposition', () => {
 		it('should combine queries with different return types', () => {
 			const query1: Query<number> = (state) => state.entities.size;
 			const query2: Query<string> = () => 'test';
-			const combine = (count: number, str: string) => `${str}:${count}`;
+			const combine = (count: number, str: string) => `${str}:${String(count)}`;
 
 			const combined = combineQueries(query1, query2, combine);
 			const testState = createTestGameState();
 
 			const result = combined(testState);
 
-			expect(result).toBe(`test:${testState.entities.size}`);
+			expect(result).toBe(`test:${String(testState.entities.size)}`);
 		});
 
 		it('should execute both queries on same state', () => {

@@ -15,9 +15,6 @@ let runtimeInstance: GameRuntime | null = null;
  * @param runtime Game runtime instance
  */
 export function initializeCommandDispatcher(runtime: GameRuntime): void {
-	if (!runtime) {
-		throw new Error('GameRuntime cannot be null when initializing command dispatcher');
-	}
 	runtimeInstance = runtime;
 }
 
@@ -41,9 +38,9 @@ export function resetCommandDispatcher(): void {
  * @param type Command type
  * @param payload Command payload
  */
-export async function dispatchCommand<T extends CommandPayload>(
+export async function dispatchCommand(
 	type: CommandType,
-	payload: T
+	payload: CommandPayload
 ): Promise<void> {
 	if (!runtimeInstance) {
 		throw new Error('Command dispatcher not initialized. Call initializeCommandDispatcher() first.');

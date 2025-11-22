@@ -5,6 +5,7 @@
 
 import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { RefreshRecruitPoolCommand, DomainEvent } from '../bus/types';
+import { validateCommand } from '../bus/commandValidation';
 import { GameState } from '../domain/entities/GameState';
 import { ResourceBundle } from '../domain/valueObjects/ResourceBundle';
 import { ResourceUnit } from '../domain/valueObjects/ResourceUnit';
@@ -16,28 +17,46 @@ import type { Adventurer } from '../domain/entities/Adventurer';
  * Create RefreshRecruitPool command handler
  */
 export function createRefreshRecruitPoolHandler(): CommandHandler<RefreshRecruitPoolCommand, GameState> {
-	return async function(
+	return function(
 		_payload: RefreshRecruitPoolCommand,
 		state: GameState,
 		_context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
-		// Validation: Check if player has enough gold
-		const refreshCost = GameConfig.costs.refreshRecruitPool;
-		const currentGold = state.resources.get('gold') || 0;
-		if (currentGold < refreshCost) {
-			return {
+		// Validate command payload using Zod (empty payload is valid)
+		const validation = validateCommand('RefreshRecruitPool', _payload);
+		if (!validation.success) {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'RefreshRecruitPool',
-							reason: `Insufficient gold: need ${refreshCost}, have ${currentGold}`
+							reason: validation.error
 						},
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
+		}
+
+		// Validation: Check if player has enough gold
+		const refreshCost = GameConfig.costs.refreshRecruitPool;
+		const currentGold = state.resources.get('gold') || 0;
+		if (currentGold < refreshCost) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'RefreshRecruitPool',
+							reason: `Insufficient gold: need ${String(refreshCost)}, have ${String(currentGold)}`
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
 		}
 
 		// Create new entities map
@@ -80,10 +99,10 @@ export function createRefreshRecruitPoolHandler(): CommandHandler<RefreshRecruit
 			timestamp: new Date().toISOString()
 		};
 
-		return {
+		return Promise.resolve({
 			newState,
 			events: [recruitPoolRefreshedEvent]
-		};
+		});
 	};
 }
 

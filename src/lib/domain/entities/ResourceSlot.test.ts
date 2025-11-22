@@ -74,7 +74,7 @@ describe('ResourceSlot', () => {
 			// Set invalid state (not possible through constructor, but test edge case)
 			(slot as any).state = 'invalid';
 
-			expect(() => slot.assignWorker('player', null)).toThrow(
+			expect(() => { slot.assignWorker('player', null); }).toThrow(
 				'Cannot assign worker to slot: slot state is invalid'
 			);
 		});
@@ -98,7 +98,7 @@ describe('ResourceSlot', () => {
 		it('should throw error when slot is not occupied', () => {
 			const slot = createTestSlot({ state: 'available' });
 
-			expect(() => slot.unassignWorker()).toThrow(
+			expect(() => { slot.unassignWorker(); }).toThrow(
 				'Cannot unassign worker from slot: slot state is available'
 			);
 		});

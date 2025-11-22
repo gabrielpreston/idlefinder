@@ -25,7 +25,7 @@ describe('Facility', () => {
 		};
 
 		const metadata = overrides?.loreTags
-			? { ...(overrides?.metadata || {}), loreTags: overrides.loreTags }
+			? { ...(overrides.metadata || {}), loreTags: overrides.loreTags }
 			: overrides?.metadata || {};
 		return new Facility(
 			id,
@@ -141,7 +141,7 @@ describe('Facility', () => {
 		it('should throw error if facility is not Online', () => {
 			const facility = createFacility({ state: 'UnderConstruction' });
 
-			expect(() => facility.upgrade()).toThrow(
+			expect(() => { facility.upgrade(); }).toThrow(
 				'Cannot upgrade facility: facility state is UnderConstruction'
 			);
 		});
@@ -149,7 +149,7 @@ describe('Facility', () => {
 		it('should throw error if facility is Disabled', () => {
 			const facility = createFacility({ state: 'Disabled' });
 
-			expect(() => facility.upgrade()).toThrow(
+			expect(() => { facility.upgrade(); }).toThrow(
 				'Cannot upgrade facility: facility state is Disabled'
 			);
 		});

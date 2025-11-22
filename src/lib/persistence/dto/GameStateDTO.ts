@@ -3,18 +3,13 @@
  * Serializable representation of GameState with entity map structure
  */
 
+import type { EntityDTO } from '../schemas/EntitySchema';
+
 /**
  * Entity DTO - serializable representation of an entity
+ * Re-exported from EntitySchema to use Zod-inferred type as single source of truth
  */
-export interface EntityDTO {
-	id: string;
-	type: string;
-	attributes: Record<string, unknown>;
-	tags: string[];
-	state: string;
-	timers: Record<string, number>; // Timestamps as milliseconds
-	metadata: Record<string, unknown>;
-}
+export type { EntityDTO };
 
 /**
  * ResourceBundle DTO - serializable representation of resources

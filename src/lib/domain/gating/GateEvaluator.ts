@@ -16,6 +16,7 @@ import type {
 import type { RequirementContext } from '../primitives/Requirement';
 import { createQueryContext } from '../queries/Query';
 import type { Facility } from '../entities/Facility';
+import { safeString } from '../../utils/templateLiterals';
 
 /**
  * Evaluates gates against game state
@@ -97,19 +98,19 @@ export class GateEvaluator {
 	) => ConditionResult {
 		switch (conditionType) {
 			case 'resource':
-				return this.evaluateResourceCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateResourceCondition(condition, context);
 			case 'entity_tier':
-				return this.evaluateEntityTierCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateEntityTierCondition(condition, context);
 			case 'entity_exists':
-				return this.evaluateEntityExistsCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateEntityExistsCondition(condition, context);
 			case 'fame_milestone':
-				return this.evaluateFameMilestoneCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateFameMilestoneCondition(condition, context);
 			case 'all':
-				return this.evaluateAllCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateAllCondition(condition, context);
 			case 'any':
-				return this.evaluateAnyCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateAnyCondition(condition, context);
 			default:
-				return this.evaluateUnknownCondition;
+				return (condition: GateCondition, context: RequirementContext) => this.evaluateUnknownCondition(condition, context);
 		}
 	}
 
@@ -133,7 +134,7 @@ export class GateEvaluator {
 			satisfied,
 			reason: satisfied
 				? undefined
-				: `Need ${minAmount} ${resourceType}, have ${current}`,
+				: `Need ${String(minAmount)} ${resourceType}, have ${String(current)}`,
 			progress,
 		};
 	}
@@ -157,7 +158,7 @@ export class GateEvaluator {
 			(e) =>
 				e.type === entityType &&
 				(e.id === entityIdOrType ||
-					(e as Facility).attributes?.facilityType === entityIdOrType)
+					(e as Facility).attributes.facilityType === entityIdOrType)
 		);
 
 		if (!entity) {
@@ -169,7 +170,7 @@ export class GateEvaluator {
 			};
 		}
 
-		const currentTier = (entity as Facility).attributes?.tier ?? 0;
+		const currentTier = (entity as Facility).attributes.tier;
 		const satisfied = currentTier >= minTier;
 		const progress = Math.min(1, currentTier / minTier);
 
@@ -178,7 +179,7 @@ export class GateEvaluator {
 			satisfied,
 			reason: satisfied
 				? undefined
-				: `Need ${entityType} at tier ${minTier}, currently tier ${currentTier}`,
+				: `Need ${safeString(entityType)} at tier ${safeString(minTier)}, currently tier ${safeString(currentTier)}`,
 			progress,
 		};
 	}
@@ -200,7 +201,7 @@ export class GateEvaluator {
 			(e) =>
 				e.type === entityType &&
 				(e.id === entityIdOrType ||
-					(e as Facility).attributes?.facilityType === entityIdOrType)
+					(e as Facility).attributes.facilityType === entityIdOrType)
 		);
 
 		return {
@@ -228,7 +229,7 @@ export class GateEvaluator {
 			satisfied,
 			reason: satisfied
 				? undefined
-				: `Need ${minFame} fame, have ${currentFame}`,
+				: `Need ${safeString(minFame)} fame, have ${safeString(currentFame)}`,
 			progress,
 		};
 	}
@@ -347,7 +348,6 @@ export class GateEvaluator {
 		const progressCondition = results.find(
 			(r) =>
 				r.progress !== undefined &&
-				r.progress !== null &&
 				r.progress < 1 &&
 				(r.condition.type === 'resource' ||
 					r.condition.type === 'fame_milestone' ||
@@ -368,7 +368,7 @@ export class GateEvaluator {
 				threshold: minAmount,
 				current,
 				remaining: Math.max(0, minAmount - current),
-				description: `${resourceType}`,
+				description: resourceType,
 			};
 		}
 
@@ -394,9 +394,17 @@ export class GateEvaluator {
 				(e) =>
 					e.type === entityType &&
 					(e.id === entityIdOrType ||
-						(e as Facility).attributes?.facilityType === entityIdOrType)
+						(e as Facility).attributes.facilityType === entityIdOrType)
 			);
-			const current = (entity as Facility)?.attributes?.tier ?? 0;
+			if (!entity) {
+				return {
+					threshold: minTier,
+					current: 0,
+					remaining: minTier,
+					description: `${entityType} tier`,
+				};
+			}
+			const current = (entity as Facility).attributes.tier;
 			return {
 				threshold: minTier,
 				current,

@@ -9,37 +9,58 @@ import { GameState } from '../domain/entities/GameState';
 import { ResourceSlot } from '../domain/entities/ResourceSlot';
 import { Adventurer } from '../domain/entities/Adventurer';
 import { Identifier } from '../domain/valueObjects/Identifier';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create AssignWorkerToSlot command handler
  */
 export function createAssignWorkerToSlotHandler(): CommandHandler<AssignWorkerToSlotCommand, GameState> {
-	return async function(
+	return function(
 		payload: AssignWorkerToSlotCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
-		// Validate slot exists
-		const slot = state.entities.get(payload.slotId) as ResourceSlot | undefined;
-		if (!slot || slot.type !== 'ResourceSlot') {
-			return {
+		// Validate command payload using Zod
+		const validation = validateCommand('AssignWorkerToSlot', payload);
+		if (!validation.success) {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
 						type: 'CommandFailed',
 						payload: {
 							commandType: 'AssignWorkerToSlot',
-							reason: `Slot ${payload.slotId} not found`
+							reason: validation.error
 						},
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
+		}
+
+		const validatedPayload = validation.data as AssignWorkerToSlotCommand;
+
+		// Validate slot exists
+		const slot = state.entities.get(validatedPayload.slotId) as ResourceSlot | undefined;
+		if (!slot) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'AssignWorkerToSlot',
+							reason: `Slot ${validatedPayload.slotId} not found`
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
 		}
 
 		// Validate slot state
 		if (slot.state !== 'available' && slot.state !== 'occupied') {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -51,13 +72,13 @@ export function createAssignWorkerToSlotHandler(): CommandHandler<AssignWorkerTo
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// If assigning adventurer, validate adventurer exists and is Idle
-		if (payload.assigneeType === 'adventurer') {
-			if (!payload.assigneeId) {
-				return {
+		if (validatedPayload.assigneeType === 'adventurer') {
+			if (!validatedPayload.assigneeId) {
+				return Promise.resolve({
 					newState: state,
 					events: [
 						{
@@ -69,28 +90,28 @@ export function createAssignWorkerToSlotHandler(): CommandHandler<AssignWorkerTo
 							timestamp: new Date().toISOString()
 						}
 					]
-				};
+				});
 			}
 
-			const adventurer = state.entities.get(payload.assigneeId) as Adventurer | undefined;
-			if (!adventurer || adventurer.type !== 'Adventurer') {
-				return {
+			const adventurer = state.entities.get(validatedPayload.assigneeId) as Adventurer | undefined;
+			if (!adventurer) {
+				return Promise.resolve({
 					newState: state,
 					events: [
 						{
 							type: 'CommandFailed',
 							payload: {
 								commandType: 'AssignWorkerToSlot',
-								reason: `Adventurer ${payload.assigneeId} not found`
+								reason: `Adventurer ${validatedPayload.assigneeId} not found`
 							},
 							timestamp: new Date().toISOString()
 						}
 					]
-				};
+				});
 			}
 
 			if (adventurer.state !== 'Idle') {
-				return {
+				return Promise.resolve({
 					newState: state,
 					events: [
 						{
@@ -102,16 +123,16 @@ export function createAssignWorkerToSlotHandler(): CommandHandler<AssignWorkerTo
 							timestamp: new Date().toISOString()
 						}
 					]
-				};
+				});
 			}
 
 			// Assign adventurer to slot
-			const slotId = Identifier.from<'SlotId'>(payload.slotId);
+			const slotId = Identifier.from<'SlotId'>(validatedPayload.slotId);
 			adventurer.assignToSlot(slotId);
 		}
 
 		// Update slot assignment
-		slot.assignWorker(payload.assigneeType, payload.assigneeId || null);
+		slot.assignWorker(validatedPayload.assigneeType, validatedPayload.assigneeId || null);
 		
 		// Reset lastTickAt timer to current time when assigning worker
 		// This ensures generation starts fresh from assignment time, not from previous assignment
@@ -120,11 +141,10 @@ export function createAssignWorkerToSlotHandler(): CommandHandler<AssignWorkerTo
 		// Create new GameState with updated entities
 		const newEntities = new Map(state.entities);
 		newEntities.set(slot.id, slot);
-		if (payload.assigneeType === 'adventurer' && payload.assigneeId) {
-			const adventurer = newEntities.get(payload.assigneeId) as Adventurer;
-			if (adventurer) {
-				newEntities.set(adventurer.id, adventurer);
-			}
+		if (validatedPayload.assigneeType === 'adventurer' && validatedPayload.assigneeId) {
+			// Adventurer existence is guaranteed by validation above
+			const adventurer = newEntities.get(validatedPayload.assigneeId) as Adventurer;
+			newEntities.set(adventurer.id, adventurer);
 		}
 
 		const newState = new GameState(
@@ -138,17 +158,17 @@ export function createAssignWorkerToSlotHandler(): CommandHandler<AssignWorkerTo
 		const event: DomainEvent = {
 			type: 'ResourceSlotAssigned',
 			payload: {
-				slotId: payload.slotId,
-				assigneeType: payload.assigneeType,
-				assigneeId: payload.assigneeId || null
+				slotId: validatedPayload.slotId,
+				assigneeType: validatedPayload.assigneeType,
+				assigneeId: validatedPayload.assigneeId || null
 			},
 			timestamp: new Date().toISOString()
 		};
 
-		return {
+		return Promise.resolve({
 			newState,
 			events: [event]
-		};
+		});
 	};
 }
 

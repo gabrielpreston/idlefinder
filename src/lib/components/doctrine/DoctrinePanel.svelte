@@ -13,11 +13,14 @@
 		return cleanup;
 	});
 
-	async function updateDoctrine(focus?: string, riskTolerance?: string) {
+	async function updateDoctrine(
+		focus?: 'gold' | 'xp' | 'materials' | 'balanced',
+		riskTolerance?: 'low' | 'medium' | 'high'
+	) {
 		clearError();
 		await dispatchCommand('UpdateMissionDoctrine', {
-			focus: focus as any,
-			riskTolerance: riskTolerance as any
+			focus,
+			riskTolerance
 		});
 	}
 </script>
@@ -36,7 +39,7 @@
 					onchange={(e) => {
 						const target = e.target as HTMLSelectElement;
 						if (target) {
-							updateDoctrine(target.value, undefined);
+							updateDoctrine(target.value as 'gold' | 'xp' | 'materials' | 'balanced' | undefined, undefined);
 						}
 					}}
 				>
@@ -56,7 +59,7 @@
 					onchange={(e) => {
 						const target = e.target as HTMLSelectElement;
 						if (target) {
-							updateDoctrine(undefined, target.value);
+							updateDoctrine(undefined, target.value as 'low' | 'medium' | 'high' | undefined);
 						}
 					}}
 				>

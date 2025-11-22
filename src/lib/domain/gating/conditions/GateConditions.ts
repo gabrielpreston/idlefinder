@@ -6,6 +6,7 @@
  */
 
 import type { GateCondition } from '../GateDefinition';
+import { safeString } from '../../../utils/templateLiterals';
 
 /**
  * Resource-based condition
@@ -24,7 +25,7 @@ export function resourceCondition(
 		type: 'resource',
 		params: { resourceType, minAmount },
 		description:
-			description || `Have at least ${minAmount} ${resourceType}`,
+			description || `Have at least ${safeString(minAmount)} ${safeString(resourceType)}`,
 	};
 }
 
@@ -47,7 +48,7 @@ export function entityTierCondition(
 		type: 'entity_tier',
 		params: { entityType, entityIdOrType, minTier },
 		description:
-			description || `${entityType} at tier ${minTier}+`,
+			description || `${safeString(entityType)} at tier ${safeString(minTier)}+`,
 	};
 }
 
@@ -85,7 +86,7 @@ export function fameMilestoneCondition(
 	return {
 		type: 'fame_milestone',
 		params: { minFame },
-		description: description || `Reach ${minFame} fame`,
+		description: description || `Reach ${safeString(minFame)} fame`,
 	};
 }
 

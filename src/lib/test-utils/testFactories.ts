@@ -301,9 +301,9 @@ export function createTestResourceSlot(overrides?: {
 /**
  * Create test Command with type and payload
  */
-export function createTestCommand<T extends CommandPayload>(
+export function createTestCommand(
 	type: Command['type'],
-	payload: T
+	payload: CommandPayload
 ): Command {
 	return {
 		type,

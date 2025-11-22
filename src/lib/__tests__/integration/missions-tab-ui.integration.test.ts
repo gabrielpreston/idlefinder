@@ -11,6 +11,7 @@ import { missionBuilder } from '../../test-utils/builders/missionBuilder';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
 import { Duration } from '../../domain/valueObjects/Duration';
 import userEvent from '@testing-library/user-event';
+import { getSelectByLabel, getInputByLabel } from '../../test-utils/domTestHelpers';
 
 describe('Missions Tab UI Integration', () => {
 	beforeEach(async () => {
@@ -106,7 +107,7 @@ describe('Missions Tab UI Integration', () => {
 		});
 		
 		// Find and change state filter to 'InProgress'
-		const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
+		const stateFilter = getSelectByLabel(/state/i);
 		expect(stateFilter).toBeInTheDocument();
 		
 		// Change filter value
@@ -147,7 +148,7 @@ describe('Missions Tab UI Integration', () => {
 		});
 		
 		// Verify sort select is available and can be changed
-		const sortSelect = await waitFor(() => screen.getByLabelText(/sort/i) as HTMLSelectElement);
+		const sortSelect = await waitFor(() => getSelectByLabel(/sort/i));
 		expect(sortSelect).toBeInTheDocument();
 		expect(sortSelect.value).toBe('state'); // Default sort
 		
@@ -175,9 +176,9 @@ describe('Missions Tab UI Integration', () => {
 			});
 			
 			// Find stat cards
-			const activeMissionsCard = screen.getByText('Active Missions').closest('[role="button"]') as HTMLElement | null;
-			const availableCard = screen.getByText('Available').closest('[role="button"]') as HTMLElement | null;
-			const completedCard = screen.getByText('Completed').closest('[role="button"]') as HTMLElement | null;
+			const activeMissionsCard = screen.getByText('Active Missions').closest('[role="button"]');
+			const availableCard = screen.getByText('Available').closest('[role="button"]');
+			const completedCard = screen.getByText('Completed').closest('[role="button"]');
 			
 			expect(activeMissionsCard).toBeInTheDocument();
 			expect(availableCard).toBeInTheDocument();
@@ -185,7 +186,7 @@ describe('Missions Tab UI Integration', () => {
 			
 			// Click on Available card
 			if (availableCard) {
-				availableCard.click();
+				(availableCard as HTMLButtonElement).click();
 				
 				// Should navigate to collection view with Available filter
 				await waitFor(() => {
@@ -204,14 +205,14 @@ describe('Missions Tab UI Integration', () => {
 				expect(screen.getByText('Missions')).toBeInTheDocument();
 			});
 			
-			const completedCard = screen.getByText('Completed').closest('[role="button"]') as HTMLElement | null;
+			const completedCard = screen.getByText('Completed').closest('[role="button"]');
 			expect(completedCard).toBeInTheDocument();
 			
 			// Simulate keyboard interaction - use real timers for userEvent
 			if (completedCard) {
 				vi.useRealTimers();
 				const user = userEvent.setup();
-				completedCard.focus();
+				(completedCard as HTMLElement).focus();
 				await user.keyboard('{Enter}');
 				
 				await waitFor(() => {
@@ -282,7 +283,7 @@ describe('Missions Tab UI Integration', () => {
 		});
 
 		it('should filter missions by type (combat)', async () => {
-			const typeFilter = screen.getByLabelText(/type/i) as HTMLSelectElement;
+			const typeFilter = getSelectByLabel(/type/i);
 			expect(typeFilter).toBeInTheDocument();
 			
 			typeFilter.value = 'combat';
@@ -295,7 +296,7 @@ describe('Missions Tab UI Integration', () => {
 		});
 
 		it('should filter missions by all type options', async () => {
-			const typeFilter = screen.getByLabelText(/type/i) as HTMLSelectElement;
+			const typeFilter = getSelectByLabel(/type/i);
 			const types = ['all', 'combat', 'exploration', 'investigation', 'diplomacy', 'resource'];
 			
 			for (const type of types) {
@@ -309,20 +310,21 @@ describe('Missions Tab UI Integration', () => {
 		});
 
 		it('should filter missions by search query', async () => {
-			const searchInput = screen.getByLabelText(/search/i) as HTMLInputElement;
+			const searchInput = screen.getByLabelText(/search/i);
 			expect(searchInput).toBeInTheDocument();
 			
-			searchInput.value = 'Test';
-			searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-			
-			await waitFor(() => {
-				expect(searchInput.value).toBe('Test');
-			});
+		const inputElement = getInputByLabel(/search/i);
+		inputElement.value = 'Test';
+		inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+		
+		await waitFor(() => {
+			expect(inputElement.value).toBe('Test');
+		});
 		});
 
 		it('should combine state and type filters', async () => {
-			const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
-			const typeFilter = screen.getByLabelText(/type/i) as HTMLSelectElement;
+			const stateFilter = getSelectByLabel(/state/i);
+			const typeFilter = getSelectByLabel(/type/i);
 			
 			stateFilter.value = 'Available';
 			stateFilter.dispatchEvent(new Event('change', { bubbles: true }));
@@ -337,7 +339,7 @@ describe('Missions Tab UI Integration', () => {
 		});
 
 		it('should support all sort options', async () => {
-			const sortSelect = screen.getByLabelText(/sort/i) as HTMLSelectElement;
+			const sortSelect = getSelectByLabel(/sort/i);
 			const sortOptions = ['state', 'duration', 'rewards', 'difficulty', 'startTime'];
 			
 			for (const sortOption of sortOptions) {
@@ -368,7 +370,7 @@ describe('Missions Tab UI Integration', () => {
 			});
 			
 			// Sort by rewards (Hard should come before Easy)
-			const sortSelect = screen.getByLabelText(/sort/i) as HTMLSelectElement;
+			const sortSelect = getSelectByLabel(/sort/i);
 			sortSelect.value = 'rewards';
 			sortSelect.dispatchEvent(new Event('change', { bubbles: true }));
 			
@@ -399,9 +401,9 @@ describe('Missions Tab UI Integration', () => {
 			});
 			
 			// Apply multiple filters
-			const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
-			const typeFilter = screen.getByLabelText(/type/i) as HTMLSelectElement;
-			const searchInput = screen.getByLabelText(/search/i) as HTMLInputElement;
+			const stateFilter = getSelectByLabel(/state/i);
+			const typeFilter = getSelectByLabel(/type/i);
+			const searchInput = getInputByLabel(/search/i);
 			
 			stateFilter.value = 'Available';
 			stateFilter.dispatchEvent(new Event('change', { bubbles: true }));

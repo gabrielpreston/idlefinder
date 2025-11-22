@@ -6,7 +6,7 @@ import { Identifier } from '../valueObjects/Identifier';
 import { Timestamp } from '../valueObjects/Timestamp';
 import { Duration } from '../valueObjects/Duration';
 import { NumericStatMap } from '../valueObjects/NumericStatMap';
-import { deriveRoleKey } from '../attributes/RoleKey';
+import { deriveRoleKey, type RoleKey } from '../attributes/RoleKey';
 import type { AdventurerAttributes } from '../attributes/AdventurerAttributes';
 import type { MissionAttributes } from '../attributes/MissionAttributes';
 import { setTimer } from '../primitives/TimerHelpers';
@@ -16,7 +16,7 @@ import { ModifyResourceEffect, type Effect, applyEffects } from '../primitives/E
 
 describe('ResolveMissionAction', () => {
 	const createAdventurer = (overrides?: {
-		roleKey?: string;
+		roleKey?: RoleKey;
 		tags?: string[];
 		traitTags?: string[];
 		abilityMods?: Map<string, number>;
@@ -30,7 +30,7 @@ describe('ResolveMissionAction', () => {
 			classKey: 'fighter',
 			ancestryKey: 'human',
 			traitTags: overrides?.traitTags || [],
-			roleKey: (overrides?.roleKey as 'martial_frontliner' | 'mobile_striker' | 'support_caster' | 'skill_specialist' | 'ranged_combatant' | 'utility_caster') || deriveRoleKey('fighter'),
+			roleKey: overrides?.roleKey || deriveRoleKey('fighter'),
 			baseHP: 10,
 			assignedSlotId: null
 		};

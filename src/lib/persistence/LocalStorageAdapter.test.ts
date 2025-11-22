@@ -25,7 +25,10 @@ describe('LocalStorageAdapter', () => {
 
 			const stored = localStorage.getItem('idlefinder_state');
 			expect(stored).toBeTruthy();
-			const parsed = JSON.parse(stored!);
+			if (!stored) {
+				throw new Error('Failed to store game state');
+			}
+			const parsed = JSON.parse(stored);
 			expect(parsed.playerId).toBe(state.playerId);
 		});
 
@@ -37,7 +40,10 @@ describe('LocalStorageAdapter', () => {
 			adapter.save(state, future);
 
 			const stored = localStorage.getItem('idlefinder_state');
-			const parsed = JSON.parse(stored!);
+			if (!stored) {
+				throw new Error('Failed to store game state');
+			}
+			const parsed = JSON.parse(stored);
 			expect(parsed.lastPlayed).toBe(future.value.toString());
 		});
 

@@ -75,7 +75,7 @@ export class CommandBus<S = unknown> {
 			if (!this.isProcessing) {
 				// Process queue immediately if not already processing
 				// This ensures commands execute synchronously when possible
-				this.processQueue();
+				void this.processQueue();
 			}
 		});
 	}
@@ -86,7 +86,10 @@ export class CommandBus<S = unknown> {
 	private async processQueue(): Promise<void> {
 		this.isProcessing = true;
 		while (this.commandQueue.length > 0) {
-			const queueItem = this.commandQueue.shift()!;
+			const queueItem = this.commandQueue.shift();
+			if (!queueItem) {
+				break;
+			}
 			try {
 				await this.executeCommand(queueItem.command);
 				queueItem.resolve();
@@ -101,7 +104,7 @@ export class CommandBus<S = unknown> {
 	 * Execute a single command
 	 */
 	private async executeCommand(command: Command): Promise<void> {
-		const handler = this.handlers.get(command.type as CommandType);
+		const handler = this.handlers.get(command.type);
 		if (!handler) {
 			// Emit CommandFailed event
 			const failedEvent: DomainEvent = {
@@ -130,7 +133,7 @@ export class CommandBus<S = unknown> {
 			};
 
 			// Execute handler
-			const result = await handler(command.payload as CommandPayload, currentState, context);
+			const result = await handler(command.payload, currentState, context);
 
 			// Update state
 			this.stateSetter(result.newState);

@@ -11,9 +11,9 @@ describe('timeSource', () => {
 		vi.useFakeTimers();
 		// Mock requestAnimationFrame
 		let rafId = 0;
-		const rafCallbacks: Array<() => void> = [];
+		const rafCallbacks: Array<(timestamp: number) => void> = [];
 
-		global.requestAnimationFrame = vi.fn((cb) => {
+		global.requestAnimationFrame = vi.fn((cb: (timestamp: number) => void) => {
 			rafCallbacks.push(cb);
 			return ++rafId;
 		}) as unknown as typeof requestAnimationFrame;

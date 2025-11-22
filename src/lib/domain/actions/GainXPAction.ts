@@ -13,6 +13,7 @@ import type { DomainEvent } from '../primitives/Event';
 import type { Adventurer } from '../entities/Adventurer';
 import type { Entity } from '../primitives/Requirement';
 import type { ResourceBundle } from '../valueObjects/ResourceBundle';
+import { requireEntityAs, isAdventurer } from '../primitives/EntityTypeGuards';
 
 export interface GainXPParams {
 	adventurerId: string;
@@ -39,17 +40,14 @@ export class GainXPAction extends Action {
 		params: Record<string, unknown>
 	): Effect[] {
 		const gainParams = params as unknown as GainXPParams;
-		const amount = gainParams?.amount ?? this.amount;
+		const amount = gainParams.amount;
 
 		if (amount <= 0) {
-			throw new Error(`XP amount must be positive: ${amount}`);
+			throw new Error(`XP amount must be positive: ${String(amount)}`);
 		}
 
 		// Get current XP and add amount
-		const adventurer = context.entities.get(this.adventurerId) as Adventurer;
-		if (!adventurer) {
-			throw new Error(`Adventurer ${this.adventurerId} not found`);
-		}
+		const adventurer = requireEntityAs<Adventurer>(context.entities, this.adventurerId, isAdventurer);
 
 		const newXP = adventurer.attributes.xp + amount;
 
@@ -65,13 +63,9 @@ export class GainXPAction extends Action {
 		params: Record<string, unknown>
 	): DomainEvent[] {
 		const gainParams = params as unknown as GainXPParams;
-		const adventurer = entities.get(this.adventurerId) as Adventurer;
+		const adventurer = requireEntityAs<Adventurer>(entities, this.adventurerId, isAdventurer);
 
-		if (!adventurer) {
-			return [];
-		}
-
-		const amount = gainParams?.amount ?? this.amount;
+		const amount = (gainParams.amount as number | undefined) ?? this.amount;
 
 		return [
 			{

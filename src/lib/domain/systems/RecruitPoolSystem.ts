@@ -58,7 +58,7 @@ export function generateRecruitPool(count: number = 4): Adventurer[] {
 			'Preview', // Preview state
 			{}, // No timers
 			{ 
-				name: `Recruit ${i + 1}`, // Temporary name
+				name: `Recruit ${String(i + 1)}`, // Temporary name
 				isPreview: true // Mark as preview in metadata
 			}
 		);

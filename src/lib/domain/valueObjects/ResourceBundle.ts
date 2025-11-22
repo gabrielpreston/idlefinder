@@ -10,10 +10,10 @@ export class ResourceBundle {
 		// Validate all amounts are non-negative and finite
 		for (const [resourceType, amount] of resources.entries()) {
 			if (amount < 0) {
-				throw new Error(`Resource amount cannot be negative: ${resourceType} = ${amount}`);
+				throw new Error(`Resource amount cannot be negative: ${resourceType} = ${String(amount)}`);
 			}
 			if (!isFinite(amount)) {
-				throw new Error(`Resource amount must be finite: ${resourceType} = ${amount}`);
+				throw new Error(`Resource amount must be finite: ${resourceType} = ${String(amount)}`);
 			}
 		}
 	}
@@ -54,7 +54,7 @@ export class ResourceBundle {
 			const result = currentAmount - amount;
 			if (result < 0) {
 				throw new Error(
-					`Cannot subtract ${amount} ${resourceType}: only ${currentAmount} available`
+					`Cannot subtract ${String(amount)} ${resourceType}: only ${String(currentAmount)} available`
 				);
 			}
 			if (result === 0) {

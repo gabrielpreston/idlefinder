@@ -9,16 +9,37 @@ import { GameState } from '../domain/entities/GameState';
 import { UnequipItemAction } from '../domain/actions/UnequipItemAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create UnequipItem command handler using Actions
  */
 export function createUnequipItemHandler(): CommandHandler<UnequipItemCommand, GameState> {
-	return async function(
+	return function(
 		payload: UnequipItemCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('UnequipItem', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'UnequipItem',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as UnequipItemCommand;
+
 		// Create requirement context
 		const requirementContext: RequirementContext = {
 			entities: state.entities,
@@ -28,20 +49,20 @@ export function createUnequipItemHandler(): CommandHandler<UnequipItemCommand, G
 
 		// Create action
 		const action = new UnequipItemAction(
-			payload.itemId,
-			payload.adventurerId,
-			payload.slot
+			validatedPayload.itemId,
+			validatedPayload.adventurerId,
+			validatedPayload.slot
 		);
 
 		// Execute action (validates requirements, computes effects)
 		const actionResult = action.execute(requirementContext, {
-			itemId: payload.itemId,
-			adventurerId: payload.adventurerId,
-			slot: payload.slot
+			itemId: validatedPayload.itemId,
+			adventurerId: validatedPayload.adventurerId,
+			slot: validatedPayload.slot
 		});
 
 		if (!actionResult.success) {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -53,7 +74,7 @@ export function createUnequipItemHandler(): CommandHandler<UnequipItemCommand, G
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Apply effects
@@ -73,16 +94,16 @@ export function createUnequipItemHandler(): CommandHandler<UnequipItemCommand, G
 			effectResult.resources,
 			actionResult.effects,
 			{
-				itemId: payload.itemId,
-				adventurerId: payload.adventurerId,
-				slot: payload.slot
+				itemId: validatedPayload.itemId,
+				adventurerId: validatedPayload.adventurerId,
+				slot: validatedPayload.slot
 			}
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events
-		};
+		});
 	};
 }
 

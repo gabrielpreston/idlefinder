@@ -11,8 +11,9 @@ import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
 import { ResourceSlot } from '../../domain/entities/ResourceSlot';
-import { Facility } from '../../domain/entities/Facility';
+import type { ResourceSlotAttributes } from '../../domain/attributes/ResourceSlotAttributes';
 import { Identifier } from '../../domain/valueObjects/Identifier';
+import { isResourceSlot } from '../../domain/primitives/EntityTypeGuards';
 
 describe('Slot Generation ResourcesChanged Integration', () => {
 	let busManager: BusManager;
@@ -26,19 +27,12 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 		// Create initial state with a gold slot assigned to player
 		const initialState = createTestGameState();
 		
-		// Find the guildhall facility
-		const guildhall = Array.from(initialState.entities.values()).find(
-			e => e.type === 'Facility' && (e as Facility).attributes.facilityType === 'Guildhall'
-		) as Facility;
-		
-		expect(guildhall).toBeDefined();
-		
 		// Find the gold slot
-		const goldSlot = Array.from(initialState.entities.values()).find(
-			e => e.type === 'ResourceSlot' && e.id === 'slot-gold-1'
-		) as ResourceSlot;
-		
+		const goldSlot = initialState.entities.get('slot-gold-1');
 		expect(goldSlot).toBeDefined();
+		if (!goldSlot || !isResourceSlot(goldSlot)) {
+			throw new Error('Gold slot not found');
+		}
 		expect(goldSlot.attributes.assigneeType).toBe('player');
 
 		busManager = new BusManager(initialState, testTimeSource);
@@ -48,7 +42,7 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 		busManager.domainEventBus.subscribe('ResourcesChanged', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'ResourcesChanged',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
@@ -70,11 +64,13 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 			vi.advanceTimersByTime(elapsedMs);
 
 			// Manually trigger tick handler
-			 
-			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
+			const handlers = busManager.tickBus.getHandlersForTesting();
+			const tickHandler = handlers.values().next().value;
 			expect(tickHandler).toBeDefined();
 			
-			await tickHandler(elapsedMs, new Date(Date.now()));
+			if (tickHandler) {
+				await tickHandler(elapsedMs, new Date(Date.now()));
+			}
 
 			// Verify ResourcesChanged event was published
 			const resourcesChangedEvents = publishedEvents.filter(e => e.type === 'ResourcesChanged');
@@ -98,19 +94,18 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 		it('should not emit ResourcesChanged when no resources change', async () => {
 			// Create state with no assigned slots
 			const entities = new Map(busManager.getState().entities);
-			const goldSlot = Array.from(entities.values()).find(
-				e => e.type === 'ResourceSlot' && e.id === 'slot-gold-1'
-			) as ResourceSlot;
-			
-			if (goldSlot) {
+			const goldSlotEntity = entities.get('slot-gold-1');
+			if (goldSlotEntity && goldSlotEntity.type === 'ResourceSlot') {
+				const goldSlot = goldSlotEntity as ResourceSlot;
 				// Unassign the slot
+				const attributes: ResourceSlotAttributes = {
+					...goldSlot.attributes,
+					assigneeType: 'none',
+					assigneeId: null
+				};
 				const unassignedSlot = new ResourceSlot(
 					Identifier.from<'SlotId'>(goldSlot.id),
-					{
-						...goldSlot.attributes,
-						assigneeType: 'none',
-						assigneeId: null
-					},
+					attributes,
 					[...goldSlot.tags],
 					'available',
 					goldSlot.timers,
@@ -125,9 +120,11 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 			const elapsedMs = 60000;
 			vi.advanceTimersByTime(elapsedMs);
 
-			 
-			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
-			await tickHandler(elapsedMs, new Date(Date.now()));
+			const handlers = busManager.tickBus.getHandlersForTesting();
+			const tickHandler = handlers.values().next().value;
+			if (tickHandler) {
+				await tickHandler(elapsedMs, new Date(Date.now()));
+			}
 
 			// Should not emit ResourcesChanged if no resources changed
 			const resourcesChangedEvents = publishedEvents.filter(e => e.type === 'ResourcesChanged');
@@ -143,9 +140,11 @@ describe('Slot Generation ResourcesChanged Integration', () => {
 			const elapsedMs = 60000; // 1 minute
 			vi.advanceTimersByTime(elapsedMs);
 
-			 
-			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
-			await tickHandler(elapsedMs, new Date(Date.now()));
+			const handlers = busManager.tickBus.getHandlersForTesting();
+			const tickHandler = handlers.values().next().value;
+			if (tickHandler) {
+				await tickHandler(elapsedMs, new Date(Date.now()));
+			}
 
 			// Verify ResourcesChanged event has correct delta
 			const resourcesChangedEvents = publishedEvents.filter(e => e.type === 'ResourcesChanged');

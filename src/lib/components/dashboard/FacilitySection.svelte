@@ -26,7 +26,7 @@
 			<div class="cost-details">
 				<div class="cost-item">
 					<span class="cost-label">Gold:</span>
-					<span class="cost-value">{upgradeCost.get('gold')}</span>
+					<span class="cost-value">{String(upgradeCost.get('gold') ?? 0)}</span>
 				</div>
 			</div>
 		</div>

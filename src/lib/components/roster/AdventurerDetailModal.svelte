@@ -3,7 +3,7 @@
 	import Tabs from '../ui/Tabs.svelte';
 	import XPProgressBar from './XPProgressBar.svelte';
 	import Badge from '../ui/Badge.svelte';
-	import { getPathfinderClass, getPathfinderAncestry } from '$lib/domain/data/pathfinder';
+	import { getPathfinderClass, getPathfinderAncestry, type PathfinderClassKey, type PathfinderAncestryKey } from '$lib/domain/data/pathfinder';
 	import { getAdventurerXPProgress, getAdventurerEffectiveStats } from '$lib/domain/queries/RosterQueries';
 	import { dispatchCommand } from '$lib/bus/commandDispatcher';
 	import { gameState, items } from '$lib/stores/gameState';
@@ -20,9 +20,9 @@
 		activeTab = 'overview';
 	}
 
-	$: className = adventurer ? getPathfinderClass(adventurer.attributes.classKey as any)?.name || adventurer.attributes.classKey : '';
-	$: ancestryName = adventurer ? getPathfinderAncestry(adventurer.attributes.ancestryKey as any)?.name || adventurer.attributes.ancestryKey : '';
-	$: displayName = adventurer ? (adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${adventurer.id.slice(0, 8)}`) : '';
+	$: className = adventurer ? getPathfinderClass(adventurer.attributes.classKey as PathfinderClassKey)?.name || adventurer.attributes.classKey : '';
+	$: ancestryName = adventurer ? getPathfinderAncestry(adventurer.attributes.ancestryKey as PathfinderAncestryKey)?.name || adventurer.attributes.ancestryKey : '';
+	$: displayName = adventurer ? (adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${String(adventurer.id.slice(0, 8))}`) : 'Adventurer Details';
 	
 	$: xpProgress = adventurer ? getAdventurerXPProgress(adventurer) : null;
 	$: effectiveStats = adventurer && $gameState ? getAdventurerEffectiveStats(adventurer, $gameState) : null;
@@ -96,11 +96,11 @@
 					</div>
 					<div class="info-row">
 						<span class="info-label">Level:</span>
-						<span class="info-value">{adventurer.attributes.level}</span>
+						<span class="info-value">{String(adventurer.attributes.level)}</span>
 					</div>
 					<div class="info-row">
 						<span class="info-label">Base HP:</span>
-						<span class="info-value">{adventurer.attributes.baseHP}</span>
+						<span class="info-value">{String(adventurer.attributes.baseHP)}</span>
 					</div>
 					<div class="info-row">
 						<span class="info-label">State:</span>
@@ -129,7 +129,7 @@
 							<div class="ability-item">
 								<span class="ability-label">{formatStatKey(key)}</span>
 								<span class="ability-value" class:positive={value > 0} class:negative={value < 0}>
-									{value > 0 ? '+' : ''}{value}
+									{value > 0 ? '+' : ''}{String(value)}
 								</span>
 							</div>
 						{/each}

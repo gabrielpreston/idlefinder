@@ -36,19 +36,22 @@ describe('PersistenceBus', () => {
 	});
 
 	describe('save behavior', () => {
-		it('should save immediately on critical events', () => {
+		it('should save immediately on critical events', async () => {
 			const saveSpy = vi.spyOn(adapter, 'save');
 
-			eventBus.publish({
+			await eventBus.publish({
 				type: 'FacilityUpgraded',
 				payload: { facilityId: 'facility-1', facilityType: 'Guildhall', newTier: 2, bonusMultipliers: {} },
 				timestamp: new Date().toISOString()
 			});
 
 			// Give event bus time to process
-			setTimeout(() => {
-				expect(saveSpy).toHaveBeenCalled();
-			}, 0);
+			await new Promise<void>((resolve) => {
+				setTimeout(() => {
+					expect(saveSpy).toHaveBeenCalled();
+					resolve();
+				}, 0);
+			});
 		});
 
 		it('should schedule debounced save on less critical events', async () => {

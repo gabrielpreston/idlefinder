@@ -292,7 +292,7 @@ describe('Persistence Integration', () => {
 			console.error = vi.fn();
 
 			// Mock localStorage to throw error
-			const originalSetItem = global.localStorage.setItem;
+			const originalSetItem = global.localStorage.setItem.bind(global.localStorage);
 			global.localStorage.setItem = vi.fn(() => {
 				throw new Error('Storage quota exceeded');
 			});
@@ -333,7 +333,10 @@ describe('Persistence Integration', () => {
 			const loaded = adapter.load();
 
 			expect(loaded).not.toBeNull();
-			const loadedAdventurers = Array.from(loaded!.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
+			if (!loaded) {
+				throw new Error('Failed to load game state');
+			}
+			const loadedAdventurers = Array.from(loaded.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
 			expect(loadedAdventurers.length).toBeGreaterThan(0);
 
 			const loadedAdventurer = loadedAdventurers[0];
@@ -365,7 +368,10 @@ describe('Persistence Integration', () => {
 			const loaded = adapter.load();
 
 			expect(loaded).not.toBeNull();
-			const loadedMissions = Array.from(loaded!.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			if (!loaded) {
+				throw new Error('Failed to load game state');
+			}
+			const loadedMissions = Array.from(loaded.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
 			expect(loadedMissions.length).toBeGreaterThan(0);
 
 			const loadedMission = loadedMissions[0];
@@ -406,13 +412,19 @@ describe('Persistence Integration', () => {
 			const loaded = adapter.load();
 
 			expect(loaded).not.toBeNull();
-			const loadedAdventurers = Array.from(loaded!.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
+			if (!loaded) {
+				throw new Error('Failed to load game state');
+			}
+			const loadedAdventurers = Array.from(loaded.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
 			expect(loadedAdventurers.length).toBeGreaterThan(0);
 
 			// Verify loreTags are persisted in metadata
 			const loadedAdventurer = loadedAdventurers.find(a => a.id === 'adv-lore');
 			expect(loadedAdventurer).toBeDefined();
-			expect(loadedAdventurer!.metadata.loreTags).toEqual(['human', 'taldor', 'noble']);
+			if (!loadedAdventurer) {
+				throw new Error('Loaded adventurer not found');
+			}
+			expect(loadedAdventurer.metadata.loreTags).toEqual(['human', 'taldor', 'noble']);
 		});
 
 		it('should serialize and deserialize timer format as Record<string, number | null>', async () => {
@@ -444,7 +456,10 @@ describe('Persistence Integration', () => {
 			const loaded = adapter.load();
 
 			expect(loaded).not.toBeNull();
-			const loadedMissions = Array.from(loaded!.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
+			if (!loaded) {
+				throw new Error('Failed to load game state');
+			}
+			const loadedMissions = Array.from(loaded.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
 			expect(loadedMissions.length).toBeGreaterThan(0);
 
 			const loadedMission = loadedMissions[0];
@@ -486,7 +501,10 @@ describe('Persistence Integration', () => {
 			const loaded = adapter.load();
 
 			expect(loaded).not.toBeNull();
-			const loadedAdventurers = Array.from(loaded!.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
+			if (!loaded) {
+				throw new Error('Failed to load game state');
+			}
+			const loadedAdventurers = Array.from(loaded.entities.values()).filter(e => e.type === 'Adventurer') as import('../../domain/entities/Adventurer').Adventurer[];
 			const loadedAdventurer = loadedAdventurers.find(a => a.id === 'adv-meta');
 			
 			if (loadedAdventurer) {

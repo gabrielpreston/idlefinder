@@ -79,7 +79,7 @@ function createIdleTickHandler(
 
 		// Publish events
 		for (const event of result.events) {
-			await busManager.domainEventBus.publish(event as DomainEvent);
+			await busManager.domainEventBus.publish(event);
 		}
 	};
 }

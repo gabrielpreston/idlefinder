@@ -4,11 +4,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupIntegrationTest, createTestCommand, createTestGameState, createTestResourceBundle, createEmptyTestGameState } from '../test-utils';
+import { requireGuildHall, findAdventurerById } from '../test-utils/entityTestHelpers';
+import { expectAdventurerExists } from '../test-utils/expectHelpers';
 import type { BusManager } from '../bus/BusManager';
 import type { DomainEvent } from '../bus/types';
 import { GameConfig } from '../domain/config/GameConfig';
 import type { Adventurer } from '../domain/entities/Adventurer';
-import type { Facility } from '../domain/entities/Facility';
 // Import gating module to ensure gates are registered
 import '../domain/gating';
 
@@ -23,14 +24,8 @@ describe('RecruitAdventurerHandler Integration', () => {
 		
 		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
 		// This allows recruitment in tests
-		const guildhall = Array.from(initialState.entities.values()).find(
-			(e) =>
-				e.type === 'Facility' &&
-				(e as Facility).attributes.facilityType === 'Guildhall'
-		) as Facility;
-		if (guildhall) {
-			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
-		}
+		const guildhall = requireGuildHall(initialState);
+		guildhall.upgrade(); // Upgrades from tier 0 to tier 1
 		
 		({ busManager, publishedEvents } = setupIntegrationTest({
 			initialState,
@@ -55,13 +50,9 @@ describe('RecruitAdventurerHandler Integration', () => {
 
 			// Verify state updated - find the recruited adventurer by name
 			const state = busManager.getState();
-			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			// Initial state has 4 preview adventurers, so we should have 5 total
-			expect(adventurers.length).toBeGreaterThanOrEqual(5);
-			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer') as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.metadata.name).toBe('Test Adventurer');
-			expect(adventurer?.state).toBe('Idle');
+			const adventurer = expectAdventurerExists(state, 'Test Adventurer');
+			expect(adventurer.metadata.name).toBe('Test Adventurer');
+			expect(adventurer.state).toBe('Idle');
 		});
 
 		it('should auto-generate name when not provided', async () => {
@@ -85,11 +76,9 @@ describe('RecruitAdventurerHandler Integration', () => {
 
 			// Verify state updated
 			const state = busManager.getState();
-			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).id === payload.adventurerId) as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.metadata.name).toBe(payload.name);
-			expect(adventurer?.state).toBe('Idle');
+			const adventurer = findAdventurerById(state, payload.adventurerId);
+			expect(adventurer.metadata.name).toBe(payload.name);
+			expect(adventurer.state).toBe('Idle');
 		});
 
 		it('should fail when insufficient gold (new test)', async () => {
@@ -116,7 +105,7 @@ describe('RecruitAdventurerHandler Integration', () => {
 				const payload = failedEvent.payload as { commandType: string; reason: string };
 				expect(payload.commandType).toBe('RecruitAdventurer');
 				expect(payload.reason).toContain('Insufficient gold');
-				expect(payload.reason).toContain(`need ${recruitCost}`);
+				expect(payload.reason).toContain(`need ${String(recruitCost)}`);
 			}
 		});
 
@@ -266,11 +255,9 @@ describe('RecruitAdventurerHandler Integration', () => {
 			expect(publishedEvents[0].type).toBe('AdventurerRecruited');
 			
 			const state = busManager.getState();
-			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
-			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Brave Fighter') as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.attributes.traitTags).toContain('brave');
-			expect(adventurer?.attributes.traitTags).toContain('combat');
+			const adventurer = expectAdventurerExists(state, 'Brave Fighter');
+			expect(adventurer.attributes.traitTags).toContain('brave');
+			expect(adventurer.attributes.traitTags).toContain('combat');
 		});
 
 		it('should create adventurer with default attributes', async () => {
@@ -295,14 +282,8 @@ describe('RecruitAdventurerHandler Integration', () => {
 			});
 			
 			// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
-			const guildhall = Array.from(initialState.entities.values()).find(
-				(e) =>
-					e.type === 'Facility' &&
-					(e as Facility).attributes.facilityType === 'Guildhall'
-			) as Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Upgrades from tier 0 to tier 1
-			}
+			const guildhall = requireGuildHall(initialState);
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
 			
 			const { busManager: testBusManager, publishedEvents: testEvents } = setupIntegrationTest({
 				initialState,
@@ -326,9 +307,8 @@ describe('RecruitAdventurerHandler Integration', () => {
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			// Initial state has 4 preview adventurers, so we should have 5 total
 			expect(adventurers.length).toBeGreaterThanOrEqual(5);
-			const adventurer = adventurers.find(a => (a as import('../domain/entities/Adventurer').Adventurer).metadata.name === 'Test Adventurer') as import('../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.metadata.name).toBe('Test Adventurer');
+			const adventurer = expectAdventurerExists(state, 'Test Adventurer');
+			expect(adventurer.metadata.name).toBe('Test Adventurer');
 		});
 
 		it('should fail when insufficient gold', async () => {

@@ -58,3 +58,42 @@ export function getEntityAs<T extends Entity>(
 	return entity && typeGuard(entity) ? entity : undefined;
 }
 
+/**
+ * Assertion function: Require entity exists and matches type
+ * Throws descriptive error if entity is missing or wrong type
+ * Pattern follows requireStoreValue from StoreValidator.ts
+ */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export function requireEntity<T extends Entity>(
+	entity: Entity | undefined,
+	type: string,
+	id?: string
+): asserts entity is T {
+	if (!entity) {
+		throw new Error(`Entity ${id || 'unknown'} not found`);
+	}
+	if (entity.type !== type) {
+		throw new Error(`Expected entity type ${type}, got ${entity.type}${id ? ` (id: ${id})` : ''}`);
+	}
+}
+
+/**
+ * Safe entity getter with type assertion
+ * Returns entity if it exists and matches type, throws otherwise
+ * Extends existing getEntityAs pattern
+ */
+export function requireEntityAs<T extends Entity>(
+	entities: Map<string, Entity>,
+	entityId: string,
+	typeGuard: (entity: Entity) => entity is T
+): T {
+	const entity = entities.get(entityId);
+	if (!entity) {
+		throw new Error(`Entity ${entityId} not found`);
+	}
+	if (!typeGuard(entity)) {
+		throw new Error(`Entity ${entityId} is not expected type (got ${entity.type})`);
+	}
+	return entity;
+}
+

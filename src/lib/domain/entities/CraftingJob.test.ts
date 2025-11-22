@@ -49,7 +49,7 @@ describe('CraftingJob', () => {
 		it('should throw error when job is not queued', () => {
 			const job = createTestJob({ status: 'in-progress' });
 
-			expect(() => job.start(Date.now(), Date.now() + 60000)).toThrow(
+			expect(() => { job.start(Date.now(), Date.now() + 60000); }).toThrow(
 				'Cannot start job: job status is in-progress'
 			);
 		});
@@ -67,7 +67,7 @@ describe('CraftingJob', () => {
 		it('should throw error when job is not in-progress', () => {
 			const job = createTestJob({ status: 'queued' });
 
-			expect(() => job.complete()).toThrow('Cannot complete job: job status is queued');
+			expect(() => { job.complete(); }).toThrow('Cannot complete job: job status is queued');
 		});
 	});
 });

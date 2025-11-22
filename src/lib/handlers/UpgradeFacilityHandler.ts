@@ -10,40 +10,61 @@ import { UpgradeFacilityAction } from '../domain/actions/UpgradeFacilityAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
 import { getEntityAs, isFacility } from '../domain/primitives/EntityTypeGuards';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create UpgradeFacility command handler using Actions
  */
 export function createUpgradeFacilityHandler(): CommandHandler<UpgradeFacilityCommand, GameState> {
-	return async function(
+	return function(
 		payload: UpgradeFacilityCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('UpgradeFacility', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'UpgradeFacility',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as UpgradeFacilityCommand;
+
 		// payload.facility can be either a facility ID or facilityType (for MVP compatibility)
 		// Try to find by ID first, then by type
-		let facility = getEntityAs(state.entities, payload.facility, isFacility);
+		let facility = getEntityAs(state.entities, validatedPayload.facility, isFacility);
 		
 		if (!facility) {
 			// Fallback: find by facilityType
 			const facilities = Array.from(state.entities.values())
 				.filter(isFacility)
-				.filter((f) => f.attributes.facilityType === payload.facility);
+				.filter((f) => f.attributes.facilityType === validatedPayload.facility);
 			
 			if (facilities.length === 0) {
-				return {
+				return Promise.resolve({
 					newState: state,
 					events: [
 						{
 							type: 'CommandFailed',
 							payload: {
 								commandType: 'UpgradeFacility',
-								reason: `Facility ${payload.facility} not found`
+								reason: `Facility ${validatedPayload.facility} not found`
 							},
 							timestamp: new Date().toISOString()
 						}
 					]
-				};
+				});
 			}
 			
 			facility = facilities[0];
@@ -61,7 +82,7 @@ export function createUpgradeFacilityHandler(): CommandHandler<UpgradeFacilityCo
 		const result = action.execute(requirementContext, {});
 
 		if (!result.success) {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -73,7 +94,7 @@ export function createUpgradeFacilityHandler(): CommandHandler<UpgradeFacilityCo
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Apply effects
@@ -95,10 +116,10 @@ export function createUpgradeFacilityHandler(): CommandHandler<UpgradeFacilityCo
 			{}
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events
-		};
+		});
 	};
 }
 

@@ -50,7 +50,7 @@ export function setupIntegrationTest(options?: {
 		busManager.domainEventBus.subscribe(eventType, (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: eventType,
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});

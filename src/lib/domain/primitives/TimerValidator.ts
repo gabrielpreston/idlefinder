@@ -4,6 +4,7 @@
  */
 
 import { Timestamp } from '../valueObjects/Timestamp';
+import { safeString } from '../../utils/templateLiterals';
 
 /**
  * Validation result for timer operations
@@ -25,14 +26,14 @@ export function validateTimerValue(value: number | null): TimerValidationResult 
 	if (!isFinite(value)) {
 		return {
 			isValid: false,
-			error: `Timer value must be finite, got: ${value}`
+			error: `Timer value must be finite, got: ${safeString(value)}`
 		};
 	}
 
 	if (value < 0) {
 		return {
 			isValid: false,
-			error: `Timer value cannot be negative, got: ${value}`
+			error: `Timer value cannot be negative, got: ${safeString(value)}`
 		};
 	}
 
@@ -43,7 +44,7 @@ export function validateTimerValue(value: number | null): TimerValidationResult 
 	if (value < year2000 || value > year2100) {
 		return {
 			isValid: false,
-			error: `Timer value out of reasonable range (2000-2100), got: ${value}`
+			error: `Timer value out of reasonable range (2000-2100), got: ${safeString(value)}`
 		};
 	}
 
@@ -81,14 +82,15 @@ export function validateTimerRelationship(
 		if (startValue >= endValue) {
 			return {
 				isValid: false,
-				error: `Start timer (${startValue}) must be before end timer (${endValue})`
+				error: `Start timer (${safeString(startValue)}) must be before end timer (${safeString(endValue)})`
 			};
 		}
-	} else if (relationship === 'after') {
+	} else {
+		// relationship === 'after' (only remaining value)
 		if (startValue <= endValue) {
 			return {
 				isValid: false,
-				error: `Start timer (${startValue}) must be after end timer (${endValue})`
+				error: `Start timer (${safeString(startValue)}) must be after end timer (${safeString(endValue)})`
 			};
 		}
 	}

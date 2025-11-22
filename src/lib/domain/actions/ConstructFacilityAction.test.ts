@@ -351,8 +351,8 @@ describe('ConstructFacilityAction', () => {
 		});
 
 		it('should fail when facility already exists', () => {
-			const facilityType = 'Dormitory';
-			const existingFacility = createTestFacility({ facilityType: facilityType as any });
+			const facilityType = 'Dormitory' as const;
+			const existingFacility = createTestFacility({ facilityType });
 			const entities = new Map<string, Entity>([[existingFacility.id, existingFacility]]);
 			const state = createTestGameState({
 				entities,

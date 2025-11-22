@@ -31,7 +31,7 @@
 >
 	<div slot="header" class="card-header">
 		<h4 class="preview-label">Preview</h4>
-		<Badge variant="primary" size="small">Level {adventurer.attributes.level}</Badge>
+		<Badge variant="primary" size="small">Level {String(adventurer.attributes.level)}</Badge>
 	</div>
 	
 	<div class="card-body">
@@ -46,7 +46,7 @@
 		
 		<div class="cost-section">
 			<Badge variant="warning" size="small">
-				{cost} gold to recruit
+				{String(cost)} gold to recruit
 			</Badge>
 		</div>
 	</div>

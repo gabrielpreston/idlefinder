@@ -17,7 +17,7 @@
 				value={rate}
 				numberType="decimal"
 				decimalPlaces={1}
-				format={(n) => `${n.toFixed(1)}/min`}
+				format={(n) => `${String(n.toFixed(1))}/min`}
 			/>
 		{:else}
 			<div class="empty-state">No active resource generation</div>

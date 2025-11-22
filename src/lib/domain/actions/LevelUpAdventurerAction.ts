@@ -35,7 +35,7 @@ function hasEnoughXPRequirement(adventurerId: string): Requirement {
 		if (adventurer.attributes.xp < threshold) {
 			return {
 				satisfied: false,
-				reason: `Adventurer ${adventurerId} needs ${threshold} XP to level up, has ${adventurer.attributes.xp}`
+				reason: `Adventurer ${adventurerId} needs ${String(threshold)} XP to level up, has ${String(adventurer.attributes.xp)}`
 			};
 		}
 		return { satisfied: true };
@@ -63,10 +63,8 @@ export class LevelUpAdventurerAction extends Action {
 		context: RequirementContext,
 		_params: Record<string, unknown>
 	): Effect[] {
+		// Adventurer existence is guaranteed by requirements check
 		const adventurer = context.entities.get(this.adventurerId) as Adventurer;
-		if (!adventurer) {
-			throw new Error(`Adventurer ${this.adventurerId} not found`);
-		}
 
 		const newLevel = adventurer.attributes.level + 1;
 
@@ -83,11 +81,8 @@ export class LevelUpAdventurerAction extends Action {
 		_effects: Effect[],
 		_params: Record<string, unknown>
 	): DomainEvent[] {
+		// Adventurer existence is guaranteed by requirements check in computeEffects
 		const adventurer = entities.get(this.adventurerId) as Adventurer;
-
-		if (!adventurer) {
-			return [];
-		}
 
 		// Convert Map to Record
 		const abilityModsRecord: Record<string, number> = {};

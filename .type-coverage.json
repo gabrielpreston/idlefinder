@@ -1,0 +1,16 @@
+{
+	"target": 87,
+	"atLeast": true,
+	"ignoreFiles": [
+		"**/*.test.ts",
+		"**/*.spec.ts",
+		"**/*.test.tsx",
+		"**/*.spec.tsx",
+		"**/test-utils/**",
+		"**/__tests__/**",
+		"**/node_modules/**",
+		".svelte-kit/**",
+		"build/**"
+	]
+}
+

@@ -84,7 +84,7 @@ describe('ConstructFacilityHandler Integration', () => {
 			if (failedEvent.type === 'CommandFailed') {
 				const payload = failedEvent.payload as { commandType: string; reason: string };
 				expect(payload.commandType).toBe('ConstructFacility');
-				expect(payload.reason).toContain('Invalid facility type');
+				expect(payload.reason).toContain('Invalid ConstructFacility command payload');
 			}
 
 			// Verify state unchanged

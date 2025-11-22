@@ -123,7 +123,7 @@ function hasEnoughGoldRequirement(cost: number): Requirement {
 		if (gold < cost) {
 			return {
 				satisfied: false,
-				reason: `Insufficient gold: need ${cost}, have ${gold}`
+				reason: `Insufficient gold: need ${String(cost)}, have ${String(gold)}`
 			};
 		}
 		return { satisfied: true };
@@ -184,7 +184,7 @@ export class ConstructFacilityAction extends Action {
 		// Verify we have enough gold
 		const currentGold = context.resources.get('gold') || 0;
 		if (currentGold < cost) {
-			throw new Error(`Insufficient gold: need ${cost}, have ${currentGold}`);
+			throw new Error(`Insufficient gold: need ${String(cost)}, have ${String(currentGold)}`);
 		}
 
 		const effects: Effect[] = [

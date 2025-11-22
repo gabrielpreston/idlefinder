@@ -62,8 +62,8 @@ export function withMultipleAvailableMissions(count: number = 5): GameState {
 	const missions: Mission[] = [];
 	for (let i = 0; i < count; i++) {
 		missions.push(createTestMission({ 
-			id: `mission-${i + 1}`, 
-			name: `Available Mission ${i + 1}`,
+			id: `mission-${String(i + 1)}`, 
+			name: `Available Mission ${String(i + 1)}`,
 			state: 'Available',
 			difficultyTier: i % 2 === 0 ? 'Easy' : 'Medium'
 		}));

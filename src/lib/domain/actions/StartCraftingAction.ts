@@ -18,8 +18,8 @@ import { getDefaultCraftingRecipes } from '../data/crafting/recipes';
 
 export interface StartCraftingParams {
 	jobId: string;
-	duration: Duration;
-	startedAt: Timestamp;
+	duration?: Duration;
+	startedAt?: Timestamp;
 }
 
 /**
@@ -47,8 +47,8 @@ export class StartCraftingAction extends Action {
 			throw new Error(`CraftingJob ${this.jobId} not found`);
 		}
 
-		const startedAt = startParams?.startedAt || context.currentTime;
-		const duration = startParams?.duration || this.duration;
+		const startedAt = startParams.startedAt ?? context.currentTime;
+		const duration = startParams.duration ?? this.duration;
 		const completeAt = Timestamp.from(startedAt.value + duration.milliseconds);
 
 		// Find recipe and subtract resources

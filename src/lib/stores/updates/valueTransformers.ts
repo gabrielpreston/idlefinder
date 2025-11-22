@@ -81,25 +81,25 @@ export function formatTimeRemaining(
 		// Handle negative values
 		if (ms < 0) {
 			const totalSeconds = Math.floor(Math.abs(ms) / 1000);
-			return `-${totalSeconds}s`;
+			return `-${String(totalSeconds)}s`;
 		}
 		
 		const totalSeconds = Math.floor(ms / 1000);
 		
 		if (totalSeconds < 60) {
-			return `${totalSeconds}s`;
+			return `${String(totalSeconds)}s`;
 		}
 		
 		const minutes = Math.floor(totalSeconds / 60);
 		const seconds = totalSeconds % 60;
 		
 		if (minutes < 60) {
-			return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+			return seconds > 0 ? `${String(minutes)}m ${String(seconds)}s` : `${String(minutes)}m`;
 		}
 		
 		const hours = Math.floor(minutes / 60);
 		const mins = minutes % 60;
-		return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+		return mins > 0 ? `${String(hours)}h ${String(mins)}m` : `${String(hours)}h`;
 	});
 }
 

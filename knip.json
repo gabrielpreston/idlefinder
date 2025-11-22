@@ -1,0 +1,43 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": [
+		"src/routes/**/*.{js,ts,svelte}",
+		"src/app.html",
+		"vite.config.{js,ts}",
+		"svelte.config.{js,ts}"
+	],
+	"project": [
+		"src/**/*.{js,ts,svelte}",
+		"*.config.{js,ts}",
+		"*.config.*.{js,ts}"
+	],
+	"ignore": [
+		"**/*.test.ts",
+		"**/*.spec.ts",
+		"**/*.test.tsx",
+		"**/*.spec.tsx",
+		"**/test-utils/**",
+		"**/__tests__/**",
+		"**/coverage/**",
+		".svelte-kit/**",
+		"build/**",
+		"node_modules/**"
+	],
+	"ignoreDependencies": [
+		"@sveltejs/vite-plugin-svelte",
+		"@sveltejs/kit",
+		"vite",
+		"vitest",
+		"@vitest/ui",
+		"@vitest/coverage-v8",
+		"@testing-library/jest-dom",
+		"@testing-library/svelte",
+		"@testing-library/user-event",
+		"jsdom",
+		"eslint",
+		"prettier",
+		"typescript",
+		"svelte-check"
+	]
+}
+

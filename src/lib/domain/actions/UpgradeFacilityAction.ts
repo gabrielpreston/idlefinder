@@ -39,7 +39,7 @@ function hasEnoughGoldRequirement(cost: number): Requirement {
 		if (gold < cost) {
 			return {
 				satisfied: false,
-				reason: `Insufficient gold: need ${cost}, have ${gold}`
+				reason: `Insufficient gold: need ${String(cost)}, have ${String(gold)}`
 			};
 		}
 		return { satisfied: true };
@@ -58,7 +58,7 @@ function facilityTierRequirement(facilityId: string, expectedTier: number): Requ
 		if (facility.attributes.tier !== expectedTier) {
 			return {
 				satisfied: false,
-				reason: `Facility ${facilityId} tier mismatch: expected ${expectedTier}, got ${facility.attributes.tier}`
+				reason: `Facility ${facilityId} tier mismatch: expected ${String(expectedTier)}, got ${String(facility.attributes.tier)}`
 			};
 		}
 		return { satisfied: true };
@@ -101,7 +101,8 @@ export class UpgradeFacilityAction extends Action {
 		context: RequirementContext,
 		_params: Record<string, unknown>
 	): Effect[] {
-		const facility = context.entities.get(this.facilityId) as Facility;
+		// Facility existence is guaranteed by requirements check
+		const facility = context.entities.get(this.facilityId) as Facility | undefined;
 		if (!facility) {
 			throw new Error(`Facility ${this.facilityId} not found`);
 		}
@@ -110,9 +111,9 @@ export class UpgradeFacilityAction extends Action {
 		const cost = costFor(newTier);
 
 		// Verify we have enough gold
-		const currentGold = context.resources.get('gold') || 0;
+		const currentGold = context.resources.get('gold');
 		if (currentGold < cost) {
-			throw new Error(`Insufficient gold: need ${cost}, have ${currentGold}`);
+			throw new Error(`Insufficient gold: need ${String(cost)}, have ${String(currentGold)}`);
 		}
 
 		return [
@@ -129,8 +130,7 @@ export class UpgradeFacilityAction extends Action {
 		_effects: Effect[],
 		_params: Record<string, unknown>
 	): DomainEvent[] {
-		const facility = entities.get(this.facilityId) as Facility;
-
+		const facility = entities.get(this.facilityId) as Facility | undefined;
 		if (!facility) {
 			return [];
 		}

@@ -16,7 +16,7 @@ import { GameConfig } from '../config/GameConfig';
 /**
  * Mission name templates by type and tier
  */
-const MISSION_NAME_TEMPLATES: Record<string, string[]> = {
+const MISSION_NAME_TEMPLATES: Partial<Record<string, string[]>> = {
 	'combat_tier_0': ['Patrol Village', 'Guard Post', 'Clear Bandits', 'Defend Outpost'],
 	'exploration_tier_0': ['Scout Forest', 'Map Region', 'Explore Ruins', 'Survey Territory'],
 	'investigation_tier_0': ['Gather Information', 'Question Locals', 'Search Archives', 'Investigate Rumors'],
@@ -84,8 +84,10 @@ function randomElement<T>(array: T[]): T {
  * Generate mission name from templates
  */
 function generateMissionName(missionType: string, tier: number): string {
-	const key = `${missionType}_tier_${tier}`;
-	const templates = MISSION_NAME_TEMPLATES[key] || MISSION_NAME_TEMPLATES[`${missionType}_tier_0`] || [`${missionType} Mission`];
+	const key = `${missionType}_tier_${String(tier)}`;
+	const tierTemplates = MISSION_NAME_TEMPLATES[key];
+	const fallbackTemplates = MISSION_NAME_TEMPLATES[`${missionType}_tier_0`];
+	const templates = tierTemplates ?? fallbackTemplates ?? [`${missionType} Mission`];
 	return randomElement(templates);
 }
 
@@ -104,17 +106,18 @@ export function generateMissionPool(state: GameState, countPerTier: number = 3, 
 	const unlockedTiers = getUnlockedMissionTiers(state);
 	
 	// Generate missions for each unlocked tier
-	for (const tier of unlockedTiers) {
+		for (const tier of unlockedTiers) {
 		for (let i = 0; i < countPerTier; i++) {
 			// Generate unique mission ID
-			const missionId = `mission-${tier}-${randomElement(MISSION_TYPES)}-${crypto.randomUUID()}`;
+			const missionId = `mission-${String(tier)}-${randomElement(MISSION_TYPES)}-${crypto.randomUUID()}`;
 			const id = Identifier.from<'MissionId'>(missionId);
 			
 			// Select random mission type
 			const missionType = randomElement(MISSION_TYPES);
 			
 			// Select primary ability based on mission type
-			const abilityOptions = MISSION_TYPE_ABILITIES[missionType] || ['str'];
+			// missionType is guaranteed to be a key in MISSION_TYPE_ABILITIES
+			const abilityOptions = MISSION_TYPE_ABILITIES[missionType];
 			const primaryAbility = randomElement(abilityOptions);
 			
 			// Calculate DC using GameConfig

@@ -26,9 +26,9 @@ export function allocateMissionsByDoctrine(
 	// Filter missions by doctrine preferences
 	const filteredMissions = availableMissions.filter((mission) => {
 		// Filter by preferred mission types if specified
-		if (doctrine.attributes.preferredMissionTypes && 
-		    doctrine.attributes.preferredMissionTypes.length > 0) {
-			if (!doctrine.attributes.preferredMissionTypes.includes(mission.attributes.missionType)) {
+		const preferredTypes = doctrine.attributes.preferredMissionTypes;
+		if (preferredTypes && preferredTypes.length > 0) {
+			if (!preferredTypes.includes(mission.attributes.missionType)) {
 				return false;
 			}
 		}
@@ -115,19 +115,20 @@ function scoreMission(mission: Mission, doctrine: MissionDoctrine): number {
 
 	// Score based on focus
 	if (focus === 'gold') {
-		score += (mission.attributes.baseRewards?.gold || 0) * 10;
+		score += mission.attributes.baseRewards.gold * 10;
 	} else if (focus === 'xp') {
-		score += (mission.attributes.baseRewards?.xp || 0) * 10;
+		score += mission.attributes.baseRewards.xp * 10;
 	} else if (focus === 'materials') {
 		// Materials reward (if available)
-		score += (mission.attributes.baseRewards?.materials || 0) * 10;
-	} else if (focus === 'balanced') {
-		score += ((mission.attributes.baseRewards?.gold || 0) + 
-		         (mission.attributes.baseRewards?.xp || 0) * 2) * 5;
+		score += (mission.attributes.baseRewards.materials ?? 0) * 10;
+	} else {
+		// focus === 'balanced' (only remaining value)
+		score += (mission.attributes.baseRewards.gold + 
+		         mission.attributes.baseRewards.xp * 2) * 5;
 	}
 
 	// Score based on risk tolerance
-	const dc = mission.attributes.dc || 15; // Default DC
+	const dc = mission.attributes.dc;
 	if (riskTolerance === 'low') {
 		// Prefer easier missions (lower DC)
 		score += (20 - dc) * 5;
@@ -135,6 +136,7 @@ function scoreMission(mission: Mission, doctrine: MissionDoctrine): number {
 		// Prefer harder missions (higher DC)
 		score += dc * 5;
 	} else {
+		// riskTolerance === 'medium' (only remaining value)
 		// Medium: balanced
 		score += 50;
 	}
@@ -156,7 +158,7 @@ function scoreAdventurerForMission(
 	}
 	
 	let score = 0;
-	const primaryAbility = mission.attributes.primaryAbility || 'str';
+	const primaryAbility = mission.attributes.primaryAbility;
 	
 	// Score based on primary ability
 	score += adventurer.attributes.abilityMods.get(primaryAbility) || 0;

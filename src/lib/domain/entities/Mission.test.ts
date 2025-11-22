@@ -31,7 +31,7 @@ describe('Mission', () => {
 		};
 
 		const metadata = overrides?.loreTags
-			? { ...(overrides?.metadata || {}), loreTags: overrides.loreTags }
+			? { ...(overrides.metadata || {}), loreTags: overrides.loreTags }
 			: overrides?.metadata || {};
 		return new Mission(
 			id,
@@ -176,7 +176,7 @@ describe('Mission', () => {
 			const startedAt = Timestamp.from(Date.now());
 			const endsAt = Timestamp.from(Date.now() + 60000);
 
-			expect(() => mission.start(startedAt, endsAt)).toThrow(
+			expect(() => { mission.start(startedAt, endsAt); }).toThrow(
 				'Cannot start mission: mission state is InProgress'
 			);
 		});
@@ -186,14 +186,14 @@ describe('Mission', () => {
 			const startedAt = Timestamp.from(Date.now() + 60000);
 			const endsAt = Timestamp.from(Date.now());
 
-			expect(() => mission.start(startedAt, endsAt)).toThrow(/Invalid timer relationship/);
+			expect(() => { mission.start(startedAt, endsAt); }).toThrow(/Invalid timer relationship/);
 		});
 
 		it('should throw error if endsAt equals startedAt', () => {
 			const mission = createMission({ state: 'Available' });
 			const timestamp = Timestamp.from(Date.now());
 
-			expect(() => mission.start(timestamp, timestamp)).toThrow(/Invalid timer relationship/);
+			expect(() => { mission.start(timestamp, timestamp); }).toThrow(/Invalid timer relationship/);
 		});
 	});
 
@@ -222,7 +222,7 @@ describe('Mission', () => {
 			const mission = createMission({ state: 'Available' });
 			const completedAt = Timestamp.from(Date.now());
 
-			expect(() => mission.complete(completedAt)).toThrow(
+			expect(() => { mission.complete(completedAt); }).toThrow(
 				'Cannot complete mission: mission state is Available'
 			);
 		});
@@ -248,7 +248,7 @@ describe('Mission', () => {
 		it('should throw error if mission is Completed', () => {
 			const mission = createMission({ state: 'Completed' });
 
-			expect(() => mission.expire()).toThrow('Cannot expire completed mission');
+			expect(() => { mission.expire(); }).toThrow('Cannot expire completed mission');
 		});
 	});
 

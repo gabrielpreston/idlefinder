@@ -156,7 +156,7 @@ describe('StartCraftingAction', () => {
 			const effects: Effect[] = [];
 
 			const action = new StartCraftingAction('nonexistent-job', Duration.ofMinutes(5));
-			const events = action.generateEvents(entities, resources, effects, {});
+			const events = action.generateEvents(entities as Map<string, Entity>, resources, effects, {});
 
 			expect(events).toEqual([]);
 		});

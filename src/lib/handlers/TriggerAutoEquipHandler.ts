@@ -5,6 +5,7 @@
 
 import type { CommandHandler, CommandHandlerContext } from '../bus/CommandBus';
 import type { TriggerAutoEquipCommand, DomainEvent } from '../bus/types';
+import { validateCommand } from '../bus/commandValidation';
 import { GameState } from '../domain/entities/GameState';
 import { autoEquip } from '../domain/systems/AutoEquipSystem';
 import { applyEffects } from '../domain/primitives/Effect';
@@ -21,6 +22,26 @@ export function createTriggerAutoEquipHandler(): CommandHandler<TriggerAutoEquip
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('TriggerAutoEquip', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'TriggerAutoEquip',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as TriggerAutoEquipCommand;
+
 		// Find AutoEquipRules entity
 		let rulesEntity: AutoEquipRules | undefined;
 		for (const entity of state.entities.values()) {
@@ -44,8 +65,8 @@ export function createTriggerAutoEquipHandler(): CommandHandler<TriggerAutoEquip
 			.map((e) => e as Item);
 
 		// Get adventurers to equip
-		const adventurersToEquip = payload.adventurerId
-			? [state.entities.get(payload.adventurerId) as Adventurer].filter(Boolean)
+		const adventurersToEquip = validatedPayload.adventurerId
+			? [state.entities.get(validatedPayload.adventurerId) as Adventurer].filter(Boolean)
 			: Array.from(state.entities.values())
 				.filter((e) => e.type === 'Adventurer')
 				.map((e) => e as Adventurer);
@@ -102,10 +123,10 @@ export function createTriggerAutoEquipHandler(): CommandHandler<TriggerAutoEquip
 			currentResources
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events: allEvents
-		};
+		});
 	};
 }
 

@@ -60,8 +60,8 @@ export function withMultipleAdventurers(count: number = 5): GameState {
 	const adventurers: Adventurer[] = [];
 	for (let i = 0; i < count; i++) {
 		adventurers.push(createTestAdventurer({ 
-			id: `adv-${i + 1}`, 
-			name: `Adventurer ${i + 1}`,
+			id: `adv-${String(i + 1)}`, 
+			name: `Adventurer ${String(i + 1)}`,
 			state: i % 2 === 0 ? 'Idle' : 'OnMission',
 			level: i + 1
 		}));

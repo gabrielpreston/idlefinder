@@ -9,16 +9,37 @@ import { GameState } from '../domain/entities/GameState';
 import { SalvageItemAction } from '../domain/actions/SalvageItemAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create SalvageItem command handler using Actions
  */
 export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, GameState> {
-	return async function(
+	return function(
 		payload: SalvageItemCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('SalvageItem', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'SalvageItem',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as SalvageItemCommand;
+
 		// Create requirement context
 		const requirementContext: RequirementContext = {
 			entities: state.entities,
@@ -28,18 +49,18 @@ export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, G
 
 		// Create action
 		const action = new SalvageItemAction(
-			payload.itemId,
-			payload.materialsAmount
+			validatedPayload.itemId,
+			validatedPayload.materialsAmount
 		);
 
 		// Execute action (validates requirements, computes effects)
 		const actionResult = action.execute(requirementContext, {
-			itemId: payload.itemId,
-			materialsAmount: payload.materialsAmount
+			itemId: validatedPayload.itemId,
+			materialsAmount: validatedPayload.materialsAmount
 		});
 
 		if (!actionResult.success) {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -51,7 +72,7 @@ export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, G
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Apply effects
@@ -71,15 +92,15 @@ export function createSalvageItemHandler(): CommandHandler<SalvageItemCommand, G
 			effectResult.resources,
 			actionResult.effects,
 			{
-				itemId: payload.itemId,
-				materialsAmount: payload.materialsAmount
+				itemId: validatedPayload.itemId,
+				materialsAmount: validatedPayload.materialsAmount
 			}
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events
-		};
+		});
 	};
 }
 

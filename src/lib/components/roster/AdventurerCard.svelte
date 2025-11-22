@@ -2,20 +2,21 @@
 	import Card from '../ui/Card.svelte';
 	import Badge from '../ui/Badge.svelte';
 	import XPProgressBar from './XPProgressBar.svelte';
-	import { getPathfinderClass, getPathfinderAncestry } from '$lib/domain/data/pathfinder';
+	import { getPathfinderClass, getPathfinderAncestry, type PathfinderClassKey, type PathfinderAncestryKey } from '$lib/domain/data/pathfinder';
 	import type { Adventurer } from '$lib/domain/entities/Adventurer';
 
 	export let adventurer: Adventurer;
 	export let expanded: boolean = false;
 	export let onClick: () => void = () => {};
 
-	$: className = getPathfinderClass(adventurer.attributes.classKey as any)?.name || adventurer.attributes.classKey;
-	$: ancestryName = getPathfinderAncestry(adventurer.attributes.ancestryKey as any)?.name || adventurer.attributes.ancestryKey;
-	$: displayName = adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${adventurer.id.slice(0, 8)}`;
+	$: className = getPathfinderClass(adventurer.attributes.classKey as PathfinderClassKey)?.name || adventurer.attributes.classKey;
+	$: ancestryName = getPathfinderAncestry(adventurer.attributes.ancestryKey as PathfinderAncestryKey)?.name || adventurer.attributes.ancestryKey;
+	$: displayName = adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${String(adventurer.id.slice(0, 8))}`;
 	
-	$: stateVariant = adventurer.state === 'Idle' ? 'success' : 
-	                  adventurer.state === 'OnMission' ? 'primary' : 
-	                  adventurer.state === 'Fatigued' ? 'warning' : 'default';
+	$: stateVariant = 
+		adventurer.state === 'Idle' ? 'success' : 
+		adventurer.state === 'OnMission' ? 'primary' : 
+		adventurer.state === 'Fatigued' ? 'warning' : 'default';
 </script>
 
 <div 
@@ -36,7 +37,7 @@
 >
 	<div slot="header" class="card-header">
 		<h4 class="adventurer-name">{displayName}</h4>
-		<Badge variant="primary" size="small">Level {adventurer.attributes.level}</Badge>
+		<Badge variant="primary" size="small">Level {String(adventurer.attributes.level)}</Badge>
 	</div>
 	
 	<div class="card-body">

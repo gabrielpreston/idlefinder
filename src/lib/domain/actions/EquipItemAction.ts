@@ -108,9 +108,9 @@ export class EquipItemAction extends Action {
 		params: Record<string, unknown>
 	): Effect[] {
 		const equipParams = params as unknown as EquipItemParams;
-		const itemId = equipParams?.itemId ?? this.itemId;
-		const adventurerId = equipParams?.adventurerId ?? this.adventurerId;
-		const slot = equipParams?.slot ?? this.slot;
+		const itemId = equipParams.itemId;
+		const adventurerId = equipParams.adventurerId;
+		const slot = equipParams.slot;
 
 		return [new EquipItemEffect(itemId, adventurerId, slot)];
 	}
@@ -119,15 +119,10 @@ export class EquipItemAction extends Action {
 		entities: Map<string, Entity>,
 		_resources: ResourceBundle,
 		_effects: Effect[],
-		params: Record<string, unknown>
+		_params: Record<string, unknown>
 	): DomainEvent[] {
-		const equipParams = params as unknown as EquipItemParams;
-		const itemId = equipParams?.itemId ?? this.itemId;
-		const adventurerId = equipParams?.adventurerId ?? this.adventurerId;
-		const slot = equipParams?.slot ?? this.slot;
-
-		const item = entities.get(itemId) as Item | undefined;
-		const adventurer = entities.get(adventurerId) as Adventurer | undefined;
+		const item = entities.get(this.itemId) as Item | undefined;
+		const adventurer = entities.get(this.adventurerId) as Adventurer | undefined;
 
 		if (!item || !adventurer) {
 			return [];
@@ -137,9 +132,9 @@ export class EquipItemAction extends Action {
 			{
 				type: 'ItemEquipped',
 				payload: {
-					itemId,
-					adventurerId,
-					slot
+					itemId: this.itemId,
+					adventurerId: this.adventurerId,
+					slot: this.slot
 				},
 				timestamp: new Date().toISOString()
 			}

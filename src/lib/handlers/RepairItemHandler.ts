@@ -9,16 +9,37 @@ import { GameState } from '../domain/entities/GameState';
 import { RepairItemAction } from '../domain/actions/RepairItemAction';
 import { applyEffects } from '../domain/primitives/Effect';
 import type { RequirementContext } from '../domain/primitives/Requirement';
+import { validateCommand } from '../bus/commandValidation';
 
 /**
  * Create RepairItem command handler using Actions
  */
 export function createRepairItemHandler(): CommandHandler<RepairItemCommand, GameState> {
-	return async function(
+	return function(
 		payload: RepairItemCommand,
 		state: GameState,
 		context: CommandHandlerContext
 	): Promise<{ newState: GameState; events: DomainEvent[] }> {
+		// Validate command payload using Zod
+		const validation = validateCommand('RepairItem', payload);
+		if (!validation.success) {
+			return Promise.resolve({
+				newState: state,
+				events: [
+					{
+						type: 'CommandFailed',
+						payload: {
+							commandType: 'RepairItem',
+							reason: validation.error
+						},
+						timestamp: new Date().toISOString()
+					}
+				]
+			});
+		}
+
+		const validatedPayload = validation.data as RepairItemCommand;
+
 		// Create requirement context
 		const requirementContext: RequirementContext = {
 			entities: state.entities,
@@ -27,15 +48,15 @@ export function createRepairItemHandler(): CommandHandler<RepairItemCommand, Gam
 		};
 
 		// Create action
-		const action = new RepairItemAction(payload.itemId);
+		const action = new RepairItemAction(validatedPayload.itemId);
 
 		// Execute action (validates requirements, computes effects)
 		const actionResult = action.execute(requirementContext, {
-			itemId: payload.itemId
+			itemId: validatedPayload.itemId
 		});
 
 		if (!actionResult.success) {
-			return {
+			return Promise.resolve({
 				newState: state,
 				events: [
 					{
@@ -47,7 +68,7 @@ export function createRepairItemHandler(): CommandHandler<RepairItemCommand, Gam
 						timestamp: new Date().toISOString()
 					}
 				]
-			};
+			});
 		}
 
 		// Apply effects
@@ -67,14 +88,14 @@ export function createRepairItemHandler(): CommandHandler<RepairItemCommand, Gam
 			effectResult.resources,
 			actionResult.effects,
 			{
-				itemId: payload.itemId
+				itemId: validatedPayload.itemId
 			}
 		);
 
-		return {
+		return Promise.resolve({
 			newState,
 			events
-		};
+		});
 	};
 }
 

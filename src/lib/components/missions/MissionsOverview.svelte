@@ -19,7 +19,7 @@
 			<div class="capacity-header">
 				<span class="capacity-label">Mission Capacity</span>
 				<span class="capacity-value">
-					{capacity?.current ?? 0} / {capacity?.max ?? 0}
+					{String(capacity?.current ?? 0)} / {String(capacity?.max ?? 0)}
 				</span>
 			</div>
 			{#if capacity}
@@ -94,7 +94,7 @@
 			<StatCard 
 				label="Doctrine" 
 				value={doctrine.attributes.focus}
-				subtitle={`Risk: ${doctrine.attributes.riskTolerance}`}
+				subtitle={`Risk: ${String(doctrine.attributes.riskTolerance)}`}
 			/>
 		{/if}
 	</div>
@@ -104,7 +104,7 @@
 			<h4>Recent Activity</h4>
 			<div class="recent-missions">
 				{#each recent as mission (mission.id)}
-					{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id.slice(0, 8)}`}
+					{@const missionName = (mission.metadata.name as string) || `Mission ${String(mission.id.slice(0, 8))}`}
 					{@const completedAt = mission.timers['completedAt'] ? new Date(mission.timers['completedAt']).toLocaleString() : 'Unknown'}
 					<div 
 						class="recent-mission-item" 

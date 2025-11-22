@@ -11,7 +11,7 @@
 	export let expanded: boolean = false;
 	export let onClick: () => void = () => {};
 
-	$: missionName = (mission.metadata.name as string) || `Mission ${mission.id.slice(0, 8)}`;
+	$: missionName = (mission.metadata.name as string) || `Mission ${String(mission.id.slice(0, 8))}`;
 	$: stateVariant = mission.state === 'Available' ? 'success' : 
 	                  mission.state === 'InProgress' ? 'primary' : 
 	                  mission.state === 'Completed' ? 'default' : 'warning';
@@ -65,9 +65,9 @@
 				<Badge variant="default" size="small">
 					{mission.attributes.missionType}
 				</Badge>
-				<span class="difficulty">DC {mission.attributes.dc}</span>
+				<span class="difficulty">DC {String(mission.attributes.dc)}</span>
 				<span class="separator">•</span>
-				<span class="duration">{Math.floor(duration / 1000)}s</span>
+				<span class="duration">{String(Math.floor(duration / 1000))}s</span>
 			</div>
 		</div>
 		
@@ -77,16 +77,16 @@
 				<div class="rewards-section">
 					<div class="reward-item">
 						<span class="reward-icon">💰</span>
-						<span class="reward-value">{mission.attributes.baseRewards.gold}g</span>
+						<span class="reward-value">{String(mission.attributes.baseRewards.gold)}g</span>
 					</div>
 					<div class="reward-item">
 						<span class="reward-icon">⭐</span>
-						<span class="reward-value">{mission.attributes.baseRewards.xp} XP</span>
+						<span class="reward-value">{String(mission.attributes.baseRewards.xp)} XP</span>
 					</div>
 					{#if mission.attributes.baseRewards.fame}
 						<div class="reward-item">
 							<span class="reward-icon">🏆</span>
-							<span class="reward-value">{mission.attributes.baseRewards.fame}</span>
+							<span class="reward-value">{String(mission.attributes.baseRewards.fame)}</span>
 						</div>
 					{/if}
 				</div>
@@ -105,7 +105,7 @@
 							<span class="adventurer-label">Assigned:</span>
 							{#each assignedAdventurers as adventurer}
 								<span class="adventurer-name-small">
-									{adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${adventurer.id.slice(0, 8)}`}
+									{adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${String(adventurer.id.slice(0, 8))}`}
 								</span>
 							{/each}
 						</div>
@@ -121,10 +121,10 @@
 						</div>
 					{/if}
 					<div class="rewards-section">
-						<span class="reward-value">{mission.attributes.baseRewards.gold}g</span>
-						<span class="reward-value">{mission.attributes.baseRewards.xp} XP</span>
+						<span class="reward-value">{String(mission.attributes.baseRewards.gold)}g</span>
+						<span class="reward-value">{String(mission.attributes.baseRewards.xp)} XP</span>
 						{#if mission.attributes.baseRewards.fame}
-							<span class="reward-value">{mission.attributes.baseRewards.fame} Fame</span>
+							<span class="reward-value">{String(mission.attributes.baseRewards.fame)} Fame</span>
 						{/if}
 					</div>
 				</div>

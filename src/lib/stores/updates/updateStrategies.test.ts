@@ -15,8 +15,10 @@ import { createContinuousTimeSource } from '../time/timeSource';
 
 // Mock requestAnimationFrame for Node environment
 beforeEach(() => {
-	global.requestAnimationFrame = vi.fn((cb) => {
-		setTimeout(cb, 16); // ~60fps
+	global.requestAnimationFrame = vi.fn((cb: FrameRequestCallback): number => {
+		setTimeout(() => {
+			cb(performance.now());
+		}, 16); // ~60fps
 		return 1;
 	}) as unknown as typeof requestAnimationFrame;
 

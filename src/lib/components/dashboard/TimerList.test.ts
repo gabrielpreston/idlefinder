@@ -37,8 +37,8 @@ describe('TimerList', () => {
 
 	it('should limit display to 10 timers', () => {
 		const timers: TimerInfo[] = Array.from({ length: 15 }, (_, i) => ({
-			id: `timer-${i}`,
-			label: `Timer ${i}`,
+			id: `timer-${String(i)}`,
+			label: `Timer ${String(i)}`,
 			timeRemaining: 60000,
 			type: 'mission' as const
 		}));

@@ -45,9 +45,12 @@ export class CraftingQueue implements Entity {
 			? { ...metadata, loreTags: [...metadata.loreTags] }
 			: { ...metadata }; // Create copy
 
-		// Initialize queue array in metadata if not present
+		// Initialize queue and activeJobs arrays in metadata if not present
 		if (!this.metadata.queue) {
 			this.metadata.queue = [];
+		}
+		if (!this.metadata.activeJobs) {
+			this.metadata.activeJobs = [];
 		}
 	}
 
@@ -55,7 +58,7 @@ export class CraftingQueue implements Entity {
 	 * Get queue of job IDs
 	 */
 	getQueue(): string[] {
-		return (this.metadata.queue as string[]) || [];
+		return this.metadata.queue as string[];
 	}
 
 	/**
@@ -83,7 +86,7 @@ export class CraftingQueue implements Entity {
 	 * Get active job IDs (jobs in progress)
 	 */
 	getActiveJobIds(): string[] {
-		return (this.metadata.activeJobs as string[]) || [];
+		return this.metadata.activeJobs as string[];
 	}
 
 	/**

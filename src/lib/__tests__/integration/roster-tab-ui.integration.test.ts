@@ -11,6 +11,7 @@ import { cleanupStores } from '../../test-utils/storeCleanup';
 import { withThreeAdventurers, withMultipleAdventurers } from '../../test-utils/fixtures/rosterPanelFixture';
 import { adventurerBuilder } from '../../test-utils/builders/adventurerBuilder';
 import { initializeCommandDispatcherForTesting } from '../../test-utils/commandTestHelpers';
+import { getSelectByLabel, getInputByLabel } from '../../test-utils/domTestHelpers';
 
 describe('Roster Tab UI Integration', () => {
 	beforeEach(async () => {
@@ -25,7 +26,7 @@ describe('Roster Tab UI Integration', () => {
 		vi.useRealTimers();
 	});
 
-	it('should render RosterPanel with heading', async () => {
+	it('should render RosterPanel with heading', () => {
 		render(RosterPanel);
 		expect(screen.getByText('Adventurer Roster')).toBeInTheDocument();
 	});
@@ -68,7 +69,7 @@ describe('Roster Tab UI Integration', () => {
 		vi.useRealTimers();
 		
 		// Find and change state filter to 'OnMission'
-		const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
+		const stateFilter = getSelectByLabel(/state/i);
 		expect(stateFilter).toBeInTheDocument();
 		
 		// Use direct DOM manipulation (same pattern as passing tests)
@@ -133,7 +134,7 @@ describe('Roster Tab UI Integration', () => {
 		});
 		
 		// Find and change sort to 'level'
-		const sortSelect = screen.getByLabelText(/sort/i) as HTMLSelectElement;
+		const sortSelect = getSelectByLabel(/sort/i);
 		expect(sortSelect).toBeInTheDocument();
 		
 		// Change sort value
@@ -225,7 +226,7 @@ describe('Roster Tab UI Integration', () => {
 				expect(screen.getByText('Adventurer Roster')).toBeInTheDocument();
 			});
 			
-			const roleFilter = screen.getByLabelText(/role/i) as HTMLSelectElement;
+			const roleFilter = getSelectByLabel(/role/i);
 			expect(roleFilter).toBeInTheDocument();
 			
 			roleFilter.value = 'martial_frontliner';
@@ -247,7 +248,7 @@ describe('Roster Tab UI Integration', () => {
 				expect(screen.getByText('Adventurer Roster')).toBeInTheDocument();
 			});
 			
-			const roleFilter = screen.getByLabelText(/role/i) as HTMLSelectElement;
+			const roleFilter = getSelectByLabel(/role/i);
 			const roles = ['all', 'martial_frontliner', 'support_caster', 'utility_caster', 'ranged_combatant', 'skill_specialist'];
 			
 			for (const role of roles) {
@@ -272,7 +273,7 @@ describe('Roster Tab UI Integration', () => {
 				expect(screen.getByText('Bob')).toBeInTheDocument();
 			});
 			
-			const searchInput = screen.getByLabelText(/search/i) as HTMLInputElement;
+			const searchInput = getInputByLabel(/search/i);
 			searchInput.value = 'Bob';
 			searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 			
@@ -299,9 +300,9 @@ describe('Roster Tab UI Integration', () => {
 				expect(screen.getByText('Fighter')).toBeInTheDocument();
 			});
 			
-			const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
-			const roleFilter = screen.getByLabelText(/role/i) as HTMLSelectElement;
-			const searchInput = screen.getByLabelText(/search/i) as HTMLInputElement;
+			const stateFilter = getSelectByLabel(/state/i);
+			const roleFilter = getSelectByLabel(/role/i);
+			const searchInput = getInputByLabel(/search/i);
 			
 			stateFilter.value = 'Idle';
 			stateFilter.dispatchEvent(new Event('change', { bubbles: true }));
@@ -328,7 +329,7 @@ describe('Roster Tab UI Integration', () => {
 				expect(screen.getByText('Adventurer Roster')).toBeInTheDocument();
 			});
 			
-			const sortSelect = screen.getByLabelText(/sort/i) as HTMLSelectElement;
+			const sortSelect = getSelectByLabel(/sort/i);
 			const sortOptions = ['level', 'xp', 'name', 'state'];
 			
 			for (const sortOption of sortOptions) {
@@ -355,7 +356,7 @@ describe('Roster Tab UI Integration', () => {
 			});
 			
 			// Set filter that matches nothing
-			const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
+			const stateFilter = getSelectByLabel(/state/i);
 			stateFilter.value = 'Fatigued';
 			stateFilter.dispatchEvent(new Event('change', { bubbles: true }));
 			
@@ -381,7 +382,7 @@ describe('Roster Tab UI Integration', () => {
 			});
 			
 			// Sort by level (descending)
-			const sortSelect = screen.getByLabelText(/sort/i) as HTMLSelectElement;
+			const sortSelect = getSelectByLabel(/sort/i);
 			sortSelect.value = 'level';
 			sortSelect.dispatchEvent(new Event('change', { bubbles: true }));
 			
@@ -410,9 +411,9 @@ describe('Roster Tab UI Integration', () => {
 			});
 			
 			// Apply multiple filters
-			const stateFilter = screen.getByLabelText(/state/i) as HTMLSelectElement;
-			const roleFilter = screen.getByLabelText(/role/i) as HTMLSelectElement;
-			const searchInput = screen.getByLabelText(/search/i) as HTMLInputElement;
+			const stateFilter = getSelectByLabel(/state/i);
+			const roleFilter = getSelectByLabel(/role/i);
+			const searchInput = getInputByLabel(/search/i);
 			
 			stateFilter.value = 'Idle';
 			stateFilter.dispatchEvent(new Event('change', { bubbles: true }));

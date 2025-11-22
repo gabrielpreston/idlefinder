@@ -88,7 +88,7 @@ describe('RefreshRecruitPoolHandler Integration', () => {
 				const payload = failedEvent.payload as { commandType: string; reason: string };
 				expect(payload.commandType).toBe('RefreshRecruitPool');
 				expect(payload.reason).toContain('Insufficient gold');
-				expect(payload.reason).toContain(`need ${refreshCost}`);
+				expect(payload.reason).toContain(`need ${String(refreshCost)}`);
 			}
 
 			// Verify state unchanged - no gold deducted

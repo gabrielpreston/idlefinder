@@ -183,7 +183,7 @@ export function getActiveCraftingTimers(state: GameState, now: number): Crafting
 
 	for (const jobId of activeJobIds) {
 		const job = state.entities.get(jobId) as CraftingJob | undefined;
-		if (!job || job.type !== 'CraftingJob') {
+		if (!job) {
 			continue;
 		}
 

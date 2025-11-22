@@ -155,7 +155,7 @@ export function isMissionTierUnlocked(
 	tier: number,
 	state: GameState
 ): boolean {
-	return isGateUnlocked(`mission_tier_${tier}`, state);
+	return isGateUnlocked(`mission_tier_${String(tier)}`, state);
 }
 
 /**
@@ -178,13 +178,13 @@ export function canUpgradeFacilityToTier(
 	const normalizedFacilityType = facilityType.toLowerCase();
 	
 	// Check facility-specific gate first (e.g., 'guildhall_tier_2')
-	const facilitySpecificGateId = `${normalizedFacilityType}_tier_${targetTier}`;
+	const facilitySpecificGateId = `${normalizedFacilityType}_tier_${String(targetTier)}`;
 	if (isGateUnlocked(facilitySpecificGateId, state)) {
 		return true;
 	}
 
 	// Fallback to generic gate if facility-specific not found (temporary during transition)
-	return isGateUnlocked(`facility_tier_${targetTier}`, state);
+	return isGateUnlocked(`facility_tier_${String(targetTier)}`, state);
 }
 
 /**

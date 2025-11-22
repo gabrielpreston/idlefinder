@@ -7,12 +7,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BusManager } from '../../bus/BusManager';
 import { registerHandlers } from '../../handlers/index';
 import { createTestGameState, createTestCommand, createTestResourceBundle, setupMockLocalStorage, createTestMission } from '../../test-utils';
+import { requireGuildHall, findAvailableMissions, findAdventurerById } from '../../test-utils/entityTestHelpers';
+import { isMission, isAdventurer } from '../../domain/primitives/EntityTypeGuards';
 import type { DomainEvent } from '../../bus/types';
 import { SimulatedTimeSource } from '../../time/DomainTimeSource';
 import { Timestamp } from '../../domain/valueObjects/Timestamp';
 import { GameConfig } from '../../domain/config/GameConfig';
 import { calculateFacilityUpgradeCost } from '../../domain/queries/CostQueries';
-import type { Facility } from '../../domain/entities/Facility';
 // Import gating module to ensure gates are registered
 import '../../domain/gating';
 
@@ -29,19 +30,11 @@ describe('Player Journey Integration', () => {
 		
 		// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
 		// This allows recruitment in tests
-		const guildhall = Array.from(initialState.entities.values()).find(
-			(e) =>
-				e.type === 'Facility' &&
-				(e as Facility).attributes.facilityType === 'Guildhall'
-		) as Facility;
-		if (guildhall) {
-			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
-		}
+		const guildhall = requireGuildHall(initialState);
+		guildhall.upgrade(); // Upgrades from tier 0 to tier 1
 		
 		// Ensure we have at least one available mission
-		const existingMissions = Array.from(initialState.entities.values()).filter(
-			e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-		);
+		const existingMissions = findAvailableMissions(initialState);
 		if (existingMissions.length === 0) {
 			// Add test missions if none exist
 			const testMission1 = createTestMission({ id: 'test-mission-1', state: 'Available' });
@@ -57,35 +50,35 @@ describe('Player Journey Integration', () => {
 		busManager.domainEventBus.subscribe('AdventurerRecruited', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'AdventurerRecruited',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
 		busManager.domainEventBus.subscribe('MissionStarted', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'MissionStarted',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
 		busManager.domainEventBus.subscribe('MissionCompleted', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'MissionCompleted',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
 		busManager.domainEventBus.subscribe('FacilityUpgraded', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'FacilityUpgraded',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
 		busManager.domainEventBus.subscribe('ResourcesChanged', (payload: DomainEvent['payload']) => {
 			publishedEvents.push({
 				type: 'ResourcesChanged',
-				payload: payload as DomainEvent['payload'],
+				payload: payload,
 				timestamp: new Date().toISOString()
 			});
 		});
@@ -109,15 +102,17 @@ describe('Player Journey Integration', () => {
 			const adventurers = Array.from(state.entities.values()).filter(e => e.type === 'Adventurer');
 			// Initial state has 4 preview adventurers, so we should have 5 total
 			expect(adventurers.length).toBeGreaterThanOrEqual(5);
-			// Find the recruited adventurer by name
-			const recruitedAdventurer = adventurers.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Hero');
-			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+		// Find the recruited adventurer by name
+		const allAdventurers = Array.from(state.entities.values()).filter(isAdventurer);
+		const recruitedAdventurer = allAdventurers.find(a => a.metadata.name === 'Hero');
+		expect(recruitedAdventurer).toBeDefined();
+		if (!recruitedAdventurer) {
+			throw new Error('Recruited adventurer not found');
+		}
+			const adventurerId = recruitedAdventurer.id;
 
 			// 2. Start mission - get an available mission from the pool
-			const availableMissions = Array.from(state.entities.values()).filter(
-				e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-			) as import('../../domain/entities/Mission').Mission[];
+			const availableMissions = findAvailableMissions(state);
 			expect(availableMissions.length).toBeGreaterThan(0);
 			const missionId = availableMissions[0].id;
 
@@ -129,38 +124,39 @@ describe('Player Journey Integration', () => {
 			);
 
 			state = busManager.getState();
-			const missions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
-			// Initial state has missions in pool, so we should have at least 1 mission
-			expect(missions.length).toBeGreaterThan(0);
-			const startedMission = missions.find(m => m.id === missionId);
+			const startedMission = state.entities.get(missionId);
 			expect(startedMission).toBeDefined();
-			expect(startedMission?.state).toBe('InProgress');
-			const adventurer = Array.from(state.entities.values()).find(e => e.id === adventurerId) as import('../../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.state).toBe('OnMission');
+			if (startedMission && isMission(startedMission)) {
+				expect(startedMission.state).toBe('InProgress');
+			}
+			const adventurer = findAdventurerById(state, adventurerId);
+			expect(adventurer.state).toBe('OnMission');
 
 			// 3. Wait for mission completion (advance time)
+			if (!startedMission || !isMission(startedMission)) {
+				throw new Error('Mission not found');
+			}
 			const mission = startedMission;
-			expect(mission).toBeDefined();
-			const endsAtMs = mission?.timers['endsAt'];
+			const endsAtMs = mission.timers['endsAt'];
 			const elapsed = endsAtMs ? endsAtMs - Date.now() + 1000 : 61000; // Mission duration + buffer
 
 			// Advance time
 			vi.advanceTimersByTime(elapsed);
 
 			// Manually trigger tick handler to process mission completion
-			 
-			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
+			const handlers = busManager.tickBus.getHandlersForTesting();
+			const tickHandler = handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(Date.now()));
 			}
 
 			// 4. Verify mission completed and rewards applied
 			state = busManager.getState();
-			const finalMissions = Array.from(state.entities.values()).filter(e => e.type === 'Mission') as import('../../domain/entities/Mission').Mission[];
-			const completedMission = finalMissions.find(m => m.id === missionId);
+			const completedMission = state.entities.get(missionId);
 			expect(completedMission).toBeDefined();
-			expect(completedMission?.state).toBe('Completed');
+			if (completedMission && isMission(completedMission)) {
+				expect(completedMission.state).toBe('Completed');
+			}
 
 			// 5. Upgrade facility (if resources available)
 			state = busManager.getState();
@@ -204,17 +200,18 @@ describe('Player Journey Integration', () => {
 				createTestCommand('RecruitAdventurer', { name: 'Test', traits: [] })
 			);
 
-			const state1 = busManager.getState();
-			const adventurers1 = Array.from(state1.entities.values()).filter(e => e.type === 'Adventurer');
-			// Find the recruited adventurer by name
-			const recruitedAdventurer = adventurers1.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Test');
-			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+		const state1 = busManager.getState();
+		const allAdventurers1 = Array.from(state1.entities.values()).filter(isAdventurer);
+		// Find the recruited adventurer by name
+		const recruitedAdventurer = allAdventurers1.find(a => a.metadata.name === 'Test');
+		expect(recruitedAdventurer).toBeDefined();
+		if (!recruitedAdventurer) {
+			throw new Error('Recruited adventurer not found');
+		}
+			const adventurerId = recruitedAdventurer.id;
 
 			// Get an available mission from the mission pool
-			const availableMissions = Array.from(state1.entities.values()).filter(
-				e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-			) as import('../../domain/entities/Mission').Mission[];
+			const availableMissions = findAvailableMissions(state1);
 			// If no missions available, create one for this test
 			let missionId: string;
 			if (availableMissions.length === 0) {
@@ -234,22 +231,17 @@ describe('Player Journey Integration', () => {
 			);
 
 			const state2 = busManager.getState();
-			const adventurers2 = Array.from(state2.entities.values()).filter(e => e.type === 'Adventurer');
-			const missions2 = Array.from(state2.entities.values()).filter(e => e.type === 'Mission');
 
 			// Verify adventurer still exists and is updated
-			// Initial state has 4 preview adventurers, so we should have 5 total
-			expect(adventurers2.length).toBeGreaterThanOrEqual(5);
-			const adventurer = adventurers2.find(a => a.id === adventurerId) as import('../../domain/entities/Adventurer').Adventurer;
-			expect(adventurer).toBeDefined();
-			expect(adventurer?.id).toBe(adventurerId);
-			expect(adventurer?.state).toBe('OnMission');
-			// Initial state has missions in pool, so we should have at least 1 mission (the started one)
-			expect(missions2.length).toBeGreaterThanOrEqual(1);
-			// Verify the started mission is in progress
-			const startedMission = missions2.find(m => (m as import('../../domain/entities/Mission').Mission).id === missionId) as import('../../domain/entities/Mission').Mission;
-			expect(startedMission).toBeDefined();
-			expect(startedMission?.state).toBe('InProgress');
+			const adventurer = findAdventurerById(state2, adventurerId);
+			expect(adventurer.id).toBe(adventurerId);
+			expect(adventurer.state).toBe('OnMission');
+		// Verify the started mission is in progress
+		const startedMission = state2.entities.get(missionId);
+		expect(startedMission).toBeDefined();
+		if (startedMission && isMission(startedMission)) {
+			expect(startedMission.state).toBe('InProgress');
+		}
 		});
 
 		it('should accumulate resources correctly', async () => {
@@ -262,19 +254,11 @@ describe('Player Journey Integration', () => {
 			
 			// Upgrade Guild Hall to tier 1 to unlock roster_capacity_1 gate (capacity = 1)
 			// This allows recruitment in tests
-			const guildhall = Array.from(initialState.entities.values()).find(
-				(e) =>
-					e.type === 'Facility' &&
-					(e as Facility).attributes.facilityType === 'Guildhall'
-			) as Facility;
-			if (guildhall) {
-				guildhall.upgrade(); // Upgrades from tier 0 to tier 1
-			}
+			const guildhall = requireGuildHall(initialState);
+			guildhall.upgrade(); // Upgrades from tier 0 to tier 1
 			
 			// Ensure we have at least one available mission
-			const existingMissions = Array.from(initialState.entities.values()).filter(
-				e => e.type === 'Mission' && (e as import('../../domain/entities/Mission').Mission).state === 'Available'
-			);
+			const existingMissions = findAvailableMissions(initialState);
 			if (existingMissions.length === 0) {
 				const testMission = createTestMission({ id: 'test-mission-1', state: 'Available' });
 				initialState.entities.set(testMission.id, testMission);
@@ -287,13 +271,16 @@ describe('Player Journey Integration', () => {
 				createTestCommand('RecruitAdventurer', { name: 'Test', traits: [] })
 			);
 
-			const stateAfterRecruit = manager.getState();
-			const adventurers = Array.from(stateAfterRecruit.entities.values()).filter(e => e.type === 'Adventurer');
-			expect(adventurers.length).toBeGreaterThan(0);
-			// Find the recruited adventurer by name
-			const recruitedAdventurer = adventurers.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Test');
-			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+		const stateAfterRecruit = manager.getState();
+		const allAdventurers = Array.from(stateAfterRecruit.entities.values()).filter(isAdventurer);
+		expect(allAdventurers.length).toBeGreaterThan(0);
+		// Find the recruited adventurer by name
+		const recruitedAdventurer = allAdventurers.find(a => a.metadata.name === 'Test');
+		expect(recruitedAdventurer).toBeDefined();
+		if (!recruitedAdventurer) {
+			throw new Error('Recruited adventurer not found');
+		}
+			const adventurerId = recruitedAdventurer.id;
 
 			// Get an available mission from the mission pool
 			const availableMissions = Array.from(stateAfterRecruit.entities.values()).filter(
@@ -391,7 +378,10 @@ describe('Player Journey Integration', () => {
 			// Find the recruited adventurer by name
 			const recruitedAdventurer = adventurers.find(a => (a as import('../../domain/entities/Adventurer').Adventurer).metadata.name === 'Test');
 			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+			if (!recruitedAdventurer || recruitedAdventurer.type !== 'Adventurer') {
+				throw new Error('Recruited adventurer not found');
+			}
+			const adventurerId = recruitedAdventurer.id;
 
 			// Get an available mission from the mission pool
 			const availableMissions = Array.from(stateAfterRecruit.entities.values()).filter(
@@ -444,10 +434,13 @@ describe('Player Journey Integration', () => {
 			// Find the recruited adventurer by name
 			const recruitedAdventurer = adventurers.find(a => a.metadata.name === 'Test Fighter');
 			expect(recruitedAdventurer).toBeDefined();
-			const adventurerId = recruitedAdventurer!.id;
+			if (!recruitedAdventurer) {
+				throw new Error('Recruited adventurer not found');
+			}
+			const adventurerId = recruitedAdventurer.id;
 
 			// Verify adventurer has roleKey
-			expect(recruitedAdventurer?.attributes.roleKey).toBeDefined();
+			expect(recruitedAdventurer.attributes.roleKey).toBeDefined();
 
 			// Get an available mission from the mission pool
 			const availableMissions = Array.from(stateAfterRecruit.entities.values()).filter(
@@ -469,16 +462,19 @@ describe('Player Journey Integration', () => {
 			expect(mission).toBeDefined();
 
 			// Verify mission has dc (synergy affects roll against DC)
-			expect(mission?.attributes.dc).toBeDefined();
-			expect(typeof mission?.attributes.dc).toBe('number');
+			if (!mission) {
+				throw new Error('Mission not found');
+			}
+			expect(mission.attributes.dc).toBeDefined();
+			expect(typeof mission.attributes.dc).toBe('number');
 
 			// Complete mission to verify synergy was applied
-			const endsAtMs = mission?.timers['endsAt'];
+			const endsAtMs = mission.timers['endsAt'];
 			const elapsed = endsAtMs ? endsAtMs - Date.now() + 1000 : 61000;
 			vi.advanceTimersByTime(elapsed);
 
-			 
-			const tickHandler = (busManager as any).tickBus.handlers.values().next().value;
+			const handlers = busManager.tickBus.getHandlersForTesting();
+			const tickHandler = handlers.values().next().value;
 			if (tickHandler) {
 				await tickHandler(elapsed, new Date(Date.now()));
 			}

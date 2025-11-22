@@ -179,7 +179,8 @@ describe('SetEntityStateEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedFacility = result.entities.get('facility-1') as any;
-		expect(updatedFacility?.state).toBe('Disabled');
+		expect(updatedFacility).toBeDefined();
+		expect(updatedFacility.state).toBe('Disabled');
 	});
 
 	it('should throw error when entity not found', () => {
@@ -201,7 +202,8 @@ describe('SetEntityAttributeEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.attributes.xp).toBe(100);
+		expect(updatedAdventurer).toBeDefined();
+		expect(updatedAdventurer.attributes.xp).toBe(100);
 	});
 
 	it('should set Adventurer level attribute', () => {
@@ -212,7 +214,8 @@ describe('SetEntityAttributeEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.attributes.level).toBe(5);
+		expect(updatedAdventurer).toBeDefined();
+		expect(updatedAdventurer.attributes.level).toBe(5);
 	});
 
 	it('should set Adventurer other attribute (fallback)', () => {
@@ -233,7 +236,8 @@ describe('SetEntityAttributeEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedFacility = result.entities.get('facility-1') as any;
-		expect(updatedFacility?.attributes.tier).toBe(3);
+		expect(updatedFacility).toBeDefined();
+		expect(updatedFacility.attributes.tier).toBe(3);
 	});
 
 	it('should set Facility other attribute (fallback)', () => {
@@ -286,7 +290,8 @@ describe('SetTimerEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.timers.someTimer).toBe(timerValue.value);
+		expect(updatedAdventurer).toBeDefined();
+		expect(updatedAdventurer.timers.someTimer).toBe(timerValue.value);
 	});
 
 	it('should set timer to null', () => {
@@ -298,7 +303,8 @@ describe('SetTimerEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.timers.someTimer).toBeNull();
+		expect(updatedAdventurer).toBeDefined();
+		expect(updatedAdventurer.timers.someTimer).toBeNull();
 	});
 
 	it('should throw error when entity not found', () => {
@@ -320,8 +326,9 @@ describe('AddEntityTagsEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.tags).toContain('undead');
-		expect(updatedAdventurer?.tags).toContain('dungeon');
+		expect(updatedAdventurer).toBeDefined();
+		expect(updatedAdventurer.tags).toContain('undead');
+		expect(updatedAdventurer.tags).toContain('dungeon');
 	});
 
 	it('should not add duplicate tags', () => {
@@ -332,9 +339,10 @@ describe('AddEntityTagsEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		const combatCount = updatedAdventurer?.tags.filter((t: string) => t === 'combat').length;
+		expect(updatedAdventurer).toBeDefined();
+		const combatCount = updatedAdventurer.tags.filter((t: string) => t === 'combat').length;
 		expect(combatCount).toBe(1); // Should not duplicate
-		expect(updatedAdventurer?.tags).toContain('undead');
+		expect(updatedAdventurer.tags).toContain('undead');
 	});
 
 	it('should throw error when entity not found', () => {
@@ -374,9 +382,12 @@ describe('EquipItemEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedItem = result.entities.get('item-1') as Item;
-		expect(updatedItem?.state).toBe('Equipped');
+		expect(updatedItem).toBeDefined();
+		expect(updatedItem.state).toBe('Equipped');
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.attributes.equipment?.weaponId).toBe('item-1');
+		if (updatedAdventurer && updatedAdventurer.attributes.equipment) {
+			expect(updatedAdventurer.attributes.equipment.weaponId).toBe('item-1');
+		}
 	});
 
 	it('should unequip existing item in slot', () => {
@@ -422,9 +433,11 @@ describe('EquipItemEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedExistingItem = result.entities.get('existing-item') as Item;
-		expect(updatedExistingItem?.state).toBe('InArmory');
+		expect(updatedExistingItem).toBeDefined();
+		expect(updatedExistingItem.state).toBe('InArmory');
 		const updatedNewItem = result.entities.get('new-item') as Item;
-		expect(updatedNewItem?.state).toBe('Equipped');
+		expect(updatedNewItem).toBeDefined();
+		expect(updatedNewItem.state).toBe('Equipped');
 	});
 
 	it('should initialize equipment if not exists', () => {
@@ -454,7 +467,10 @@ describe('EquipItemEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.attributes.equipment?.weaponId).toBe('item-1');
+		expect(updatedAdventurer).toBeDefined();
+		if (updatedAdventurer.attributes.equipment) {
+			expect(updatedAdventurer.attributes.equipment.weaponId).toBe('item-1');
+		}
 	});
 
 	it('should throw error when item not found', () => {
@@ -520,9 +536,12 @@ describe('UnequipItemEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedItem = result.entities.get('item-1') as Item;
-		expect(updatedItem?.state).toBe('InArmory');
+		expect(updatedItem).toBeDefined();
+		expect(updatedItem.state).toBe('InArmory');
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.attributes.equipment?.weaponId).toBeUndefined();
+		if (updatedAdventurer && updatedAdventurer.attributes.equipment) {
+			expect(updatedAdventurer.attributes.equipment.weaponId).toBeUndefined();
+		}
 	});
 
 	it('should handle item not in Equipped state', () => {
@@ -606,7 +625,8 @@ describe('RepairItemEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedItem = result.entities.get('item-1') as Item;
-		expect(updatedItem?.attributes.durability).toBe(100);
+		expect(updatedItem).toBeDefined();
+		expect(updatedItem.attributes.durability).toBe(100);
 	});
 
 	it('should transition Broken item to InArmory', () => {
@@ -631,7 +651,8 @@ describe('RepairItemEffect', () => {
 		const result = effect.apply(entities, new ResourceBundle(new Map()));
 
 		const updatedItem = result.entities.get('item-1') as Item;
-		expect(updatedItem?.state).toBe('InArmory');
+		expect(updatedItem).toBeDefined();
+		expect(updatedItem.state).toBe('InArmory');
 	});
 });
 
@@ -691,7 +712,9 @@ describe('SalvageItemEffect', () => {
 
 		expect(result.entities.has('item-1')).toBe(false);
 		const updatedAdventurer = result.entities.get('adv-1') as any;
-		expect(updatedAdventurer?.attributes.equipment?.weaponId).toBeUndefined();
+		if (updatedAdventurer && updatedAdventurer.attributes.equipment) {
+			expect(updatedAdventurer.attributes.equipment.weaponId).toBeUndefined();
+		}
 	});
 
 	it('should handle no materials', () => {

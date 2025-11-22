@@ -8,6 +8,7 @@ import { Timestamp } from '../valueObjects/Timestamp';
 import { ResourceBundle } from '../valueObjects/ResourceBundle';
 import { createTestAdventurer, createTestMission } from '../../test-utils/testFactories';
 import type { Entity } from '../primitives/Requirement';
+import { EntityQueryBuilder } from '../queries/EntityQueryBuilder';
 
 describe('GameState', () => {
 	describe('constructor', () => {
@@ -65,7 +66,7 @@ describe('GameState', () => {
 			]);
 			const state = new GameState('player-1', Timestamp.now(), entities);
 
-			const adventurers = state.getEntitiesByType('Adventurer');
+			const adventurers = EntityQueryBuilder.byType('Adventurer')(state);
 
 			expect(adventurers).toHaveLength(2);
 		});
@@ -73,7 +74,7 @@ describe('GameState', () => {
 		it('should return empty array when no entities of type', () => {
 			const state = new GameState('player-1', Timestamp.now());
 
-			const missions = state.getEntitiesByType('Mission');
+			const missions = EntityQueryBuilder.byType('Mission')(state);
 
 			expect(missions).toHaveLength(0);
 		});

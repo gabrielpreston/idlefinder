@@ -32,12 +32,13 @@ export class GameState {
 	/**
 	 * Get entity by ID
 	 */
-	getEntity<T extends Entity>(id: string): T | undefined {
-		return this.entities.get(id) as T | undefined;
+	getEntity(id: string): Entity | undefined {
+		return this.entities.get(id);
 	}
 
 	/**
 	 * Get all entities of a specific type
+	 * @deprecated Use EntityQueryBuilder.byType() instead. This method will be removed in a future version.
 	 */
 	getEntitiesByType<T extends Entity>(type: string): T[] {
 		return Array.from(this.entities.values()).filter(

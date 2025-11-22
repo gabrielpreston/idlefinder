@@ -11,7 +11,7 @@ import { get } from 'svelte/store';
 import { missions, adventurers } from '../../stores/gameState';
 
 describe('UI State Synchronization', () => {
-	beforeEach(async () => {
+	beforeEach(() => {
 		vi.useFakeTimers();
 	});
 

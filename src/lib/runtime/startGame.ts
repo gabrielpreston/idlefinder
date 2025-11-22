@@ -155,7 +155,9 @@ export function startGame(
 			set(busManager.getState());
 		},
 		destroy: () => {
-			unsubscribeFunctions.forEach(fn => fn());
+			unsubscribeFunctions.forEach((fn) => {
+				fn();
+			});
 		}
 	};
 }

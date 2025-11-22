@@ -32,8 +32,8 @@ export function getMaxRosterCapacity(state: GameState): number {
 	// Count unlocked roster capacity gates (base capacity)
 	const rosterCapacityGates = getGatesByType('custom', state)
 		.filter(({ gate, status }) => 
-			gate.metadata?.tags?.includes('roster') && 
-			gate.metadata?.tags?.includes('capacity') &&
+			gate.metadata && gate.metadata.tags && gate.metadata.tags.includes('roster') && 
+			gate.metadata.tags.includes('capacity') &&
 			status.unlocked
 		);
 	
@@ -234,7 +234,7 @@ export function getAdventurerEffectiveStats(adventurer: Adventurer, state: GameS
 		const itemId = equipment[slotKey];
 		if (itemId) {
 			const item = state.entities.get(itemId) as Item | undefined;
-			if (item && item.type === 'Item') {
+			if (item) {
 				// Merge item stats into effective stats
 				effectiveStats = effectiveStats.merge(item.attributes.stats);
 			}

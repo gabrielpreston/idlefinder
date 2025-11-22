@@ -4,7 +4,8 @@
  */
 
 import { GameState } from '../../domain/entities/GameState';
-import type { GameStateDTO, EntityDTO } from '../dto/GameStateDTO';
+import type { GameStateDTO } from '../dto/GameStateDTO';
+import type { EntityDTO } from '../schemas/EntitySchema';
 import { Adventurer } from '../../domain/entities/Adventurer';
 import { Mission } from '../../domain/entities/Mission';
 import { Facility } from '../../domain/entities/Facility';
@@ -19,6 +20,14 @@ import type { MissionAttributes } from '../../domain/attributes/MissionAttribute
 import type { FacilityAttributes } from '../../domain/attributes/FacilityAttributes';
 import type { ResourceSlotAttributes } from '../../domain/attributes/ResourceSlotAttributes';
 import { deriveRoleKey } from '../../domain/attributes/RoleKey';
+import { GameStateDTOSchema } from '../schemas/GameStateSchema';
+import { EntityDTOSchema } from '../schemas/EntitySchema';
+import {
+	AdventurerAttributesSchema,
+	MissionAttributesSchema,
+	FacilityAttributesSchema,
+	ResourceSlotAttributesSchema
+} from '../schemas/EntityAttributeSchemas';
 
 const CURRENT_VERSION = 3; // Version 3: Added ResourceSlot support
 
@@ -56,26 +65,44 @@ export function domainToDTO(gameState: GameState): GameStateDTO {
  * Convert DTO to domain GameState
  */
 export function dtoToDomain(dto: GameStateDTO): GameState {
-	// Handle version migration
+	// Handle version migration before validation
 	if (dto.version !== CURRENT_VERSION) {
 		return migrateDTO(dto);
 	}
 
-	// Validate and provide defaults
+	// Validate DTO structure using Zod
+	const validationResult = GameStateDTOSchema.safeParse(dto);
+	if (!validationResult.success) {
+		// If validation fails, throw error with details
+		const errorMessage = `[Persistence] Invalid GameStateDTO: ${validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
+		throw new Error(errorMessage);
+	}
+
+	// Use validated and normalized DTO
+	const validatedDto = validationResult.data;
+
+	// Validate and deserialize entities
 	const entities = new Map<string, import('../../domain/primitives/Requirement').Entity>();
-	for (const entityDTO of dto.entities || []) {
-		const entity = deserializeEntity(entityDTO);
+	for (const entityDTO of validatedDto.entities) {
+		// Validate individual entity DTO
+		const entityValidationResult = EntityDTOSchema.safeParse(entityDTO);
+		if (!entityValidationResult.success) {
+			// Skip invalid entity but continue processing other entities
+			continue;
+		}
+
+		const entity = deserializeEntity(entityValidationResult.data);
 		if (entity && 'id' in entity) {
 			entities.set(entity.id, entity);
 		}
 	}
 
-	const resources = deserializeResources(dto.resources || { resources: {} });
-	const lastPlayed = dto.lastPlayed
-		? Timestamp.from(Number(dto.lastPlayed)) // Parse string number directly
+	const resources = deserializeResources(validatedDto.resources);
+	const lastPlayed = validatedDto.lastPlayed
+		? Timestamp.from(Number(validatedDto.lastPlayed)) // Parse string number directly
 		: Timestamp.now();
 
-	return new GameState(dto.playerId || 'player-1', lastPlayed, entities, resources);
+	return new GameState(validatedDto.playerId, lastPlayed, entities, resources);
 }
 
 /**
@@ -84,10 +111,16 @@ export function dtoToDomain(dto: GameStateDTO): GameState {
 function serializeAttributes(entity: import('../../domain/primitives/Requirement').Entity): Record<string, unknown> {
 	if (entity.type === 'Adventurer') {
 		const adventurer = entity as Adventurer;
+		// Convert Map to plain object for serialization (Zod expects record, not Map)
+		const abilityModsMap = adventurer.attributes.abilityMods.toMap();
+		const abilityModsRecord: Record<string, number> = {};
+		for (const [key, value] of abilityModsMap.entries()) {
+			abilityModsRecord[key] = value;
+		}
 		return {
 			level: adventurer.attributes.level,
 			xp: adventurer.attributes.xp,
-			abilityMods: adventurer.attributes.abilityMods.toMap(),
+			abilityMods: abilityModsRecord,
 			classKey: adventurer.attributes.classKey,
 			ancestryKey: adventurer.attributes.ancestryKey,
 			traitTags: adventurer.attributes.traitTags,
@@ -133,96 +166,119 @@ function serializeAttributes(entity: import('../../domain/primitives/Requirement
 function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requirement').Entity | null {
 
 	if (dto.type === 'Adventurer') {
-		const classKey = (dto.attributes.classKey as string) || '';
+		// Validate attributes using Zod schema
+		const attributesResult = AdventurerAttributesSchema.safeParse(dto.attributes);
+		const validatedAttributes = attributesResult.success 
+			? attributesResult.data 
+			: AdventurerAttributesSchema.parse({});
+		const classKey = validatedAttributes.classKey || '';
 		const attributes: AdventurerAttributes = {
-			level: (dto.attributes.level as number) || 1,
-			xp: (dto.attributes.xp as number) || 0,
-			abilityMods: NumericStatMap.fromMap(
-				new Map(Object.entries((dto.attributes.abilityMods as Record<string, number>) || {}))
-			),
+			level: validatedAttributes.level,
+			xp: validatedAttributes.xp,
+			abilityMods: NumericStatMap.fromMap(new Map(Object.entries(validatedAttributes.abilityMods))),
 			classKey,
-			ancestryKey: (dto.attributes.ancestryKey as string) || '',
-			traitTags: (dto.attributes.traitTags as string[]) || [],
-			roleKey: (dto.attributes.roleKey as import('../../domain/attributes/RoleKey').RoleKey) || deriveRoleKey(classKey),
-			baseHP: (dto.attributes.baseHP as number) || 10,
-			assignedSlotId: (dto.attributes.assignedSlotId as string | null) || null
+			ancestryKey: validatedAttributes.ancestryKey,
+			traitTags: validatedAttributes.traitTags,
+			roleKey: validatedAttributes.roleKey ? (validatedAttributes.roleKey as import('../../domain/attributes/RoleKey').RoleKey) : deriveRoleKey(classKey),
+			baseHP: validatedAttributes.baseHP,
+			assignedSlotId: validatedAttributes.assignedSlotId
 		};
 		const id = Identifier.from<'AdventurerId'>(dto.id);
-		const timers = deserializeTimers(dto.timers || {});
+		const timers = deserializeTimers(dto.timers);
+		const state = (dto.state as 'Idle' | 'OnMission' | 'AssignedToSlot' | 'Fatigued' | 'Recovering' | 'Dead' | undefined) ?? 'Idle';
 		return new Adventurer(
 			id,
 			attributes,
-			dto.tags || [],
-			(dto.state as 'Idle' | 'OnMission' | 'AssignedToSlot' | 'Fatigued' | 'Recovering' | 'Dead') || 'Idle',
+			dto.tags,
+			state,
 			timers,
-			dto.metadata || {}
+			dto.metadata
 		);
 	} else if (dto.type === 'Mission') {
-		const difficultyTier = (dto.attributes.difficultyTier as 'Easy' | 'Medium' | 'Hard' | 'Legendary') || 'Easy';
-		// Derive DC from difficultyTier if not provided (backward compatibility)
-		const dcMap: Record<string, number> = { Easy: 10, Medium: 15, Hard: 20, Legendary: 25 };
+		// Validate attributes using Zod schema
+		const attributesResult = MissionAttributesSchema.safeParse(dto.attributes);
+		const validatedAttributes = attributesResult.success 
+			? attributesResult.data 
+			: MissionAttributesSchema.parse({});
 		const attributes: MissionAttributes = {
-			missionType: (dto.attributes.missionType as 'combat' | 'exploration' | 'investigation' | 'diplomacy' | 'resource') || 'combat',
-			primaryAbility: (dto.attributes.primaryAbility as 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha') || 'str',
-			dc: (dto.attributes.dc as number) || dcMap[difficultyTier] || 15,
-			difficultyTier,
-			preferredRole: (dto.attributes.preferredRole as import('../../domain/attributes/RoleKey').RoleKey) || undefined,
-			baseDuration: Duration.ofSeconds((dto.attributes.baseDuration as number) || 60),
-			baseRewards: (dto.attributes.baseRewards as { gold: number; xp: number; fame?: number }) || {
-				gold: 0,
-				xp: 0
-			},
-			maxPartySize: (dto.attributes.maxPartySize as number) || 1
+			missionType: validatedAttributes.missionType,
+			primaryAbility: validatedAttributes.primaryAbility,
+			dc: validatedAttributes.dc,
+			difficultyTier: validatedAttributes.difficultyTier,
+			preferredRole: validatedAttributes.preferredRole as import('../../domain/attributes/RoleKey').RoleKey | undefined,
+			baseDuration: Duration.ofSeconds(validatedAttributes.baseDuration / 1000), // Convert from milliseconds
+			baseRewards: validatedAttributes.baseRewards,
+			maxPartySize: validatedAttributes.maxPartySize
 		};
 		const id = Identifier.from<'MissionId'>(dto.id);
-		const timers = deserializeTimers(dto.timers || {});
+		const timers = deserializeTimers(dto.timers);
+		const state = (dto.state as 'Available' | 'InProgress' | 'Completed' | 'Expired' | undefined) ?? 'Available';
 		return new Mission(
 			id,
 			attributes,
-			dto.tags || [],
-			(dto.state as 'Available' | 'InProgress' | 'Completed' | 'Expired') || 'Available',
+			dto.tags,
+			state,
 			timers,
-			dto.metadata || {}
+			dto.metadata
 		);
 	} else if (dto.type === 'Facility') {
+		// Validate attributes using Zod schema
+		const attributesResult = FacilityAttributesSchema.safeParse(dto.attributes);
+		if (!attributesResult.success) {
+			console.warn(`[Persistence] Invalid Facility attributes: ${attributesResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
+		}
+		const validatedAttributes = attributesResult.success 
+			? attributesResult.data 
+			: FacilityAttributesSchema.parse({});
 		const attributes: FacilityAttributes = {
-			facilityType: (dto.attributes.facilityType as 'Guildhall' | 'Dormitory' | 'MissionCommand' | 'TrainingGrounds' | 'ResourceDepot') || 'Guildhall',
-			tier: (dto.attributes.tier as number) || 1,
-			baseCapacity: (dto.attributes.baseCapacity as number) || 1,
-			bonusMultipliers: (dto.attributes.bonusMultipliers as {
-				xp?: number;
-				resourceGen?: number;
-				missionSlots?: number;
-			}) || {}
+			facilityType: validatedAttributes.facilityType,
+			tier: validatedAttributes.tier,
+			baseCapacity: validatedAttributes.baseCapacity,
+			bonusMultipliers: validatedAttributes.bonusMultipliers
 		};
 		const id = Identifier.from<'FacilityId'>(dto.id);
-		const timers = deserializeTimers(dto.timers || {});
+		const timers = deserializeTimers(dto.timers);
+		const state = (dto.state as 'Online' | 'UnderConstruction' | 'Disabled' | undefined) ?? 'Online';
 		return new Facility(
 			id,
 			attributes,
-			dto.tags || [],
-			(dto.state as 'Online' | 'UnderConstruction' | 'Disabled') || 'Online',
+			dto.tags,
+			state,
 			timers,
-			dto.metadata || {}
+			dto.metadata
 		);
 	} else if (dto.type === 'ResourceSlot') {
+		// Validate attributes using Zod schema
+		// Handle fractionalAccumulator which might be in metadata
+		const attributesToValidate = {
+			...dto.attributes,
+			fractionalAccumulator: (dto.attributes.fractionalAccumulator as number | undefined) ?? (dto.metadata.fractionalAccumulator as number | undefined) ?? 0
+		};
+		const attributesResult = ResourceSlotAttributesSchema.safeParse(attributesToValidate);
+		if (!attributesResult.success) {
+			console.warn(`[Persistence] Invalid ResourceSlot attributes: ${attributesResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
+		}
+		const validatedAttributes = attributesResult.success 
+			? attributesResult.data 
+			: ResourceSlotAttributesSchema.parse({});
 		const attributes: ResourceSlotAttributes = {
-			facilityId: (dto.attributes.facilityId as string) || '',
-			resourceType: (dto.attributes.resourceType as 'gold' | 'materials' | 'durationModifier') || 'gold',
-			baseRatePerMinute: (dto.attributes.baseRatePerMinute as number) || 6,
-			assigneeType: (dto.attributes.assigneeType as 'player' | 'adventurer' | 'none') || 'none',
-			assigneeId: (dto.attributes.assigneeId as string | null) || null,
-			fractionalAccumulator: (dto.attributes.fractionalAccumulator as number) ?? (dto.metadata?.fractionalAccumulator as number) ?? 0
+			facilityId: validatedAttributes.facilityId,
+			resourceType: validatedAttributes.resourceType,
+			baseRatePerMinute: validatedAttributes.baseRatePerMinute,
+			assigneeType: validatedAttributes.assigneeType,
+			assigneeId: validatedAttributes.assigneeId,
+			fractionalAccumulator: validatedAttributes.fractionalAccumulator
 		};
 		const id = Identifier.from<'SlotId'>(dto.id);
-		const timers = deserializeTimers(dto.timers || {});
+		const timers = deserializeTimers(dto.timers);
+		const state = (dto.state as 'locked' | 'available' | 'occupied' | 'disabled' | undefined) ?? 'available';
 		return new ResourceSlot(
 			id,
 			attributes,
-			dto.tags || [],
-			(dto.state as 'locked' | 'available' | 'occupied' | 'disabled') || 'available',
+			dto.tags,
+			state,
 			timers,
-			dto.metadata || {}
+			dto.metadata
 		);
 	}
 	return null;
@@ -233,7 +289,7 @@ function deserializeEntity(dto: EntityDTO): import('../../domain/primitives/Requ
  */
 function serializeTags(entity: import('../../domain/primitives/Requirement').Entity): string[] {
 	if ('tags' in entity && Array.isArray(entity.tags)) {
-		return [...entity.tags];
+		return (entity.tags as string[]).slice();
 	}
 	return [];
 }
@@ -242,10 +298,8 @@ function serializeTags(entity: import('../../domain/primitives/Requirement').Ent
  * Serialize state
  */
 function serializeState(entity: import('../../domain/primitives/Requirement').Entity): string {
-	if ('state' in entity && typeof entity.state === 'string') {
-		return entity.state;
-	}
-	return '';
+	// All concrete entities have state property, but base Entity interface doesn't guarantee it
+	return (entity as { state?: string }).state ?? '';
 }
 
 /**
@@ -257,7 +311,7 @@ function serializeTimers(entity: import('../../domain/primitives/Requirement').E
 	if ('timers' in entity && typeof entity.timers === 'object' && entity.timers !== null) {
 		const timersRecord = entity.timers as Record<string, number | null>;
 		for (const [key, value] of Object.entries(timersRecord)) {
-			if (value !== null && value !== undefined && typeof value === 'number') {
+			if (value !== null && typeof value === 'number') {
 				timers[key] = value;
 			}
 		}
@@ -304,7 +358,8 @@ function serializeResources(resources: ResourceBundle): Record<string, number> {
  */
 function deserializeResources(resourcesDTO: { resources: Record<string, number> }): ResourceBundle {
 	const resourceMap = new Map<string, number>();
-	for (const [resourceType, amount] of Object.entries(resourcesDTO.resources || {})) {
+	// resources is guaranteed to exist after Zod validation (default: {})
+	for (const [resourceType, amount] of Object.entries(resourcesDTO.resources)) {
 		resourceMap.set(resourceType, amount);
 	}
 	return new ResourceBundle(resourceMap);
@@ -314,7 +369,7 @@ function deserializeResources(resourcesDTO: { resources: Record<string, number> 
  * Migrate DTO from older versions
  */
 function migrateDTO(dto: GameStateDTO): GameState {
-	// For now, just handle version 1 (old PlayerState) migration
+	// For now, just handle version 1 (old GameState format) migration
 	if (dto.version === 1) {
 		// TODO: Implement migration from PlayerStateDTO to GameStateDTO
 		// For now, return empty GameState

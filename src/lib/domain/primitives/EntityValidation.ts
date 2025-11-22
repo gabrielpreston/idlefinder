@@ -3,6 +3,8 @@
  * Provides consistent validation patterns across all entities
  */
 
+import { safeString } from '../../utils/templateLiterals';
+
 /**
  * Validate entity has non-empty ID and type
  * @throws Error if validation fails
@@ -28,7 +30,7 @@ export function validateRange(
 ): void {
 	if (value < min || value > max) {
 		throw new Error(
-			`${fieldName} (${value}) must be between ${min} and ${max}`
+			`${safeString(fieldName)} (${safeString(value)}) must be between ${safeString(min)} and ${safeString(max)}`
 		);
 	}
 }
@@ -39,7 +41,7 @@ export function validateRange(
  */
 export function validateNonNegative(value: number, fieldName: string): void {
 	if (value < 0) {
-		throw new Error(`${fieldName} (${value}) must be non-negative`);
+		throw new Error(`${safeString(fieldName)} (${safeString(value)}) must be non-negative`);
 	}
 }
 

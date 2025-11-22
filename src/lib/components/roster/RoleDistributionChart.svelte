@@ -26,15 +26,15 @@
 				<div class="distribution-item">
 					<div class="role-info">
 						<span class="role-key">{item.roleKey.replace(/_/g, ' ')}</span>
-						<span class="role-count">{item.count}</span>
+						<span class="role-count">{String(item.count)}</span>
 					</div>
 					<div class="role-bar">
 						<div 
 							class="role-bar-fill" 
-							style="width: {item.percentage}%"
+							style="width: {String(item.percentage)}%"
 						></div>
 					</div>
-					<div class="role-percentage">{item.percentage.toFixed(1)}%</div>
+					<div class="role-percentage">{String(item.percentage.toFixed(1))}%</div>
 				</div>
 			{/each}
 		</div>

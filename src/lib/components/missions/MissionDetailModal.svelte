@@ -18,7 +18,7 @@
 		activeTab = 'overview';
 	}
 
-	$: missionName = mission ? ((mission.metadata.name as string) || `Mission ${mission.id.slice(0, 8)}`) : '';
+	$: missionName = mission ? ((mission.metadata.name as string) || `Mission ${String(mission.id.slice(0, 8))}`) : '';
 	$: stateVariant = mission?.state === 'Available' ? 'success' : 
 	                  mission?.state === 'InProgress' ? 'primary' : 
 	                  mission?.state === 'Completed' ? 'default' : 'warning';
@@ -66,7 +66,7 @@
 					</div>
 					<div class="info-row">
 						<span class="info-label">Difficulty:</span>
-						<span class="info-value">{mission.attributes.difficultyTier} (DC {mission.attributes.dc})</span>
+						<span class="info-value">{String(mission.attributes.difficultyTier)} (DC {String(mission.attributes.dc)})</span>
 					</div>
 					<div class="info-row">
 						<span class="info-label">Primary Ability:</span>
@@ -109,10 +109,10 @@
 						{#each assignedAdventurerDetails as adventurer}
 							<div class="adventurer-item">
 								<div class="adventurer-name">
-									{adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${adventurer.id.slice(0, 8)}`}
+									{adventurer.metadata.displayName || adventurer.metadata.name || `Adventurer ${String(adventurer.id.slice(0, 8))}`}
 								</div>
 								<div class="adventurer-details">
-									Level {adventurer.attributes.level} • {adventurer.attributes.roleKey.replace(/_/g, ' ')}
+									Level {String(adventurer.attributes.level)} • {adventurer.attributes.roleKey.replace(/_/g, ' ')}
 								</div>
 							</div>
 						{/each}
@@ -128,22 +128,22 @@
 					<div class="rewards-grid">
 						<div class="reward-item">
 							<span class="reward-label">Gold:</span>
-							<span class="reward-value">{mission.attributes.baseRewards.gold}</span>
+							<span class="reward-value">{String(mission.attributes.baseRewards.gold)}</span>
 						</div>
 						<div class="reward-item">
 							<span class="reward-label">XP:</span>
-							<span class="reward-value">{mission.attributes.baseRewards.xp}</span>
+							<span class="reward-value">{String(mission.attributes.baseRewards.xp)}</span>
 						</div>
 						{#if mission.attributes.baseRewards.fame}
 							<div class="reward-item">
 								<span class="reward-label">Fame:</span>
-								<span class="reward-value">{mission.attributes.baseRewards.fame}</span>
+								<span class="reward-value">{String(mission.attributes.baseRewards.fame)}</span>
 							</div>
 						{/if}
 						{#if mission.attributes.baseRewards.materials}
 							<div class="reward-item">
 								<span class="reward-label">Materials:</span>
-								<span class="reward-value">{mission.attributes.baseRewards.materials}</span>
+								<span class="reward-value">{String(mission.attributes.baseRewards.materials)}</span>
 							</div>
 						{/if}
 					</div>

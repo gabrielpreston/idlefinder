@@ -31,7 +31,7 @@ import { GameState } from '../entities/GameState';
 export interface StartMissionParams {
 	missionId: string;
 	adventurerId: string;
-	startedAt: Timestamp;
+	startedAt?: Timestamp;
 }
 
 /**
@@ -63,13 +63,11 @@ export class StartMissionAction extends Action {
 		params: Record<string, unknown>
 	): Effect[] {
 		const startParams = params as unknown as StartMissionParams;
-		const startedAt = startParams?.startedAt || context.currentTime;
+		const startedAt = startParams.startedAt ?? context.currentTime;
 
 		// Get mission to compute endsAt
+		// Mission existence is guaranteed by requirements check
 		const mission = context.entities.get(this.missionId) as Mission;
-		if (!mission) {
-			throw new Error(`Mission ${this.missionId} not found`);
-		}
 
 		// Get adventurer for modifier calculation
 		const adventurer = context.entities.get(this.adventurerId) as Adventurer | undefined;
@@ -108,18 +106,26 @@ export class StartMissionAction extends Action {
 		params: Record<string, unknown>
 	): DomainEvent[] {
 		const startParams = params as unknown as StartMissionParams;
-		const mission = entities.get(this.missionId) as Mission;
-		const adventurer = entities.get(this.adventurerId) as Adventurer;
+		const mission = entities.get(this.missionId) as Mission | undefined;
+		const adventurer = entities.get(this.adventurerId) as Adventurer | undefined;
 
 		if (!mission || !adventurer) {
 			return [];
 		}
 
-		const startedAt = startParams.startedAt;
+		// Get startedAt from params or from mission timer
+		const startedAt = startParams.startedAt ?? getTimer(mission, 'startedAt');
 		const endsAt = getTimer(mission, 'endsAt');
-		const duration = endsAt && startedAt
+		
+		// Calculate duration
+		const duration = (startedAt && endsAt)
 			? Duration.between(startedAt, endsAt).toMilliseconds()
 			: mission.attributes.baseDuration.toMilliseconds();
+
+		// Use startedAt if available, otherwise use current time
+		const startTime = startedAt
+			? startedAt.value.toString()
+			: new Date().toISOString();
 
 		return [
 			{
@@ -127,7 +133,7 @@ export class StartMissionAction extends Action {
 				payload: {
 					missionId: this.missionId,
 					adventurerIds: [this.adventurerId],
-					startTime: startedAt ? startedAt.value.toString() : new Date().toISOString(),
+					startTime,
 					duration
 				},
 				timestamp: new Date().toISOString()

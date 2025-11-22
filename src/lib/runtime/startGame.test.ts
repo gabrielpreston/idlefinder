@@ -112,7 +112,10 @@ describe('startGame', () => {
 				(e) => e.type === 'Facility' && (e as any).attributes.facilityType === 'Guildhall'
 			);
 			expect(initialGuildhall).toBeDefined();
-			const guildhallId = initialGuildhall!.id;
+			if (!initialGuildhall) {
+				throw new Error('Guildhall not found');
+			}
+			const guildhallId = initialGuildhall.id;
 
 			// Upgrade the Guildhall to tier 1 first (if not already)
 			const entities = new Map(baseState.entities);

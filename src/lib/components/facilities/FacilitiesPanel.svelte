@@ -58,12 +58,12 @@
 	<ErrorMessage message={$error} />
 
 	<div class="capacity-summary">
-		<h3>Mission Slots: {$missionSlotCapacity.current} / {$missionSlotCapacity.max}</h3>
+		<h3>Mission Slots: {String($missionSlotCapacity.current)} / {String($missionSlotCapacity.max)}</h3>
 		<div class="capacity-bar">
-			<div class="capacity-bar-fill" style="width: {($missionSlotCapacity.max > 0 ? ($missionSlotCapacity.current / $missionSlotCapacity.max) : 0) * 100}%"></div>
+			<div class="capacity-bar-fill" style="width: {String(($missionSlotCapacity.max > 0 ? ($missionSlotCapacity.current / $missionSlotCapacity.max) : 0) * 100)}%"></div>
 		</div>
 		{#if $missionSlotCapacity.available > 0}
-			<div class="capacity-available">{$missionSlotCapacity.available} slot{$missionSlotCapacity.available === 1 ? '' : 's'} available</div>
+			<div class="capacity-available">{String($missionSlotCapacity.available)} slot{$missionSlotCapacity.available === 1 ? '' : 's'} available</div>
 		{:else}
 			<div class="capacity-full">All slots in use</div>
 		{/if}
@@ -74,7 +74,7 @@
 			<div class="facility-card">
 				<h3>{facility.metadata.displayName || facility.attributes.facilityType}</h3>
 				<div class="facility-info">
-					<div>Tier: {facility.attributes.tier}</div>
+					<div>Tier: {String(facility.attributes.tier)}</div>
 					<div>State: {facility.state}</div>
 				</div>
 				{#if facility.attributes.facilityType === 'Guildhall' || facility.attributes.facilityType === 'MissionCommand'}
@@ -85,7 +85,7 @@
 						{#if $canUpgradeGuildHallState && $guildHallUpgradeCost}
 							<div class="upgrade-section">
 								<div class="upgrade-cost">
-									Upgrade Cost: {$guildHallUpgradeCost.get('gold')} gold
+									Upgrade Cost: {String($guildHallUpgradeCost.get('gold') ?? 0)} gold
 								</div>
 								<button 
 									class="upgrade-button"
@@ -94,14 +94,14 @@
 									{#if facility.attributes.tier === 0}
 										Repair Guild Hall (Tier 0 → 1)
 									{:else}
-										Upgrade to Tier {facility.attributes.tier + 1}
+										Upgrade to Tier {String(facility.attributes.tier + 1)}
 									{/if}
 								</button>
 							</div>
 						{:else if facility.attributes.tier === 0 && $guildHallUpgradeCost}
 							<div class="upgrade-section">
 								<div class="upgrade-cost">
-									Upgrade Cost: {$guildHallUpgradeCost.get('gold')} gold
+									Upgrade Cost: {String($guildHallUpgradeCost.get('gold') ?? 0)} gold
 								</div>
 								<button 
 									class="upgrade-button"
@@ -127,7 +127,7 @@
 				</div>
 				<div class="construction-section">
 					<div class="construction-cost">
-						Cost: {getConstructionCost(facilityType)} gold
+						Cost: {String(getConstructionCost(facilityType))} gold
 						{#if !canAffordConstruction(facilityType)}
 							<span class="insufficient-funds">(Insufficient gold)</span>
 						{/if}

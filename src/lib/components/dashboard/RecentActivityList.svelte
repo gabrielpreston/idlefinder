@@ -12,7 +12,7 @@
 		<h4>Recent Activity</h4>
 		<div class="recent-missions">
 			{#each missions.slice(0, maxItems) as mission (mission.id)}
-				{@const missionName = (mission.metadata.name as string) || `Mission ${mission.id.slice(0, 8)}`}
+				{@const missionName = (mission.metadata.name as string) || `Mission ${String(mission.id.slice(0, 8))}`}
 				{@const completedAt = mission.timers['completedAt'] ? new Date(mission.timers['completedAt']).toLocaleString() : 'Unknown'}
 				<div 
 					class="recent-mission-item" 
